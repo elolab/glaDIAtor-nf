@@ -103,8 +103,8 @@ WORKDIR /src/release_5-2-0
 COPY tpp-5.2-fix.diff /root/
 RUN wget https://sourceforge.net/projects/comet-ms/files/comet_2019015.zip
 RUN svn checkout svn://svn.code.sf.net/p/comet-ms/code/tags/release_2019015 comet-ms-code && \
-    cd comet-ms-code &&
-    zip -r comet_source_2019015.zip . &&
+    cd comet-ms-code && \
+    zip -r comet_source_2019015.zip . && \
     mv comet_source_2019015.zip ../extern/
 RUN cat /root/tpp-5.2-fix.diff |patch -p1
 RUN make libgd
@@ -187,10 +187,6 @@ WORKDIR /
 # RUN ln -s /wineprefix64/ /root/.wine
 # RUN apt -y install xvfb
 # RUN apt -y install winetricks
-
-ENV PATH=${PATH}:/ThermoRawFileParser
-COPY install-ThermoRawFileParser.sh /root
-RUN chmod u+x /root/install-ThermoRawFileParser.sh
 
 WORKDIR /workdir
 ENV PYTHONPATH=/opt/gladiator:/opt/gladiator/UI
