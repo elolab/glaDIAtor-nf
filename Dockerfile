@@ -162,7 +162,7 @@ RUN ln -s v2.1.3/DIA_Umpire_SE.jar DIA_Umpire_SE.jar
 
 ## Fetch gladiator and install needed R-packages
 RUN mkdir /opt/gladiator
-COPY comet_settings_template.xml xtandem_settings_template.xml gladiator.py install-R-packages.R iRTAssayLibrary.TraML iRT.txt diaumpire-params-template.txt swaths2stats.R /opt/gladiator/
+COPY comet_settings_template.xml xtandem_settings_template.xml install-R-packages.R iRTAssayLibrary.TraML iRT.txt diaumpire-params-template.txt swaths2stats.R /opt/gladiator/
 RUN mkdir /.Rcache
 RUN mkdir /opt/Rlibs/
 RUN chmod u+x /opt/gladiator/install-R-packages.R
@@ -188,6 +188,8 @@ WORKDIR /
 # RUN apt -y install xvfb
 # RUN apt -y install winetricks
 
+# we put this last for quicker development cycle
+COPY gladiator.py rawconverterhandler.py workflow.py /opt/gladiator/
 WORKDIR /workdir
 ENV PYTHONPATH=/opt/gladiator:/opt/gladiator/UI
 
