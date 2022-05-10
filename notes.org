@@ -1,0 +1,157 @@
+#+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm"
+#+PROPERTY: header-args:nextflow :tangle "gladiator.nf"
+
+* Analysis
+** Headers
+#+begin_src emacs-lisp :tangle no
+(setq org-babel-tangle-lang-exts
+      (cl-remove-duplicates 
+      (append
+       '(("scheme" . "scm"))
+       org-babel-tangle-lang-exts
+       )
+      :test 'equal))
+#+end_src
+
+#+RESULTS:
+: ((scheme . scm) (python . py) (D . d) (C++ . cpp) (emacs-lisp . el) (elisp . el))
+
+
+#+NAME: gwl-header-block
+#+begin_src scheme :noweb yes
+(define-module (workflow)
+  #:use-module (gwl workflows)
+  #:use-module (gwl processes)
+  #:use-module (gwl utils)
+  #:use-module (gwl sugar))
+
+<<gwl-vars>>
+#+end_src
+
+#+NAME: nf-header-block
+#+begin_src nextflow :noweb yes 
+<<nf-vars>>
+#+end_src
+** building database
+:PROPERTIES:
+:ORDERED:  t
+:END:
+*Overview*
+[[file:glaDIAtor/workflow.py::def build_database(\\][build_database definition]]
+#+NAME: build_database
+#+begin_src dot :output-dir img :file-ext svg
+digraph {
+	cat[shape=box,label="Cat with Bio.SeqIo"]
+	DecoyDatabase[shape=box, ]
+	DB_fasta[style=bold,label="DB.fasta"]
+	DB_with_decoy[style=bold,label="DB_with_decoys.fasta"]
+	all_fasta_files -> cat [label="cannot be parallized"]
+	cat -> DB_fasta -> DecoyDatabase -> DB_with_decoy
+}
+#+end_src
+
+#+RESULTS: build_database
+[[file:img/build_database.svg]]
+
+
+*** Combining Fasta Files
+#+NAME: py-joinfastafiles
+#+begin_src python :tangle no
+from Bio import SeqIO
+def join_fasta_files(input_files, output_file):
+    IDs = set()
+    seqRecords = []
+    for filename in input_files:
+        records = SeqIO.index(filename, "fasta")
+        for ID in records:
+            if ID not in IDs:
+                seqRecords.append(records[ID])
+                IDs.add(ID)
+            else:
+                print("Found duplicated sequence ID " + str(ID) + ", skipping this sequence from file " + filename)
+
+    SeqIO.write(seqRecords, output_file, "fasta")
+#+end_src
+
+#+NAME: nf-joinfastafiles
+#+begin_src nextflow 
+process JoinFastaFiles {
+    input:
+    file fasta_files from fasta_files_ch.collect()
+    output:
+    file 'joined_database.fasta' into joined_fasta_database_ch
+
+    """
+    #!/usr/bin/env python3
+    <<py-joinfastafiles>>
+    join_fasta_files(fasta_files, 'joined_database.fasta')
+    """
+}
+#+end_src
+
+Requires =python= =python-biopython=
+(both in guix)
+
+#+begin_src scheme :noweb yes
+(define (join-fasta-files fasta-files)
+  (make-process
+   (name "join-fasta-files")
+   (synopsis "Join fasta files into one file")
+   (packages '("python" "python-biopython"))
+   (inputs (files fasta-files))
+   (outputs "joined-fasta.fasta")
+   # python
+{
+<<py-joinfastafiles>>
+join_fasta_files({{inputs}}.split(" "),{{outputs}})
+}))
+#+end_src
+#+begin_src scheme :noweb-ref gwl-vars :tangle no
+(define fasta-files
+  '("Q7M135.fasta" "trypsin.fasta"))
+#+end_src
+
+*** Adding Decoys
+
+#+NAME: nf-buildfastadatabase
+#+begin_src nextflow
+process BuildFastaDatabase {
+    input:
+    file fasta_files from fasta_files_ch.collect()
+    output:
+    file 'DB_with_decoys.fasta' into fasta_database_ch
+    """
+    cat $fasta_files > 
+    """
+}
+#+end_src
+=DecoyDatabase= package is from =OpenMs/utils=
+https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/release/latest/html/UTILS_DecoyDatabase.html
+https://github.com/OpenMS/OpenMS.git
+License: BSD-3 clause
+(Not in guix, but uses cmake as build-program,
+should be relatively easy to define)
+  
+#+begin_src nextflow :noweb-ref
+Channel.fromPath('*.fasta').set({fasta_files_ch})
+#+end_src
+
+** Creating interactome
+
+* Putting it together
+** gwl
+#+begin_src scheme
+(make-workflow
+ (name "my-workflow")
+ (processes
+  (auto-connect
+   (list (join-fasta-files fasta-files)))))
+#+end_src
+
+* File local variables
+
+#+begin_src scheme
+;; Local Variables;
+;; compile-command: "guix shell guix guile gwl --with-git-url=gwl=git://git.savannah.gnu.org/gwl.git --with-commit=gwl=e233be5cf0e2f9cb37e3daa299f5031bea56ba71 -- guix workflow run -v10 gwl-gladiator.scm
+;; End:
+#+end_src
