@@ -1,5 +1,6 @@
 #+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm"
 #+PROPERTY: header-args:nextflow :tangle "gladiator.nf"
+#+PROPERTY: header-args:dot :output-dir img :file-ext svg
 
 * Analysis
 ** Headers
@@ -38,8 +39,8 @@
 :END:
 *Overview*
 [[file:glaDIAtor/workflow.py::def build_database(\\][build_database definition]]
-#+NAME: build_database
-#+begin_src dot :output-dir img :file-ext svg
+#+NAME: dot-build-database
+#+begin_src dot 
 digraph {
 	cat[shape=box,label="Cat with Bio.SeqIo"]
 	DecoyDatabase[shape=box, ]
@@ -50,8 +51,8 @@ digraph {
 }
 #+end_src
 
-#+RESULTS: build_database
-[[file:img/build_database.svg]]
+#+RESULTS: dot-build-database
+[[file:img/dot-build-database.svg]]
 
 
 *** Combining Fasta Files
@@ -89,8 +90,9 @@ process JoinFastaFiles {
 }
 #+end_src
 
-Requires =python= =python-biopython=
-(both in guix)
+#+begin_src nextflow :noweb-ref nf-vars
+Channel.fromPath('*.fasta').set({fasta_files_ch})
+#+end_src
 
 #+begin_src scheme :noweb yes
 (define (join-fasta-files fasta-files)
@@ -131,9 +133,30 @@ https://github.com/OpenMS/OpenMS.git
 License: BSD-3 clause
 (Not in guix, but uses cmake as build-program,
 should be relatively easy to define)
-  
-#+begin_src nextflow :noweb-ref
-Channel.fromPath('*.fasta').set({fasta_files_ch})
+** Creating Pseudospectra
+#+NAME: dot-create-pseudospectra
+#+begin_src dot :file-ext svg
+digraph {
+    DIA[label="DIA_1.mzXML"]
+    diaumpire[shape="box",label="java -jar DiaUmpire.jar"]
+    pseudo_spectra[label="libfree/DIA_1.mgs"]
+    diaumpire_cfg[label="diaumpirecfg.txt (singleton)"]
+    pseudo_spectra_mzxml[label="libfree-pseudospectra/DIA_1.mzXML"]
+		   
+    DIA -> diaumpire
+    diaumpire_cfg -> diaumpire
+    diaumpire -> pseudo_spectra -> { msconvert[shape="box"] } -> pseudo_spectra_mzxml
+}
+#+end_src
+
+#+RESULTS: dot-create-pseudospectra
+[[file:img/dot-create-pseudospectra.svg]]
+https://github.com/Nesvilab/DIA-Umpire/tree/master
+
+DIAumpire is =Apache 2= licensed.
+
+#+begin_src nextflow
+process foo 
 #+end_src
 
 ** Creating interactome
