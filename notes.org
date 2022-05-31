@@ -1,7 +1,7 @@
 #+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm"
-#+PROPERTY: header-args:nextflow :tangle "gladiator.nf"
+#+PROPERTY: header-args:nextflow :tangle "gladiator.nf" 
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
-
+#+LINK: gladiator file:../glaDIAtor/%s
 * Analysis
 ** Headers
 #+begin_src emacs-lisp :tangle no
@@ -75,7 +75,7 @@ def join_fasta_files(input_files, output_file):
 #+end_src
 
 #+NAME: nf-joinfastafiles
-#+begin_src nextflow 
+#+begin_src nextflow :noweb yes
 process JoinFastaFiles {
     input:
     file fasta_files from fasta_files_ch.collect()
@@ -90,16 +90,27 @@ process JoinFastaFiles {
 }
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars
-Channel.fromPath('*.fasta').set({fasta_files_ch})
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+params.fastafiles='fasta/*.fasta'
+Channel.fromPath(params.fastafiles).set({fasta_files_ch})
 #+end_src
 
+#+NAME: gwl-joinfastafiles-deps
+#+begin_src scheme :noweb-ref deps :tangle no
+("join-fasta-files"
+ "python"
+ "biopython")
+#+end_src
+
+#+NAME: gwl-joinfastafiles
 #+begin_src scheme :noweb yes
 (define (join-fasta-files fasta-files)
   (make-process
    (name "join-fasta-files")
    (synopsis "Join fasta files into one file")
-   (packages '("python" "python-biopython"))
+   (packages
+    (cdr '
+      <<gwl-joinfastafiles-deps>>))
    (inputs (files fasta-files))
    (outputs "joined-fasta.fasta")
    # python
@@ -108,22 +119,23 @@ Channel.fromPath('*.fasta').set({fasta_files_ch})
 join_fasta_files({{inputs}}.split(" "),{{outputs}})
 }))
 #+end_src
+
 #+begin_src scheme :noweb-ref gwl-vars :tangle no
 (define fasta-files
   '("Q7M135.fasta" "trypsin.fasta"))
 #+end_src
 
 *** Adding Decoys
-
 #+NAME: nf-buildfastadatabase
 #+begin_src nextflow
+fasta_db_with_decoys = Channel.value()
 process BuildFastaDatabase {
     input:
-    file fasta_files from fasta_files_ch.collect()
+    file joined_fasta_db from joined_fasta_database_ch
     output:
-    file 'DB_with_decoys.fasta' into fasta_database_ch
+    file "DB_with_decoys.fasta" into joined_fasta_with_decoys_ch
     """
-    cat $fasta_files > 
+    DecoyDatabase -in $joined_fasta_db -out DB_with_decoys.fasta
     """
 }
 #+end_src
@@ -134,6 +146,7 @@ License: BSD-3 clause
 (Not in guix, but uses cmake as build-program,
 should be relatively easy to define)
 ** Creating Pseudospectra
+[[file:glaDIAtor/workflow.py::def runDiaumpire]]
 #+NAME: dot-create-pseudospectra
 #+begin_src dot :file-ext svg
 digraph {
@@ -154,10 +167,59 @@ digraph {
 https://github.com/Nesvilab/DIA-Umpire/tree/master
 
 DIAumpire is =Apache 2= licensed.
-
 #+begin_src nextflow
-process foo 
+process GeneratePseudoSpectra  {
+    input:
+    file diafile from dia_mzxml_files_for_pseudospectra_ch
+    path diaumpireconfig from params.diaumpireconfig
+        
+    output:
+    file "*.mgf" into pseudospectra_mgf_ch
+
+    '''
+    java -jar DIA_Umpire_SE.jar $diafile $diaumpireconfig
+    '''
+}
+
+process MgsToMzxml {
+    input:
+    file mgf from pseudospectra_mgf_ch
+    output:
+    file "*.mzXML" into pseudospectra_ch
+    
+    '''
+    msconvert $mgf --mzXML 
+    '''
+}
+#+end_src 
+#+begin_src scheme :noweb-ref deps :tangle no 
+("generate-pseudo-spectra"
+ "dia-umpire" 
+ "pwiz") ;; the free one 
 #+end_src
+
+
+though this  might also be done with openms's =FileConverter= ? which is more conventionally build 
+https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/release/latest/html/TOPP_FileConverter.html
+mstools
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+params.diaumpireconfig='diaumpireconfig.txt'
+params.diafiles = "dia/*.mzXML"
+params.ddafiles = "dda/*.mzML"
+
+Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
+dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
+
+(dia_mzxml_files_ch, dia_mzxml_files_for_pseudospectra_ch) =
+  (dda_assisted_p ?
+    [ Channel.fromPath(params.diafiles), Channel.empty() ] :
+    Channel.fromPath(params.diafiles).into(2))
+
+#+end_src 
+As dia will be listened to by two in the case of not dda-assisted,
+we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
+
+
 
 ** Creating interactome
 
@@ -172,9 +234,81 @@ process foo
 #+end_src
 
 * File local variables
+For this file
+
+# Local Variables:
+# compile-command: "cd /data/epouta1/B22003_Elixir_DIA_Nextflow/playground/ && module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf"
+# End:
+
+For the scheme file
 
 #+begin_src scheme
 ;; Local Variables;
 ;; compile-command: "guix shell guix guile gwl --with-git-url=gwl=git://git.savannah.gnu.org/gwl.git --with-commit=gwl=e233be5cf0e2f9cb37e3daa299f5031bea56ba71 -- guix workflow run -v10 gwl-gladiator.scm
 ;; End:
 #+end_src
+For the nextflow file
+#+begin_src nextflow
+// Local Variables:
+// compile-command: "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf"
+// End:
+#+end_src
+
+* COMMENT for editing
+#+begin_src emacs-lisp :tangle no :results none
+(defun set-local-abbrevs (abbrevs)
+  "Add ABBREVS to `local-abbrev-table' and make it buffer local.
+ABBREVS should be a list of abbrevs as passed to `define-abbrev-table'.
+The `local-abbrev-table' will be replaced by a copy with the new abbrevs added,
+so that it is not the same as the abbrev table used in other buffers with the
+same `major-mode'."
+  (let* ((bufname (buffer-name))
+         (prefix (substring (md5 bufname) 0 (length bufname)))
+         (tblsym (intern (concat prefix "-abbrev-table"))))
+    (set tblsym (copy-abbrev-table local-abbrev-table))
+    (dolist (abbrev abbrevs)
+      (define-abbrev (eval tblsym)
+        (cl-first abbrev)
+        (cl-second abbrev)
+        (cl-third abbrev)))
+    (setq-local local-abbrev-table (eval tblsym))))
+(set-local-abbrevs '(
+		     ("nfv"
+		      "#+begin_src nextflow :noweb-ref nf-vars :tangle no\n\n#+end_src"
+		      previous-line)
+		     ("gwv"
+		      "#+begin_src scheme :noweb-ref gwl-vars :tangle no\n\n#+end_src"
+		      previous-line)
+		     ("wfd"
+		      "#+begin_src scheme :noweb-ref deps :tangle no \n\n#+end_src"
+		      previous-line)))
+
+#+end_src
+
+
+#+begin_src emacs-lisp
+(defun gladiator-compile-test ()
+  (interactive)
+  (let ((default-directory (concat (file-remote-p default-directory)
+				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/"))
+	;; dont ask about saving things
+	(compilation-save-buffers-predicate 'ignore))
+    (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf")))
+
+(defun gladiator-tangle-and-compile ()
+  (interactive)
+  (when (buffer-modified-p)
+    (call-interactively 'org-babel-tangle))
+  (gladiator-compile-test))
+
+(use-local-map (copy-keymap org-mode-map))
+(local-set-key (kbd "C-c m") 'gladiator-tangle-and-compile)
+#+end_src
+
+#+RESULTS:
+: gladiator-tangle-and-compile
+
+
+
+
+
