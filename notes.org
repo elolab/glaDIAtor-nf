@@ -1,8 +1,9 @@
 #+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm"
 #+PROPERTY: header-args:nextflow :tangle "gladiator.nf" 
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
+#+TODO: TODO(t) | DONE(d)
 #+LINK: gladiator file:../glaDIAtor/%s
-* Analysis
+* Analysis [0/5]
 ** Headers
 #+begin_src emacs-lisp :tangle no
 (setq org-babel-tangle-lang-exts
@@ -33,10 +34,7 @@
 #+begin_src nextflow :noweb yes 
 <<nf-vars>>
 #+end_src
-** building database
-:PROPERTIES:
-:ORDERED:  t
-:END:
+** TODO building database
 *Overview*
 [[file:glaDIAtor/workflow.py::def build_database(\\][build_database definition]]
 #+NAME: dot-build-database
@@ -85,7 +83,7 @@ process JoinFastaFiles {
     """
     #!/usr/bin/env python3
     <<py-joinfastafiles>>
-    join_fasta_files(fasta_files, 'joined_database.fasta')
+    join_fasta_files("$fasta_files".split(" "), 'joined_database.fasta')
     """
 }
 #+end_src
@@ -109,8 +107,8 @@ Channel.fromPath(params.fastafiles).set({fasta_files_ch})
    (name "join-fasta-files")
    (synopsis "Join fasta files into one file")
    (packages
-    (cdr '
-      <<gwl-joinfastafiles-deps>>))
+    (cdr (quote
+      <<gwl-joinfastafiles-deps>>)))
    (inputs (files fasta-files))
    (outputs "joined-fasta.fasta")
    # python
@@ -125,6 +123,9 @@ join_fasta_files({{inputs}}.split(" "),{{outputs}})
   '("Q7M135.fasta" "trypsin.fasta"))
 #+end_src
 
+#+begin_src scheme :noweb-ref gwl-proc :tangle no
+(join-fasta-files fasta-files)
+#+end_src
 *** Adding Decoys
 #+NAME: nf-buildfastadatabase
 #+begin_src nextflow
@@ -145,7 +146,25 @@ https://github.com/OpenMS/OpenMS.git
 License: BSD-3 clause
 (Not in guix, but uses cmake as build-program,
 should be relatively easy to define)
-** Creating Pseudospectra
+#+NAME: gwl-buildfastadatabase
+#+begin_src scheme 
+(define create-database-with-decoys
+  (make-process
+   (name "create-database-with-database")
+   (synopsis "Add decoys to fasta database")
+   (inputs "joined-fasta.fasta")
+   (outputs "DB-with-decoys.fasta")
+   (packages )
+   # sh
+     {
+      DecoyDatabase -in $inputs -out $outputs
+		    })))
+#+end_src
+
+#+begin_src scheme :noweb-ref gwl-proc :tangle no
+create-database-with-decoys
+#+end_src
+** TODO Creating Pseudospectra
 [[file:glaDIAtor/workflow.py::def runDiaumpire]]
 #+NAME: dot-create-pseudospectra
 #+begin_src dot :file-ext svg
@@ -167,18 +186,102 @@ digraph {
 https://github.com/Nesvilab/DIA-Umpire/tree/master
 
 DIAumpire is =Apache 2= licensed.
+#+NAME: diaumpireconfig
+#+begin_src conf :eval no :tangle diaumpireconfig.txt 
+#Number of threads
+# set to the number of cores available
+# In the original gladiator, this was set by replicing this all caps 
+Thread = 4
+
+#Precursor-fragments grouping parameters
+RPmax = 25
+RFmax = 300
+CorrThreshold = 0.2
+DeltaApex = 0.6
+RTOverlap = 0.3
+
+#Fragment intensity adjustments
+# change BoostComplementaryIon if later using database search results to build libraries for Skyline/OpenSWATH
+AdjustFragIntensity = true
+BoostComplementaryIon = true
+
+#Export detected MS1 features (output feature file can be loaded and mapped to RAW data in BatMass)
+ExportPrecursorPeak = false
+
+#Signal extraction: mass accuracy and resolution
+# resolution parameter matters only for data generated in profile mode
+SE.MS1PPM = 15
+SE.MS2PPM = 25
+SE.Resolution = 60000
+
+#Signal extraction: signal to noise filter
+SE.SN = 1.1
+SE.MS2SN = 1.1
+
+#Signal extraction: minimum signal intensity filter
+# for Thermo data, filtering is usually not necessary. Set SE.EstimateBG to false and SE.MinMSIntensity and SE.MinMSMSIntensity to a low value, e.g. 1
+# for older Q Exactive data, or when too many MS1 features are extracted, set SE.EstimateBG to yes (or apply SE.MinMSIntensity and SE.MinMSMSIntensity values based on BatMass visualization)
+SE.EstimateBG = false
+SE.MinMSIntensity = 1
+SE.MinMSMSIntensity = 1
+
+#Signal extraction: peak curve detection and isotope grouping
+# for older Q Exactive data, or when too many MS1 features are extracted, set SE.NoMissedScan to 1
+SE.NoMissedScan = 2
+SE.MaxCurveRTRange = 2
+SE.RemoveGroupedPeaks = true
+SE.RemoveGroupedPeaksRTOverlap = 0.3
+SE.RemoveGroupedPeaksCorr = 0.3
+SE.MinNoPeakCluster = 2
+SE.MaxNoPeakCluster = 4
+
+#Signal extraction: filtering of MS1 features 
+# if interested in modified peptides, increase MassDefectOffset parameter, or set SE.MassDefectFilter to false
+SE.IsoPattern = 0.3
+SE.MassDefectFilter = true
+SE.MassDefectOffset = 0.1
+
+#Signal extraction: other 
+SE.StartCharge = 1
+SE.EndCharge = 5
+SE.MS2StartCharge = 2
+SE.MS2EndCharge = 5
+SE.MinFrag=10
+SE.StartRT = 0
+SE.EndRT = 9999
+SE.MinMZ = 200
+SE.MinPrecursorMass = 600
+SE.MaxPrecursorMass = 5000
+
+
+#Isolation window setting
+#The current version supports the following window type: SWATH (fixed window size), V_SWATH (variable SWATH window), MSX, MSE, pSMART
+WindowType=SWATH
+
+#Fix window size (For SWATH)
+# for Thermo data, this will be determined from raw data automatically
+#WindowSize=15
+
+#Variable SWATH window setting (start m/z, end m/z, separated by Tab)
+# for Thermo data, this will be determined from raw data automatically
+
+#==window setting begin
+#==window setting end
+#+end_src
+MGF = Mascot Generic Format
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518119/
 #+begin_src nextflow
 process GeneratePseudoSpectra  {
     input:
-    file diafile from dia_mzxml_files_for_pseudospectra_ch
-    path diaumpireconfig from params.diaumpireconfig
+    file diafile from dia_mzml_files_for_pseudospectra_ch
+    path diaumpireconfig from diaumpireconfig_ch.first()
         
     output:
     file "*.mgf" into pseudospectra_mgf_ch
 
-    '''
-    java -jar DIA_Umpire_SE.jar $diafile $diaumpireconfig
-    '''
+    """
+    java -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
+    """
 }
 
 process MgsToMzxml {
@@ -187,9 +290,9 @@ process MgsToMzxml {
     output:
     file "*.mzXML" into pseudospectra_ch
     
-    '''
+    """
     msconvert $mgf --mzXML 
-    '''
+    """
 }
 #+end_src 
 #+begin_src scheme :noweb-ref deps :tangle no 
@@ -204,13 +307,15 @@ https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/rele
 mstools
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 params.diaumpireconfig='diaumpireconfig.txt'
-params.diafiles = "dia/*.mzXML"
-params.ddafiles = "dda/*.mzML"
-
+params.diafiles = "DIA/*.mzML"
+params.ddafiles = "DDA/*.mzXML"
+// so that this is a singleton channel
+diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
-dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
+// dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
+dda_assisted_p = false
 
-(dia_mzxml_files_ch, dia_mzxml_files_for_pseudospectra_ch) =
+(dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
     [ Channel.fromPath(params.diafiles), Channel.empty() ] :
     Channel.fromPath(params.diafiles).into(2))
@@ -219,18 +324,56 @@ dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
 As dia will be listened to by two in the case of not dda-assisted,
 we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
 
+** TODO Creating Swath window files
+:PROPERTIES:
+:ID:       1469cbd6-2fe8-4919-8808-85f17dfee228
+:END:
+[[file:glaDIAtor/workflow.py::def create_swath_window_files]]
+outputs files ~swath-windows.txt~,
+~truncated-swath-windows.txt~
 
+** TODO Creating interactome [0/4]
+*** TODO Comet 
+:LOGBOOK:
+- State "TODO"       from              [2022-06-06 Mon 09:56]
+:END:
+file:glaDIAtor/UI/ui/__init__.py::workflow.runComet
+[[file:glaDIAtor/workflow.py::def runComet]]
+*** TODO Xtandem
+:LOGBOOK:
+- State "TODO"       from              [2022-06-06 Mon 09:56]
+:END:
+[[file:glaDIAtor/UI/ui/__init__.py::workflow.runXTandem]]
+[[file:glaDIAtor/workflow.py::def runXTandem]]
 
-** Creating interactome
+*** TODO Joining Comet & Xtandem
+[[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
+[[file:glaDIAtor/workflow.py::def combine_search_engine_results]]
+*** TODO Building Specral Library
+
+[[file:glaDIAtor/UI/ui/__init__.py::workflow.buildlib(]]
+Inputs from [[*Creating Swath window files][Creating Swath window files]]
+
+http://www.openswath.org/en/latest/docs/openswath.html
+
+** TODO Building Dia Matrix
 
 * Putting it together
 ** gwl
-#+begin_src scheme
+#+begin_src scheme :noweb yes
 (make-workflow
  (name "my-workflow")
  (processes
   (auto-connect
-   (list (join-fasta-files fasta-files)))))
+   (list
+    <<gwl-proc>>
+    ))))
+#+end_src
+** nf
+#+begin_src nextflow :tangle nextflow.config
+singularity.autoMounts = true
+process.container="file://../gladiator/gladiator-images/gladiatorserver.simg"
+singularity.enabled = true
 #+end_src
 
 * File local variables
@@ -254,7 +397,20 @@ For the nextflow file
 // End:
 #+end_src
 
+
+* Note
+:LOGBOOK:
+- State "TODO"       from              [2022-06-03 Fri 15:52]
+:END:
+Pyprophet calling convention altered after v2.1.0,
+check what changed
+so can't literally copy invocation from =workflow.py=.
+(S. said)
 * COMMENT for editing
+To make the file links work,
+=git clone= gladiator here.
+(Maybe i'll put gladiator as a git submodule?)
+
 #+begin_src emacs-lisp :tangle no :results none
 (defun set-local-abbrevs (abbrevs)
   "Add ABBREVS to `local-abbrev-table' and make it buffer local.
@@ -273,16 +429,22 @@ same `major-mode'."
         (cl-third abbrev)))
     (setq-local local-abbrev-table (eval tblsym))))
 (set-local-abbrevs '(
-		     ("nfv"
+		     ("nfv" ;;variables
 		      "#+begin_src nextflow :noweb-ref nf-vars :tangle no\n\n#+end_src"
 		      previous-line)
-		     ("gwv"
+		     ("nfp" ;; params file
+		      "#+begin_src nextflow :noweb-ref nf-params :tangle no\n\n#+end_src"
+		      
+
+		     ("gwv" ;; variables
 		      "#+begin_src scheme :noweb-ref gwl-vars :tangle no\n\n#+end_src"
+		      previous-line)
+		     ("gwp" ;; processes to be autoconnected
+		      "#+begin_src scheme :noweb-ref gwl-proc :tangle no\n\n#+end_src"
 		      previous-line)
 		     ("wfd"
 		      "#+begin_src scheme :noweb-ref deps :tangle no \n\n#+end_src"
 		      previous-line)))
-
 #+end_src
 
 
@@ -294,11 +456,10 @@ same `major-mode'."
 	;; dont ask about saving things
 	(compilation-save-buffers-predicate 'ignore))
     (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf")))
-
+;; -process.container='file://../gladiator/gladiator.simg' -with-singularity -main-script gladiator
 (defun gladiator-tangle-and-compile ()
   (interactive)
-  (when (buffer-modified-p)
-    (call-interactively 'org-babel-tangle))
+  (call-interactively 'org-babel-tangle)
   (gladiator-compile-test))
 
 (use-local-map (copy-keymap org-mode-map))
