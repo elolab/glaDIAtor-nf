@@ -188,8 +188,18 @@ WORKDIR /
 # RUN apt -y install xvfb
 # RUN apt -y install winetricks
 
+# libqt5 (used by openms's DecoyDatabase) uses renameat2
+# This will result in ImportError: libQt5Core.so.5: cannot open shared object file: No such file or directory
+# the following fixes it 
+# https://stackoverflow.com/a/68897099
+# TODO: I have to move this to the apt section after i'm done devving.
+RUN strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+
 # we put this last for quicker development cycle
-COPY gladiator.py rawconverterhandler.py workflow.py /opt/gladiator/
+COPY UI/ /opt/gladiator/UI/
+COPY gladiator.py rawconverterhandler.py workflow.py progress.py annotation.py annotateSwath2stats.py /opt/gladiator/
+ENV PYTHONPATH=/opt/gladiator:/opt/gladiator/UI/
+WORKDIR /opt/gladiator/UI/
+RUN pip3 install .
 WORKDIR /workdir
-ENV PYTHONPATH=/opt/gladiator:/opt/gladiator/UI
 
