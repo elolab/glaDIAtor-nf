@@ -87,12 +87,6 @@ RUN locale-gen en_US.UTF-8 en fi_FI.UTF-8
 RUN mkdir /src
 
 
-# INSTALL PYPROPHET
-RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-RUN python2 get-pip.py
-#RUN pip install numpy
-RUN pip3 install pyprophet
-
 # INSTALL TPP
 RUN mkdir -p /opt/tpp/
 RUN mkdir /opt/tpp-data
@@ -195,11 +189,21 @@ WORKDIR /
 # TODO: I have to move this to the apt section after i'm done devving.
 RUN strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
 
+# INSTALL PYPROPHET
+WORKDIR /tmp/
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh -O miniconda3.sh
+RUN chmod +x miniconda3.sh
+# install conda  in /opt/conda, -b flag is for batch, 
+RUN ./miniconda3.sh -b -p /opt/conda/
+RUN /opt/conda/bin/conda create --quiet --yes --prefix=/opt/pyprophet  --channel=bioconda/label/cf201901 pyprophet
+
 # we put this last for quicker development cycle
 COPY UI/ /opt/gladiator/UI/
 COPY gladiator.py rawconverterhandler.py workflow.py progress.py annotation.py annotateSwath2stats.py /opt/gladiator/
 ENV PYTHONPATH=/opt/gladiator:/opt/gladiator/UI/
 WORKDIR /opt/gladiator/UI/
+COPY ./gladiator-js-deps/ /opt/gladiator/UI/ui/assets/
 RUN pip3 install .
+
 WORKDIR /workdir
 
