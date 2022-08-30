@@ -3,7 +3,21 @@
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
 #+TODO: TODO(t) | DONE(d)
 #+LINK: gladiator file:../glaDIAtor/%s
-* Analysis [0/5]
+* Preprocessing Data
+This will not be in the main pipeline
+** Picking Peaks
+#+begin_src sh 
+mkdir -p MZXML-pwiz
+for f in RAW/*.wiff; do
+    wine qtofpeakpicker --resolution=2000 --area=1 --threshold=1 --smoothwidth=1.1 --in $f --out MZXML-pwiz/$(basename --suffix=.wiff $f).mzXML
+done
+#+end_src
+** Converting Dia Raw with Msconvert
+#+begin_src sh
+mkdir -p MZML-pwiz
+find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
+#+end_src
+* Analysis [3/5]
 ** Headers
 #+begin_src emacs-lisp :tangle no
 (setq org-babel-tangle-lang-exts
@@ -34,7 +48,7 @@
 #+begin_src nextflow :noweb yes 
 <<nf-vars>>
 #+end_src
-** TODO building database
+** DONE building database
 *Overview*
 [[file:glaDIAtor/workflow.py::def build_database(\\][build_database definition]]
 #+NAME: dot-build-database
@@ -164,7 +178,10 @@ should be relatively easy to define)
 #+begin_src scheme :noweb-ref gwl-proc :tangle no
 create-database-with-decoys
 #+end_src
-** TODO Creating Pseudospectra
+** DONE Creating Pseudospectra
+:LOGBOOK:
+CLOCK: [2022-06-07 Tue 10:33]--[2022-06-07 Tue 19:38] =>  9:05
+:END:
 [[file:glaDIAtor/workflow.py::def runDiaumpire]]
 #+NAME: dot-create-pseudospectra
 #+begin_src dot :file-ext svg
@@ -271,30 +288,46 @@ WindowType=SWATH
 MGF = Mascot Generic Format
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518119/
 #+begin_src nextflow
-process GeneratePseudoSpectra  {
+// create mzxml
+process MzmlToMzxml {
     input:
     file diafile from dia_mzml_files_for_pseudospectra_ch
-    path diaumpireconfig from diaumpireconfig_ch.first()
-        
     output:
-    file "*.mgf" into pseudospectra_mgf_ch
+    file "*.mzXML" into dia_mzxml_files_for_pseudospectra_ch
+    """
+    msconvert $diafile --32 --zlib --filter "peakPicking false 1-" --mzXML
+    """
+        
+}
+
+process GeneratePseudoSpectra  {
+    memory '16 GB'
+    input:
+    file diafile from dia_mzxml_files_for_pseudospectra_ch
+    path diaumpireconfig from diaumpireconfig_ch.first()
+    output:
+    // we flatten here becuase a single mzxml might result in multiple mgf files
+    file "*.mgf" into pseudospectra_mgf_ch mode flatten 
 
     """
-    java -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
+    # we set \$1 to the number of gigs of memory
+    set -- $task.memory
+    java -Xmx\$1g -Xms\$1g -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
     """
 }
 
-process MgsToMzxml {
+process MgfToMzxml {
     input:
     file mgf from pseudospectra_mgf_ch
     output:
-    file "*.mzXML" into pseudospectra_ch
+    file "*.mzXML" into pseudospectra_ch,pseudospectra_for_comet_ch,pseudospectra_for_xtandem_ch
     
     """
     msconvert $mgf --mzXML 
     """
 }
-#+end_src 
+#+end_src
+
 #+begin_src scheme :noweb-ref deps :tangle no 
 ("generate-pseudo-spectra"
  "dia-umpire" 
@@ -318,13 +351,17 @@ dda_assisted_p = false
 (dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
     [ Channel.fromPath(params.diafiles), Channel.empty() ] :
-    Channel.fromPath(params.diafiles).into(2))
-
+   // take(2) for development short cycle
+  Channel.fromPath(params.diafiles).take(2).into(2)
+  // Channel.fromPath(params.diafiles).into(2)
+)
 #+end_src 
 As dia will be listened to by two in the case of not dda-assisted,
 we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
 
-** TODO Creating Swath window files
+
+
+** DONE Creating Swath window files
 :PROPERTIES:
 :ID:       1469cbd6-2fe8-4919-8808-85f17dfee228
 :END:
@@ -332,31 +369,785 @@ we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operat
 outputs files ~swath-windows.txt~,
 ~truncated-swath-windows.txt~
 
-** TODO Creating interactome [0/4]
+#+NAME: py-makeswathwindows
+#+begin_src python :tangle no
+import xml.etree.ElementTree as ET
+import os
+
+def read_swath_windows(dia_mzML):
+
+    print ("DEBUG: reading_swath_windows: ", dia_mzML)
+    
+    context = ET.iterparse(dia_mzML, events=("start", "end"))
+
+    windows = {}
+    for event, elem in context:
+
+        if event == "end" and elem.tag == '{http://psi.hupo.org/ms/mzml}precursor':
+            il_target = None
+            il_lower = None
+            il_upper = None
+
+            isolationwindow = elem.find('{http://psi.hupo.org/ms/mzml}isolationWindow')
+            for cvParam in isolationwindow.findall('{http://psi.hupo.org/ms/mzml}cvParam'):
+                name = cvParam.get('name')
+                value = cvParam.get('value')
+
+                if (name == 'isolation window target m/z'):
+                    il_target = value
+                elif (name == 'isolation window lower offset'):
+                    il_lower = value
+                elif (name == 'isolation window upper offset'):
+                    il_upper = value
+
+            ionList = elem.find('{http://psi.hupo.org/ms/mzml}selectedIonList')
+           
+            selectedion = ionList.find('{http://psi.hupo.org/ms/mzml}selectedIon')
+
+            if selectedion:
+            
+                for cvParam in selectedion.findall('{http://psi.hupo.org/ms/mzml}cvParam'):
+                    name = cvParam.get('name')
+                    value = cvParam.get('value')
+
+                    if (name == 'selected ion m/z'):
+                        if not il_target:
+                            il_target = value
+                
+            if not il_target in windows:
+                windows[il_target] = (il_lower, il_upper)
+            else:
+                lower, upper = windows[il_target]
+                assert (il_lower == lower)
+                assert (il_upper == upper)
+                return windows
+
+    return windows
+
+def create_swath_window_files(cwd, dia_mzML):
+
+    windows = read_swath_windows(dia_mzML)
+
+    swaths = []
+    for x in windows:
+        target_str = x
+        lower_str, upper_str = windows[x]
+        target = float(target_str)
+        lower = float(lower_str)
+        upper = float(upper_str)
+        assert (lower > 0)
+        assert (upper > 0)
+        swaths.append((target - lower, target + upper))
+        
+    swaths.sort(key=lambda tup: tup[0])
+
+    tswaths = []
+    tswaths.append(swaths[0])
+    for i in range(1, len(swaths)):
+        if swaths[i-1][1] > swaths[i][0]:
+            lower_prev, upper_prev = swaths[i-1]
+            lower, upper = swaths[i]
+            assert (upper_prev < upper)
+            tswaths.append((upper_prev, upper))
+        else:
+            tswaths.append(swaths[i])
+
+    assert (len(swaths) == len(tswaths))
+    # here we use chr(10) (equivalent to slash n), and chr(9) (equivalent to slash t)  because i dont wanna deal with nextflow headaches
+    newline_character = chr(10)
+    tab_character = chr(9)
+    with open(os.path.join(cwd, "swath-windows.txt"), "w") as fh_swaths, open(os.path.join(cwd, "truncated-swath-windows.txt"), "w") as fh_tswaths:
+
+        fh_tswaths.write("LowerOffset"+tab_character+"HigherOffset"+newline_character)
+
+        for i in range(len(swaths)):
+            fh_swaths.write(str(swaths[i][0]) + tab_character + str(swaths[i][1])  + newline_character)
+            fh_tswaths.write(str(tswaths[i][0]) + tab_character + str(tswaths[i][1])  + newline_character)
+
+    return swaths, tswaths
+
+#+end_src
+
+#+begin_src nextflow  :noweb yes
+process MakeSwathWindows {
+    input:
+    file diafile from dia_mzml_files_ch.first()
+    output: 
+    file "swath-windows.txt" into  swath_windows_ch
+    file "truncated-swath-windows.txt" into truncated_swath_windows_ch
+    
+    shell:
+    '''
+    #!/usr/bin/env python3
+    <<py-makeswathwindows>>
+    swaths, _  = create_swath_window_files(".","!{diafile}")
+    '''
+    
+}
+
+#+end_src
+
+we'll have to get minswath and maxswath by reading ~"swath-windows.txt"~
+
+** TODO Building {Pseudo-,}Spectral library  [0/4]
+*** Choosing Comet/Xtandem
+:LOGBOOK:
+CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
+:END:
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.search_engines = ["comet","xtandem"]
+
+#+end_src
 *** TODO Comet 
 :LOGBOOK:
-- State "TODO"       from              [2022-06-06 Mon 09:56]
+CLOCK: [2022-06-10 Fri 13:56]--[2022-06-10 Fri 16:09] =>  2:13
+CLOCK: [2022-06-10 Fri 11:00]--[2022-06-10 Fri 13:31] =>  2:31
+CLOCK: [2022-06-09 Thu 09:31]--[2022-06-09 Thu 09:31] =>  0:00
+CLOCK: [2022-06-08 Wed 15:31]--[2022-06-08 Wed 17:51] =>  2:20
+CLOCK: [2022-06-08 Wed 13:00]--[2022-06-08 Wed 14:24] =>  1:24
+CLOCK: [2022-06-08 Wed 09:32]--[2022-06-08 Wed 11:48] =>  2:16
+CLOCK: [2022-06-08 Wed 08:48]--[2022-06-08 Wed 09:32] =>  0:44
 :END:
 file:glaDIAtor/UI/ui/__init__.py::workflow.runComet
 [[file:glaDIAtor/workflow.py::def runComet]]
+#+begin_src conf :tangle comet_template.txt
+# comet_version 2019.01 rev. 5
+# Comet MS/MS search engine parameters file.
+# Everything following the '#' symbol is treated as a comment.
+
+database_name = @DDA_DB_FILE@
+decoy_search = 0                       # 0=no (default), 1=concatenated search, 2=separate search
+peff_format = 0                        # 0=no (normal fasta, default), 1=PEFF PSI-MOD, 2=PEFF Unimod
+peff_obo =                             # path to PSI Mod or Unimod OBO file
+
+num_threads = 0                        # 0=poll CPU to set num threads; else specify num threads directly (max 128)
+
+#
+# masses
+#
+peptide_mass_tolerance = @PRECURSOR_MASS_TOLERANCE@
+peptide_mass_units = 2                 # 0=amu, 1=mmu, 2=ppm
+mass_type_parent = 1                   # 0=average masses, 1=monoisotopic masses
+mass_type_fragment = 1                 # 0=average masses, 1=monoisotopic masses
+precursor_tolerance_type = 1           # 0=MH+ (default), 1=precursor m/z; only valid for amu/mmu tolerances
+isotope_error = 3                      # 0=off, 1=0/1 (C13 error), 2=0/1/2, 3=0/1/2/3, 4=-8/-4/0/4/8 (for +4/+8 labeling)
+
+#
+# search enzyme
+#
+search_enzyme_number = 1               # choose from list at end of this params file
+search_enzyme2_number = 0              # second enzyme; set to 0 if no second enzyme
+num_enzyme_termini = 2                 # 1 (semi-digested), 2 (fully digested, default), 8 C-term unspecific , 9 N-term unspecific
+allowed_missed_cleavage = 1            # maximum value is 5; for enzyme search
+
+#
+# Up to 9 variable modifications are supported
+# format:  <mass> <residues> <0=variable/else binary> <max_mods_per_peptide> <term_distance> <n/c-term> <required> <neutral_loss>
+#l     e.g. 79.966331 STY 0 3 -1 0 0 97.976896
+#
+variable_mod01 = 15.9949 M 0 3 -1 0 0 0.0
+variable_mod02 = 0.0 X 0 3 -1 0 0 0.0
+variable_mod03 = 0.0 X 0 3 -1 0 0 0.0
+variable_mod04 = 0.0 X 0 3 -1 0 0 0.0
+variable_mod05 = 0.0 X 0 3 -1 0 0 0.0
+variable_mod06 = 0.0 X 0 3 -1 0 0 0.0
+variable_mod07 = 0.0 X 0 3 -1 0 0 0.0
+variable_mod08 = 0.0 X 0 3 -1 0 0 0.0
+variable_mod09 = 0.0 X 0 3 -1 0 0 0.0
+max_variable_mods_in_peptide = 5
+require_variable_mod = 0
+
+#
+# fragment ions
+#
+# ion trap ms/ms:  1.0005 tolerance, 0.4 offset (mono masses), theoretical_fragment_ions = 1
+# high res ms/ms:    0.02 tolerance, 0.0 offset (mono masses), theoretical_fragment_ions = 0, spectrum_batch_size = 15000
+#
+fragment_bin_tol = @FRAGMENT_MASS_TOLERANCE@              # binning to use on fragment ions
+fragment_bin_offset = 0.0              # offset position to start the binning (0.0 to 1.0)
+theoretical_fragment_ions = 1          # 0=use flanking peaks, 1=M peak only
+use_A_ions = 0
+use_B_ions = 1
+use_C_ions = 0
+use_X_ions = 0
+use_Y_ions = 1
+use_Z_ions = 0
+use_NL_ions = 0                        # 0=no, 1=yes to consider NH3/H2O neutral loss peaks
+
+#
+# output
+#
+output_sqtstream = 0                   # 0=no, 1=yes  write sqt to standard output
+output_sqtfile = 0                     # 0=no, 1=yes  write sqt file
+output_txtfile = 0                     # 0=no, 1=yes  write tab-delimited txt file
+output_pepxmlfile = 1                  # 0=no, 1=yes  write pep.xml file
+output_percolatorfile = 1              # 0=no, 1=yes  write Percolator tab-delimited input file
+print_expect_score = 1                 # 0=no, 1=yes to replace Sp with expect in out & sqt
+num_output_lines = 5                   # num peptide results to show
+show_fragment_ions = 0                 # 0=no, 1=yes for out files only
+
+sample_enzyme_number = 1               # Sample enzyme which is possibly different than the one applied to the search.
+                                       # Used to calculate NTT & NMC in pepXML output (default=1 for trypsin).
+
+#
+# mzXML parameters
+#
+scan_range = 0 0                       # start and end scan range to search; either entry can be set independently
+precursor_charge = 0 0                 # precursor charge range to analyze; does not override any existing charge; 0 as 1st entry ignores parameter
+override_charge = 0                    # 0=no, 1=override precursor charge states, 2=ignore precursor charges outside precursor_charge range, 3=see online
+ms_level = 2                           # MS level to analyze, valid are levels 2 (default) or 3
+activation_method = HCD                # activation method; used if activation method set; allowed ALL, CID, ECD, ETD, PQD, HCD, IRMPD
+
+#
+# misc parameters
+#
+digest_mass_range = 600.0 5000.0       # MH+ peptide mass range to analyze
+peptide_length_range = 5 63            # minimum and maximum peptide length to analyze (default 1 63; max length 63)
+num_results = 100                      # number of search hits to store internally
+max_duplicate_proteins = 20            # maximum number of protein names to report for each peptide identification; -1 reports all duplicates
+skip_researching = 1                   # for '.out' file output only, 0=search everything again (default), 1=don't search if .out exists
+max_fragment_charge = 3                # set maximum fragment charge state to analyze (allowed max 5)
+max_precursor_charge = 6               # set maximum precursor charge state to analyze (allowed max 9)
+nucleotide_reading_frame = 0           # 0=proteinDB, 1-6, 7=forward three, 8=reverse three, 9=all six
+clip_nterm_methionine = 0              # 0=leave sequences as-is; 1=also consider sequence w/o N-term methionine
+spectrum_batch_size = 15000            # max. # of spectra to search at a time; 0 to search the entire scan range in one loop
+decoy_prefix = DECOY_                  # decoy entries are denoted by this string which is pre-pended to each protein accession
+equal_I_and_L = 1                      # 0=treat I and L as different; 1=treat I and L as same
+output_suffix =                        # add a suffix to output base names i.e. suffix "-C" generates base-C.pep.xml from base.mzXML input
+mass_offsets =                         # one or more mass offsets to search (values substracted from deconvoluted precursor mass)
+precursor_NL_ions =                    # one or more precursor neutral loss masses, will be added to xcorr analysis
+
+#
+# spectral processing
+#
+minimum_peaks = 10                     # required minimum number of peaks in spectrum to search (default 10)
+minimum_intensity = 0                  # minimum intensity value to read in
+remove_precursor_peak = 0              # 0=no, 1=yes, 2=all charge reduced precursor peaks (for ETD), 3=phosphate neutral loss peaks
+remove_precursor_tolerance = 1.5       # +- Da tolerance for precursor removal
+clear_mz_range = 0.0 0.0               # for iTRAQ/TMT type data; will clear out all peaks in the specified m/z range
+
+#
+# additional modifications
+#
+
+add_Cterm_peptide = 0.0
+add_Nterm_peptide = 0.0
+add_Cterm_protein = 0.0
+add_Nterm_protein = 0.0
+
+add_G_glycine = 0.0000                 # added to G - avg.  57.0513, mono.  57.02146
+add_A_alanine = 0.0000                 # added to A - avg.  71.0779, mono.  71.03711
+add_S_serine = 0.0000                  # added to S - avg.  87.0773, mono.  87.03203
+add_P_proline = 0.0000                 # added to P - avg.  97.1152, mono.  97.05276
+add_V_valine = 0.0000                  # added to V - avg.  99.1311, mono.  99.06841
+add_T_threonine = 0.0000               # added to T - avg. 101.1038, mono. 101.04768
+add_C_cysteine = 57.021464             # added to C - avg. 103.1429, mono. 103.00918
+add_L_leucine = 0.0000                 # added to L - avg. 113.1576, mono. 113.08406
+add_I_isoleucine = 0.0000              # added to I - avg. 113.1576, mono. 113.08406
+add_N_asparagine = 0.0000              # added to N - avg. 114.1026, mono. 114.04293
+add_D_aspartic_acid = 0.0000           # added to D - avg. 115.0874, mono. 115.02694
+add_Q_glutamine = 0.0000               # added to Q - avg. 128.1292, mono. 128.05858
+add_K_lysine = 0.0000                  # added to K - avg. 128.1723, mono. 128.09496
+add_E_glutamic_acid = 0.0000           # added to E - avg. 129.1140, mono. 129.04259
+add_M_methionine = 0.0000              # added to M - avg. 131.1961, mono. 131.04048
+add_O_ornithine = 0.0000               # added to O - avg. 132.1610, mono  132.08988
+add_H_histidine = 0.0000               # added to H - avg. 137.1393, mono. 137.05891
+add_F_phenylalanine = 0.0000           # added to F - avg. 147.1739, mono. 147.06841
+add_U_selenocysteine = 0.0000          # added to U - avg. 150.0379, mono. 150.95363
+add_R_arginine = 0.0000                # added to R - avg. 156.1857, mono. 156.10111
+add_Y_tyrosine = 0.0000                # added to Y - avg. 163.0633, mono. 163.06333
+add_W_tryptophan = 0.0000              # added to W - avg. 186.0793, mono. 186.07931
+add_B_user_amino_acid = 0.0000         # added to B - avg.   0.0000, mono.   0.00000
+add_J_user_amino_acid = 0.0000         # added to J - avg.   0.0000, mono.   0.00000
+add_X_user_amino_acid = 0.0000         # added to X - avg.   0.0000, mono.   0.00000
+add_Z_user_amino_acid = 0.0000         # added to Z - avg.   0.0000, mono.   0.00000
+
+#
+# COMET_ENZYME_INFO _must_ be at the end of this parameters file
+#
+[COMET_ENZYME_INFO]
+0.  No_enzyme              0      -           -
+1.  Trypsin                1      KR          P
+2.  Trypsin/P              1      KR          -
+3.  Lys_C                  1      K           P
+4.  Lys_N                  0      K           -
+5.  Arg_C                  1      R           P
+6.  Asp_N                  0      D           -
+7.  CNBr                   1      M           -
+8.  Glu_C                  1      DE          P
+9.  PepsinA                1      FL          P
+10. Chymotrypsin           1      FWYL        P
+#+end_src
+
+
+#+begin_src nextflow
+
+process MakeCometConfig {
+    // should we instead return a tuple here of fastadb and config
+    // because the config.txt refers to it?
+    input:
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    path template from Channel.fromPath(params.comet_template)
+    output:
+    file "comet_config.txt" into comet_config_ch
+    """
+    sed 's/@DDA_DB_FILE@/$fastadb_with_decoy/g;s/@FRAGMENT_MASS_TOLERANCE@/$params.fragment_mass_tolerance/g;s/@PRECURSOR_MASS_TOLERANCE@/$params.precursor_mass_tolerance/g' $template > comet_config.txt 
+    """
+    
+}
+
+process Comet {
+    // we probably also want to publish thees
+    input:
+    file comet_config from comet_config_ch.first()
+    // future dev: we can .mix with DDA here?
+    // though we might need to tag for DDA / Pseudo
+    // so that xinteract 
+    file mzxml from pseudospectra_for_comet_ch
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    output:
+    file("${mzxml.baseName}.pep.xml") into comet_pepxml_ch
+    file mzxml into xinteract_comet_mzxml_ch
+    when:
+    params.search_engines.contains("comet")
+
+    """
+    /opt/comet/comet-ms -P$comet_config $mzxml 
+    """
+}
+process XinteractComet {
+    input:
+    file pepxmls from comet_pepxml_ch.collect()
+    // the filename of needed fastdadb was defined in cometcfg
+    // and stored in pepxml in the comet-ms step
+    // -a suppplies the absulute path to the data directory where the mzxmls
+    // rather than reading wherer the mfrom the xmls
+    // where the mzxml are, because its not very
+    // nextflow to look outside the cwd.
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    file mzxmls from  xinteract_comet_mzxml_ch.collect()
+    output: 
+    file "interact_comet.pep.xml" into comet_search_results_ch 
+    """
+    /opt/tpp/bin/xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_comet.pep.xml $pepxmls
+    """
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+params.precursor_mass_tolerance=20 // ppm 
+params.fragment_mass_tolerance=0.3  // Dalton
+params.comet_template="comet_template.txt"
+#+end_src
 *** TODO Xtandem
 :LOGBOOK:
+
+CLOCK: [2022-06-22 Wed 10:24]--[2022-06-22 Wed 16:28] =>  6:04
+CLOCK: [2022-06-21 Tue 10:15]--[2022-06-21 Tue 19:59] =>  9:44
+CLOCK: [2022-06-09 Thu 09:31]--[2022-06-09 Thu 18:58] =>  9:27
 - State "TODO"       from              [2022-06-06 Mon 09:56]
 :END:
 [[file:glaDIAtor/UI/ui/__init__.py::workflow.runXTandem]]
 [[file:glaDIAtor/workflow.py::def runXTandem]]
 
+#+NAME: taxonomy-template
+#+begin_src xml 
+<?xml version="1.0"?>
+<bioml label="x! taxon-to-file matching list">
+  <taxon label="DB">
+    <file format="peptide" URL="%s" />
+  </taxon>
+</bioml>
+#+end_src
+
+#+NAME: xtandem-configuration-template
+#+begin_src xml :tangle xtandem-template.xml
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="tandem-input-style.xsl"?>
+<bioml>
+<note>list path parameters</note>
+
+<note>spectrum parameters</note>
+	<note type="input" label="spectrum, fragment monoisotopic mass error">@FRAGMENT_MASS_TOLERANCE@</note>
+	<note type="input" label="spectrum, parent monoisotopic mass error plus">@PRECURSOR_MASS_TOLERANCE@</note>
+	<note type="input" label="spectrum, parent monoisotopic mass error minus">@PRECURSOR_MASS_TOLERANCE@</note>
+	<note type="input" label="spectrum, parent monoisotopic mass isotope error">yes</note>
+	<note type="input" label="spectrum, fragment monoisotopic mass error units">Daltons</note>
+	<note>The value for this parameter may be 'Daltons' or 'ppm': all other values are ignored</note>
+	<note type="input" label="spectrum, parent monoisotopic mass error units">ppm</note>
+		<note>The value for this parameter may be 'Daltons' or 'ppm': all other values are ignored</note>
+	<note type="input" label="spectrum, fragment mass type">monoisotopic</note>
+		<note>values are monoisotopic|average </note>
+
+<note>spectrum conditioning parameters</note>
+	<note type="input" label="spectrum, dynamic range">100.0</note>
+		<note>The peaks read in are normalized so that the most intense peak
+		is set to the dynamic range value. All peaks with values of less that
+		1, using this normalization, are not used. This normalization has the
+		overall effect of setting a threshold value for peak intensities.</note>
+	<note type="input" label="spectrum, total peaks">50</note> 
+		<note>If this value is 0, it is ignored. If it is greater than zero (lets say 50),
+		then the number of peaks in the spectrum with be limited to the 50 most intense
+		peaks in the spectrum. X! tandem does not do any peak finding: it only
+		limits the peaks used by this parameter, and the dynamic range parameter.</note>
+	<note type="input" label="spectrum, maximum parent charge">4</note>
+	<note type="input" label="spectrum, use noise suppression">yes</note>
+	<note type="input" label="spectrum, minimum parent m+h">500.0</note>
+	<note type="input" label="spectrum, minimum fragment mz">150.0</note>
+	<note type="input" label="spectrum, minimum peaks">15</note> 
+	<note type="input" label="spectrum, threads">40</note>
+	<note type="input" label="spectrum, sequence batch size">1000</note>
+	
+<note>residue modification parameters</note>
+	<note type="input" label="residue, modification mass">57.022@C</note>
+		<note>The format of this parameter is m@X, where m is the modfication
+		mass in Daltons and X is the appropriate residue to modify. Lists of
+		modifications are separated by commas. For example, to modify M and C
+		with the addition of 16.0 Daltons, the parameter line would be
+		+16.0@M,+16.0@C
+		Positive and negative values are allowed.
+		</note>
+	<note type="input" label="residue, potential modification mass">16@M</note>
+		<note>The format of this parameter is the same as the format
+		for residue, modification mass (see above).</note>
+	<note type="input" label="residue, potential modification motif"></note>
+		<note>The format of this parameter is similar to residue, modification mass,
+		with the addition of a modified PROSITE notation sequence motif specification.
+		For example, a value of 80@[ST!]PX[KR] indicates a modification
+		of either S or T when followed by P, and residue and the a K or an R.
+		A value of 204@N!{P}[ST]{P} indicates a modification of N by 204, if it
+		is NOT followed by a P, then either an S or a T, NOT followed by a P.
+		Positive and negative values are allowed.
+		</note>
+
+<note>protein parameters</note>
+	<note type="input" label="protein, taxon">other mammals</note>
+		<note>This value is interpreted using the information in taxonomy.xml.</note>
+	<note type="input" label="protein, cleavage site">[RK]|{P}</note>
+		<note>this setting corresponds to the enzyme trypsin. The first characters
+		in brackets represent residues N-terminal to the bond - the '|' pipe -
+		and the second set of characters represent residues C-terminal to the
+		bond. The characters must be in square brackets (denoting that only
+		these residues are allowed for a cleavage) or french brackets (denoting
+		that these residues cannot be in that position). Use UPPERCASE characters.
+		To denote cleavage at any residue, use [X]|[X] and reset the 
+		scoring, maximum missed cleavage site parameter (see below) to something like 50.
+		</note>
+	<note type="input" label="protein, modified residue mass file"></note>
+	<note type="input" label="protein, cleavage C-terminal mass change">+17.002735</note>
+	<note type="input" label="protein, cleavage N-terminal mass change">+1.007825</note>
+	<note type="input" label="protein, N-terminal residue modification mass">0.0</note>
+	<note type="input" label="protein, C-terminal residue modification mass">0.0</note>
+	<note type="input" label="protein, homolog management">no</note>
+	<note>if yes, an upper limit is set on the number of homologues kept for a particular spectrum</note>
+	<note type="input" label="protein, quick acetyl">no</note>
+	<note type="input" label="protein, quick pyrolidone">no</note>
+
+<note>model refinement parameters</note>
+	<note type="input" label="refine">yes</note>
+	<note type="input" label="refine, modification mass"></note>
+	<note type="input" label="refine, sequence path"></note>
+	<note type="input" label="refine, tic percent">20</note>
+	<note type="input" label="refine, spectrum synthesis">yes</note>
+	<note type="input" label="refine, maximum valid expectation value">0.1</note>
+	<note type="input" label="refine, potential N-terminus modifications">+42.010565@[</note>
+	<note type="input" label="refine, potential C-terminus modifications"></note>
+	<note type="input" label="refine, unanticipated cleavage">yes</note>
+	<note type="input" label="refine, potential modification mass"></note>
+	<note type="input" label="refine, point mutations">no</note>
+	<note type="input" label="refine, use potential modifications for full refinement">no</note>
+	<note type="input" label="refine, point mutations">no</note>
+	<note type="input" label="refine, potential modification motif"></note>
+	<note>The format of this parameter is similar to residue, modification mass,
+		with the addition of a modified PROSITE notation sequence motif specification.
+		For example, a value of 80@[ST!]PX[KR] indicates a modification
+		of either S or T when followed by P, and residue and the a K or an R.
+		A value of 204@N!{P}[ST]{P} indicates a modification of N by 204, if it
+		is NOT followed by a P, then either an S or a T, NOT followed by a P.
+		Positive and negative values are allowed.
+		</note>
+
+<note>scoring parameters</note>
+	<note type="input" label="scoring, minimum ion count">4</note>
+	<note type="input" label="scoring, maximum missed cleavage sites">1</note>
+	<note type="input" label="scoring, x ions">no</note>
+	<note type="input" label="scoring, y ions">yes</note>
+	<note type="input" label="scoring, z ions">no</note>
+	<note type="input" label="scoring, a ions">no</note>
+	<note type="input" label="scoring, b ions">yes</note>
+	<note type="input" label="scoring, c ions">no</note>
+	<note type="input" label="scoring, cyclic permutation">no</note>
+		<note>if yes, cyclic peptide sequence permutation is used to pad the scoring histograms</note>
+	<note type="input" label="scoring, include reverse">no</note>
+		<note>if yes, then reversed sequences are searched at the same time as forward sequences</note>
+	<note type="input" label="scoring, cyclic permutation">no</note>
+	<note type="input" label="scoring, include reverse">no</note>
+
+<note>output parameters</note>
+	<note type="input" label="output, log path"></note>
+	<note type="input" label="output, message">testing 1 2 3</note>
+	<note type="input" label="output, one sequence copy">no</note>
+	<note type="input" label="output, sequence path"></note>
+	<note type="input" label="output, path">output.xml</note>
+	<note type="input" label="output, sort results by">protein</note>
+		<note>values = protein|spectrum (spectrum is the default)</note>
+	<note type="input" label="output, path hashing">no</note>
+		<note>values = yes|no</note>
+	<note type="input" label="output, xsl path">tandem-style.xsl</note>
+	<note type="input" label="output, parameters">yes</note>
+		<note>values = yes|no</note>
+	<note type="input" label="output, performance">yes</note>
+		<note>values = yes|no</note>
+	<note type="input" label="output, spectra">yes</note>
+		<note>values = yes|no</note>
+	<note type="input" label="output, histograms">yes</note>
+		<note>values = yes|no</note>
+	<note type="input" label="output, proteins">yes</note>
+		<note>values = yes|no</note>
+	<note type="input" label="output, sequences">yes</note>
+		<note>values = yes|no</note>
+	<note type="input" label="output, one sequence copy">no</note>
+		<note>values = yes|no, set to yes to produce only one copy of each protein sequence in the output xml</note>
+	<note type="input" label="output, results">valid</note>
+		<note>values = all|valid|stochastic</note>
+	<note type="input" label="output, maximum valid expectation value">0.1</note>
+		<note>value is used in the valid|stochastic setting of output, results</note>
+	<note type="input" label="output, histogram column width">30</note>
+		<note>values any integer greater than 0. Setting this to '1' makes cutting and pasting histograms
+		into spread sheet programs easier.</note>
+<note type="description">ADDITIONAL EXPLANATIONS</note>
+	<note type="description">Each one of the parameters for X! tandem is entered as a labeled note
+			node. In the current version of X!, keep those note nodes
+			on a single line.
+	</note>
+	<note type="description">The presence of the type 'input' is necessary if a note is to be considered
+			an input parameter.
+	</note>
+	<note type="description">Any of the parameters that are paths to files may require alteration for a 
+			particular installation. Full path names usually cause the least trouble,
+			but there is no reason not to use relative path names, if that is the
+			most convenient.
+	</note>
+	<note type="description">Any parameter values set in the 'list path, default parameters' file are
+			reset by entries in the normal input file, if they are present. Otherwise,
+			the default set is used.
+	</note>
+	<note type="description">The 'list path, taxonomy information' file must exist.
+		</note>
+	<note type="description">The directory containing the 'output, path' file must exist: it will not be created.
+		</note>
+	<note type="description">The 'output, xsl path' is optional: it is only of use if a good XSLT style sheet exists.
+		</note> 
+</bioml>
+#+end_src
+
+# desire to configure this with guile intensifies
+#+NAME: xtandem-input-template
+#+begin_src xml
+<?xml version="1.0"?>
+<bioml>
+	<note>
+	Each one of the parameters for x! tandem is entered as a labeled note node. 
+	Any of the entries in the default_input.xml file can be over-ridden by
+	adding a corresponding entry to this file. This file represents a minimum
+	input file, with only entries for the default settings, the output file
+	and the input spectra file name. 
+	See the taxonomy.xml file for a description of how FASTA sequence list 
+	files are linked to a taxon name.
+	</note>
+
+	<note type="input" label="list path, default parameters">%s</note>
+	<note type="input" label="list path, taxonomy information">%s</note>
+
+	<note type="input" label="protein, taxon">DB</note>
+	
+	<note type="input" label="spectrum, path">%s</note>
+
+	<note type="input" label="output, path">%s</note>
+</bioml>
+#+end_src
+
+
+We are making the =xtandem_taxonomy= xml in the same process because its kinda a pseudo dependency 
+
+#+begin_src nextflow :noweb yes
+process MakeXtandemConfig {
+    input:
+    file template from Channel.fromPath(params.xtandem_template)
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    output:
+    file "xtandem_config.xml" into xtandem_config_ch
+    """
+    sed 's/@DDA_DB_FILE@/$fastadb_with_decoy/g;s/@FRAGMENT_MASS_TOLERANCE@/$params.fragment_mass_tolerance/g;s/@PRECURSOR_MASS_TOLERANCE@/$params.precursor_mass_tolerance/g' $template > xtandem_config.xml
+    """
+}
+
+
+process XTandem {
+    when:
+    params.search_engines.contains("xtandem")
+
+    input:
+    file mzxml from pseudospectra_for_xtandem_ch
+    file tandem_config from xtandem_config_ch
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    output:
+    file("${mzxml.baseName}.tandem.pep.xml") into xtandem_pepxml_ch
+    file mzxml into xinteract_xtandem_mzxml_ch
+    """
+    printf '
+    <<taxonomy-template>>'  $fastadb_with_decoy | tail -n+2 > xtandem_taxonomy.xml
+    
+    printf '
+    <<xtandem-input-template>>' $tandem_config xtandem_taxonomy.xml $mzxml ${mzxml.baseName}.TANDEM.OUTPUT.xml | tail -n+2 > input.xml
+    /opt/tandem/tandem input.xml
+    /opt/tpp/bin/Tandem2XML ${mzxml.baseName}.TANDEM.OUTPUT.xml ${mzxml.baseName}.tandem.pep.xml 
+    """
+}
+
+process XinteractXTandem {
+    input:
+    file pepxmls from xtandem_pepxml_ch.collect()
+    // the filename of needed fastdadb was defined in cometcfg
+    // and stored in pepxml in the comet-ms step
+    // -a suppplies the absulute path to the data directory where the mzxmls
+    // rather than reading wherer the mfrom the xmls
+    // where the mzxml are, because its not very
+    // nextflow to look outside the cwd.
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    file mzxmls from  xinteract_xtandem_mzxml_ch.collect()
+    output: 
+    file "interact_xtandem.pep.xml" into xtandem_search_results_ch 
+    """
+    /opt/tpp/bin/xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_xtandem.pep.xml $pepxmls
+    """
+}
+
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+params.xtandem_template="xtandem-template.xml"
+#+end_src
+
+
 *** TODO Joining Comet & Xtandem
 [[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
 [[file:glaDIAtor/workflow.py::def combine_search_engine_results]]
+#+begin_src nextflow
+
+#+end_src
+
+#+begin_src nextflow 
+process CombineSearchResults {
+    when:
+    params.search_engines.size() > 1
+    input:
+    file xtandem_search_results from xtandem_search_results_ch
+    file comet_search_results from comet_search_results_ch
+    output:
+    file "lib_iprophet_peps.xml" into combined_search_results_ch 
+    """
+    /opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet_peps.xml
+    """
+}
+
+if(params.search_engines.size() == 1)
+    combined_search_results_ch.
+
+
+#+end_src
 *** TODO Building Specral Library
-
 [[file:glaDIAtor/UI/ui/__init__.py::workflow.buildlib(]]
+[[file:glaDIAtor/workflow.py::def buildlib(event, \\]]
 Inputs from [[*Creating Swath window files][Creating Swath window files]]
-
 http://www.openswath.org/en/latest/docs/openswath.html
 
+
+**** Mayu
+doi:10.5167/uzh-28712
+doi:10.1074/mcp.M900317-MCP200
+#+begin_quote
+	GENERAL:
+	Mayu is a software package to determine protein
+	identification false discovery rates (protFDR) and
+	peptide identification false discovery rates (pepFDR)
+	additionally to the peptide-spectrum match false discovery 
+	rate (mFDR).
+#+end_quote
+
+Here is what happens in mayu:
+For a pepxml file with peptide-spectrum-matches =PSM=
+(type of =(spectrum,peptide,probability)=, where the probality is based on the similarity of the theoratical spectrum,
+mayu determines the peptide-spectrum-match False Detection Rate (=mFDR=),
+and protein identification false discovery rates (=protFDR=).
+We select a =protFDR= for mayu finds a matching =mFDR= level (no higher than the =-G= flag) and it will filter
+everything with a higher mFDR level
+In the output csv the =score= column is the the =probability= in PSM (in mayu documentation "discrimant")
+
+We find the lowest =probability= that still has an =mFDR= that matched the above,
+and that is what we use as the filtering criterian in spectrast
+
+
+This is what we will than filter on with specrtrast
+
+Hmhf why can't mayu return deterministic filenames.
+(It incorporates the mayu version number in the filename grumbl,
+it follows the pattern
+#+begin_quote perl
+my $psm_file_base = $out_base . '_psm_';
+my $id_csv_file = $psm_file_base
+                . $fdr_type
+                . $fdr_value . '_'
+                . $target_decoy . '_'
+                . $version . '.csv';
+                
+#+end_quote
+
+
+#+begin_src nextflow 
+process  FindMinimumPeptideProbability {
+    input: 
+    file combined_search_results from combined_search_results_ch.first()
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    output:
+    env PEPTIDEPROBABILITY into  minimum_peptide_probability
+    /* explanation of paramaters
+     -G  $params.protFDR            | maximum allowed mFDR of $params.protFDR 
+     -P protFDR=$params.protFDR:t   |  print out PSMs of targets who have a protFDR of $params.protFDR
+     -
+     -H | defines the resolution of error analysis (mFDR steps)
+     -I number of missed cleavages used for database search
+     -M | file name base
+     ,*/
+    script:
+    prefix="filtered"
+    // you can change this to a glob-pattern (e.g. "*") for future-proofing
+    mayu_version="1.07"
+    psm_csv="${prefix}_psm_protFDR${params.protFDR}_t_${mayu_version}.csv"
+    """
+    /opt/tpp/bin/Mayu.pl -verbose -A $combined_search_results -C $fastadb_with_decoy -E DECOY_ -G $params.protFDR -P protFDR=${params.protFDR}:t -H 51 -I 2 -M $prefix
+    # test if psm_csv was made
+    test -e $psm_csv || exit 1
+    # test if the results arent empty
+    test `wc -l $psm_csv` -gt 1 || exit 1 
+    PEPTIDEPROBABILITY=`cat $psm_csv | cut -f 5 -d ',' |tail -n+2 |sort -u | head -n1`
+    """
+}
+#+end_src
+
+#+begin_src  nextflow :noweb-ref nf-vars :tangle no
+params.protfdr=0.01
+#+end_src
+
+#+begin_src 
+
+#+end_src
 ** TODO Building Dia Matrix
+http://openswath.org/_/downloads/en/latest/pdf/
+*** OpenSwathWorkflow
+Creates tsv with =-out_tsv=
+
+
 
 * Putting it together
 ** gwl
@@ -370,17 +1161,21 @@ http://www.openswath.org/en/latest/docs/openswath.html
     ))))
 #+end_src
 ** nf
-#+begin_src nextflow :tangle nextflow.config
+#+begin_src nextflow :tangle nextflow.config :noweb yes
 singularity.autoMounts = true
-process.container="file://../gladiator/gladiator-images/gladiatorserver.simg"
+process.container="file://../../gladiator/gladiator-images/gladiatorserver.simg"
+process.executor='slurm'
 singularity.enabled = true
+
+<<nf-params>>
 #+end_src
+
 
 * File local variables
 For this file
 
 # Local Variables:
-# compile-command: "cd /data/epouta1/B22003_Elixir_DIA_Nextflow/playground/ && module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf"
+# compile-command: "cd /data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf && module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf"
 # End:
 
 For the scheme file
@@ -406,6 +1201,7 @@ Pyprophet calling convention altered after v2.1.0,
 check what changed
 so can't literally copy invocation from =workflow.py=.
 (S. said)
+
 * COMMENT for editing
 To make the file links work,
 =git clone= gladiator here.
@@ -434,8 +1230,7 @@ same `major-mode'."
 		      previous-line)
 		     ("nfp" ;; params file
 		      "#+begin_src nextflow :noweb-ref nf-params :tangle no\n\n#+end_src"
-		      
-
+		      previous-line)
 		     ("gwv" ;; variables
 		      "#+begin_src scheme :noweb-ref gwl-vars :tangle no\n\n#+end_src"
 		      previous-line)
@@ -452,10 +1247,10 @@ same `major-mode'."
 (defun gladiator-compile-test ()
   (interactive)
   (let ((default-directory (concat (file-remote-p default-directory)
-				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/"))
+				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf"))
 	;; dont ask about saving things
 	(compilation-save-buffers-predicate 'ignore))
-    (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf")))
+    (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow -log `mktemp -u XXX.nextflow.log` run gladiator.nf -resume")))
 ;; -process.container='file://../gladiator/gladiator.simg' -with-singularity -main-script gladiator
 (defun gladiator-tangle-and-compile ()
   (interactive)
