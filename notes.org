@@ -320,7 +320,7 @@ process MgfToMzxml {
     input:
     file mgf from pseudospectra_mgf_ch
     output:
-    file "*.mzXML" into pseudospectra_ch,pseudospectra_for_comet_ch,pseudospectra_for_xtandem_ch
+    file "*.mzXML" into pseudospectra_ch
     
     """
     msconvert $mgf --mzXML 
@@ -342,11 +342,14 @@ mstools
 params.diaumpireconfig='diaumpireconfig.txt'
 params.diafiles = "DIA/*.mzML"
 params.ddafiles = "DDA/*.mzXML"
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
 // so that this is a singleton channel
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
 // dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
-dda_assisted_p = false
+dda_assisted_p = true
 
 (dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
@@ -355,10 +358,27 @@ dda_assisted_p = false
   Channel.fromPath(params.diafiles).take(2).into(2)
   // Channel.fromPath(params.diafiles).into(2)
 )
-#+end_src 
+#+end_src
 As dia will be listened to by two in the case of not dda-assisted,
 we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
 
+
+The channel-juggling below  makes the path for pseudo-spectra and "real" input spectra
+follow the same path after =MgfToMzxml= / from comet&xtandem onwards,
+by putting the ones to act on in the =maybespectra_ch.{comet,xtandem}= channels.
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+// we forward-declare pseudospectra_ch here (output of the MgfToMzxml process)
+// so that we can define a multiMap rule for it.
+pseudospectra_ch = Channel.create()
+// maybe-spectra can be either real spectra or pseudo-spectra
+if (dda_assisted_p){
+    dda_files_ch.multiMap { it ->
+	comet: xtandem: it }.set{maybespectra_ch}
+} else {
+    pseudospectra_ch.multiMap { it ->
+	comet: xtandem: it }.set{maybespectra_ch}
+}
+#+end_src 
 
 
 ** DONE Creating Swath window files
@@ -703,7 +723,7 @@ process Comet {
     // future dev: we can .mix with DDA here?
     // though we might need to tag for DDA / Pseudo
     // so that xinteract 
-    file mzxml from pseudospectra_for_comet_ch
+    file mzxml from maybespectra_ch.comet
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     output:
     file("${mzxml.baseName}.pep.xml") into comet_pepxml_ch
@@ -988,8 +1008,8 @@ process XTandem {
     params.search_engines.contains("xtandem")
 
     input:
-    file mzxml from pseudospectra_for_xtandem_ch
-    file tandem_config from xtandem_config_ch
+    file mzxml from maybespectra_ch.xtandem
+    file tandem_config from xtandem_config_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     output:
     file("${mzxml.baseName}.tandem.pep.xml") into xtandem_pepxml_ch
