@@ -102,8 +102,11 @@ process JoinFastaFiles {
 }
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 params.fastafiles='fasta/*.fasta'
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
 Channel.fromPath(params.fastafiles).set({fasta_files_ch})
 #+end_src
 
@@ -338,7 +341,7 @@ process MgfToMzxml {
 though this  might also be done with openms's =FileConverter= ? which is more conventionally build 
 https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/release/latest/html/TOPP_FileConverter.html
 mstools
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 params.diaumpireconfig='diaumpireconfig.txt'
 params.diafiles = "DIA/*.mzML"
 params.ddafiles = "DDA/*.mzXML"
@@ -373,10 +376,10 @@ pseudospectra_ch = Channel.create()
 // maybe-spectra can be either real spectra or pseudo-spectra
 if (dda_assisted_p){
     dda_files_ch.multiMap { it ->
-	comet: xtandem: it }.set{maybespectra_ch}
+	spectrast: comet: xtandem: it }.set{maybespectra_ch}
 } else {
     pseudospectra_ch.multiMap { it ->
-	comet: xtandem: it }.set{maybespectra_ch}
+	spectrast: comet: xtandem: it }.set{maybespectra_ch}
 }
 #+end_src 
 
@@ -509,7 +512,7 @@ process MakeSwathWindows {
 
 we'll have to get minswath and maxswath by reading ~"swath-windows.txt"~
 
-** TODO Building {Pseudo-,}Spectral library  [0/4]
+** TODO Building {Pseudo-,}Spectral library  [1/4]
 *** Choosing Comet/Xtandem
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
@@ -754,7 +757,7 @@ process XinteractComet {
 }
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 params.precursor_mass_tolerance=20 // ppm 
 params.fragment_mass_tolerance=0.3  // Dalton
 params.comet_template="comet_template.txt"
@@ -1050,7 +1053,7 @@ params.xtandem_template="xtandem-template.xml"
 #+end_src
 
 
-*** TODO Joining Comet & Xtandem
+*** DONE Joining Comet & Xtandem
 [[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
 [[file:glaDIAtor/workflow.py::def combine_search_engine_results]]
 #+begin_src nextflow
@@ -1065,14 +1068,11 @@ process CombineSearchResults {
     file xtandem_search_results from xtandem_search_results_ch
     file comet_search_results from comet_search_results_ch
     output:
-    file "lib_iprophet_peps.xml" into combined_search_results_ch 
+    file "lib_iprophet.peps.xml" into combined_search_results_ch 
     """
-    /opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet_peps.xml
+    /opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet.peps.xml
     """
 }
-
-if(params.search_engines.size() == 1)
-    combined_search_results_ch.
 
 
 #+end_src
@@ -1149,19 +1149,140 @@ process  FindMinimumPeptideProbability {
     # test if psm_csv was made
     test -e $psm_csv || exit 1
     # test if the results arent empty
-    test `wc -l $psm_csv` -gt 1 || exit 1 
+    test `wc -l $psm_csv | cut -d' ' -f1` -gt 1 || exit 1 
     PEPTIDEPROBABILITY=`cat $psm_csv | cut -f 5 -d ',' |tail -n+2 |sort -u | head -n1`
     """
 }
 #+end_src
 
-#+begin_src  nextflow :noweb-ref nf-vars :tangle no
-params.protfdr=0.01
+#+begin_src  nextflow :noweb-ref nf-params :tangle no
+// sensible values = floats between 0 and 1 
+params.protFDR=0.01
+#+end_src
+http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST
+
+
+Spectrast in =SpectraSTPepXMLLibImporter.cpp= =readFromFile= =processSearchHit= will read
+the mzxmls contained in the pepxml. It defaults to looking for the mzxml in the CWD
+otherwise it checks the path in the =base_name= property of msms_run_summary element in =<search_summary=
+so we need again give the =maybespectra_ch= on.
+From the above url
+#+begin_quote
+- Creating Consensus Libraries
+1. Importing the raw spectra into SpectraST
+[ ... ]
+Remember that the .mzXML files must be in the same directories as their
+corresponding .pepXML files. 
+#+end_quote
+#+begin_src nextflow
+// sepctrast will create *.splib, *.spidx, *.pepidx, 
+// note that where-ever a splib goes, so must its spidx and pepidx
+///and they must have the same part
+
+process SpectrastCreateSpecLib {
+    input:
+    file irtfile from Channel.fromPath(params.irt_file)
+    file combined_search_results from combined_search_results_ch.first()
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    file spectra from maybespectra_ch.spectrast.collect()
+    env cutoff from minimum_peptide_probability
+    output:
+    tuple file ("${prefix}_cons.splib"), file("${prefix}_cons.spidx") into spectrast_ch
+    file("${prefix}_cons.sptxt") into consensus_lib_sptxt_ch
+    script:
+    prefix = "SpecLib"
+    to_run = "opt/tpp/bin/spectrast -cN${prefix} -cIHCD -cf \"Protein! ~ DECOY_\" -cP$cutoff -c_IRR $combined_search_results "
+    if (params.use_irt)
+	to_run += "-c_IRT $irtfile"
+    to_run += "\n opt/tpp/bin/spectrast -CN${prefix}_cons -cD$fastadb_with_decoy -CIHCD -cAC ${prefix}.splib"
+        
+}
+ #+end_src
+
+#+begin_src fundamental :tangle irt.txt 
+LGGNEQVTR   -28.308
+GAGSSEPVTGLDAK  0.227
+VEATFGVDESNAK   13.1078
+YILAGVENSK  22.3798
+TPVISGGPYEYR    28.9999
+TPVITGAPYEYR    33.6311
+DGLDAASYYAPVR   43.2819
+ADVTPADFSEWSK   54.969
+GTFIIDPGGVIR    71.3819
+GTFIIDPAAVIR    86.7152
+LFLQFGAQGSPFLK  98.0897
 #+end_src
 
-#+begin_src 
-
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// white-space-delimited file of peptide-sequences and internal retention times
+params.irt_file="irt.txt"
+// whether or not to use the retention-
+params.use_irt=true
 #+end_src
+ 
+specrast2tsv.py is from =msproteomicstools=
+OpenSwathDecoyGenerator from =OpenMS= =topp=
+#+begin_src nextflow
+process CreateOpenswathTransitions {
+    /*
+     Choice parts of sprectrast2.tsv --help
+     
+     spectrast2tsv.py
+     ---------------
+     This script is used as filter from spectraST files to swath input files.
+     python spectrast2tsv.py [options] spectrast_file(s)
+     
+     -d                  Remove duplicate masses from labeling
+     -e                  Use theoretical mass
+     -k    output_key    Select the output provided. Keys available: openswath, peakview. Default: peakview
+     -l    mass_limits   Lower and upper mass limits of fragment ions. Example: -l 400,2000
+
+     -w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)
+     -n    int           Max number of reported ions per peptide/z. Default: 20
+     -o    int           Min number of reported ions per peptide/z. Default: 3
+     -a    outfile       Output file name (default: appends _peakview.txt)
+     ,*/
+    input:
+    file swath_windows from swath_windows_ch
+    file sptxt from consensus_lib_sptxt_ch
+    output:
+    file outputfile into openswath_transitions_ch
+
+    script:
+    outputfile="SpecLib_cons_decoys_openswath.tsv"
+    
+    """
+    MINWINDOW=`head -n1 -d'	' -f1 $swath_windows`
+    MAXWINDOW=`tail -n1 -d'	' -f2 $swath_windows`
+    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a SpecLib_cons_openswath.tsv $sptxt
+    OpenSwathDecoyGenerator -in SpecLib_cons_openswath.tsv -out SpecLib_cons_decoys_openswath.tsv -method reverse
+    """
+}
+#+end_src
+
+
+
+=TargetedFileConverter= from msproteomics.
+#+begin_quote
+/usr/bin/TargetedFileConverter: error while loading shared libraries: libQt5Core.so.5: cannot open shared object file: No such file or directory
+#+end_quote
+
+Here we might actually not need TargetedFileConverter,
+can give tsv directly to OpenSwathDecoyGenerator.
+and pass result tsv to OpenSwathWorkflow as =-tr=.
+
+*** OpenSwathDecoyGenerator
+
+#+begin_src nextflow
+process OpenSwathDecoys{
+    input:
+    
+}
+#+end_src
+
+
+
+
 ** TODO Building Dia Matrix
 http://openswath.org/_/downloads/en/latest/pdf/
 *** OpenSwathWorkflow
