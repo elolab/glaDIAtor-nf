@@ -1,5 +1,5 @@
 #+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm"
-#+PROPERTY: header-args:nextflow :tangle "gladiator.nf" 
+#+PROPERTY: header-args:nextflow :tangle "gladiator.nf" :comments link
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
 #+TODO: TODO(t) | DONE(d)
 #+LINK: gladiator file:../glaDIAtor/%s
@@ -1174,8 +1174,19 @@ From the above url
 Remember that the .mzXML files must be in the same directories as their
 corresponding .pepXML files. 
 #+end_quote
+
+Spectrast is from =tpp=
+Note that spectrast flags are single-dash multilettered underscored argument-concatenated.thanks.
+Its argument-parser is *very* funky, so be careful here.
+It also doesn't check if illegal flags are given, they will pass silently instead, *grumble.*
+#+begin_src fundamental :tangle no
+(\_/) .~~ 
+(._.)/~~~
+(_ _)     
+#+end_src
+**** Spectrast
 #+begin_src nextflow
-// sepctrast will create *.splib, *.spidx, *.pepidx, 
+// spectrast will create *.splib, *.spidx, *.pepidx, 
 // note that where-ever a splib goes, so must its spidx and pepidx
 ///and they must have the same part
 
@@ -1185,17 +1196,17 @@ process SpectrastCreateSpecLib {
     file combined_search_results from combined_search_results_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     file spectra from maybespectra_ch.spectrast.collect()
-    env cutoff from minimum_peptide_probability
+    val cutoff from minimum_peptide_probability
     output:
     tuple file ("${prefix}_cons.splib"), file("${prefix}_cons.spidx") into spectrast_ch
     file("${prefix}_cons.sptxt") into consensus_lib_sptxt_ch
     script:
     prefix = "SpecLib"
-    to_run = "opt/tpp/bin/spectrast -cN${prefix} -cIHCD -cf \"Protein! ~ DECOY_\" -cP$cutoff -c_IRR $combined_search_results "
+    to_run = "/opt/tpp/bin/spectrast -cN${prefix} -cIHCD -cf\"Protein! ~ DECOY_\" -cP$cutoff -c_IRR "
     if (params.use_irt)
-	to_run += "-c_IRT $irtfile"
-    to_run += "\n opt/tpp/bin/spectrast -CN${prefix}_cons -cD$fastadb_with_decoy -CIHCD -cAC ${prefix}.splib"
-        
+	to_run += "-c_IRT$irtfile "
+    to_run +=  "$combined_search_results" // spectrast really wants its input-files last.
+    to_run += "\n /opt/tpp/bin/spectrast -cN${prefix}_cons -cD$fastadb_with_decoy -cIHCD -cAC ${prefix}.splib"
 }
  #+end_src
 
@@ -1219,7 +1230,7 @@ params.irt_file="irt.txt"
 // whether or not to use the retention-
 params.use_irt=true
 #+end_src
- 
+**** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
 #+begin_src nextflow
@@ -1274,10 +1285,10 @@ and pass result tsv to OpenSwathWorkflow as =-tr=.
 *** OpenSwathDecoyGenerator
 
 #+begin_src nextflow
-process OpenSwathDecoys{
-    input:
-    
-}
+
+// process OpenSwathDecoys{
+//     "e
+// }
 #+end_src
 
 
@@ -1304,7 +1315,7 @@ Creates tsv with =-out_tsv=
 ** nf
 #+begin_src nextflow :tangle nextflow.config :noweb yes
 singularity.autoMounts = true
-process.container="file://../../gladiator/gladiator-images/gladiatorserver.simg"
+process.container="file://../../gladiator/gladiator-images/what-gladiator-next.simg"
 process.executor='slurm'
 singularity.enabled = true
 
@@ -1391,7 +1402,7 @@ same `major-mode'."
 				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf"))
 	;; dont ask about saving things
 	(compilation-save-buffers-predicate 'ignore))
-    (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow -log `mktemp -u XXX.nextflow.log` run gladiator.nf -resume")))
+    (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow -log `mktemp -u XXX.nextflow.log` run gladiator.nf")))
 ;; -process.container='file://../gladiator/gladiator.simg' -with-singularity -main-script gladiator
 (defun gladiator-tangle-and-compile ()
   (interactive)
