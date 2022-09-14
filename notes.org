@@ -3,6 +3,7 @@
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
 #+TODO: TODO(t) | DONE(d)
 #+LINK: gladiator file:../glaDIAtor/%s
+
 * Preprocessing Data
 This will not be in the main pipeline
 ** Picking Peaks
@@ -18,6 +19,8 @@ mkdir -p MZML-pwiz
 find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
 #+end_src
 * Analysis [3/5]
+Gladiator paper: doi:10.1038/s43705-022-00137-0
+diatools: doi:10.1021/acs.jproteome.9b00606
 ** Headers
 #+begin_src emacs-lisp :tangle no
 (setq org-babel-tangle-lang-exts
@@ -354,13 +357,18 @@ Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
 // dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
 dda_assisted_p = true
 
-(dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
+(initial_dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
     [ Channel.fromPath(params.diafiles), Channel.empty() ] :
    // take(2) for development short cycle
   Channel.fromPath(params.diafiles).take(2).into(2)
   // Channel.fromPath(params.diafiles).into(2)
 )
+
+initial_dia_mzml_files_ch.multiMap{
+    it -> swath_windows: osw: it
+    }.set{dia_mzml_files_ch}
+    
 #+end_src
 As dia will be listened to by two in the case of not dda-assisted,
 we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
@@ -483,7 +491,7 @@ def create_swath_window_files(cwd, dia_mzML):
 
         fh_tswaths.write("LowerOffset"+tab_character+"HigherOffset"+newline_character)
 
-        for i in range(len(swaths)):
+        for i in range(len(swaths)): 
             fh_swaths.write(str(swaths[i][0]) + tab_character + str(swaths[i][1])  + newline_character)
             fh_tswaths.write(str(tswaths[i][0]) + tab_character + str(tswaths[i][1])  + newline_character)
 
@@ -494,7 +502,7 @@ def create_swath_window_files(cwd, dia_mzML):
 #+begin_src nextflow  :noweb yes
 process MakeSwathWindows {
     input:
-    file diafile from dia_mzml_files_ch.first()
+    file diafile from dia_mzml_files_ch.swath_windows.first()
     output: 
     file "swath-windows.txt" into  swath_windows_ch
     file "truncated-swath-windows.txt" into truncated_swath_windows_ch
@@ -1229,7 +1237,7 @@ LFLQFGAQGSPFLK  98.0897
 params.irt_file="irt.txt"
 // whether or not to use the retention-
 params.use_irt=true
-#+end_src
+ #+end_src
 **** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
@@ -1247,6 +1255,7 @@ process CreateOpenswathTransitions {
      -e                  Use theoretical mass
      -k    output_key    Select the output provided. Keys available: openswath, peakview. Default: peakview
      -l    mass_limits   Lower and upper mass limits of fragment ions. Example: -l 400,2000
+     -s    ion_series    List of ion series to be used. Example: -s y,b
 
      -w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)
      -n    int           Max number of reported ions per peptide/z. Default: 20
@@ -1263,8 +1272,8 @@ process CreateOpenswathTransitions {
     outputfile="SpecLib_cons_decoys_openswath.tsv"
     
     """
-    MINWINDOW=`head -n1 -d'	' -f1 $swath_windows`
-    MAXWINDOW=`tail -n1 -d'	' -f2 $swath_windows`
+    MINWINDOW=`head -n1 $swath_windows | cut -d'	' -f1`
+    MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
     spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a SpecLib_cons_openswath.tsv $sptxt
     OpenSwathDecoyGenerator -in SpecLib_cons_openswath.tsv -out SpecLib_cons_decoys_openswath.tsv -method reverse
     """
@@ -1295,11 +1304,129 @@ and pass result tsv to OpenSwathWorkflow as =-tr=.
 
 
 ** TODO Building Dia Matrix
-http://openswath.org/_/downloads/en/latest/pdf/
+https://openswath.org/_/downloads/en/latest/pdf/
+https://openswath.org/_/downloads/en/latest/html/
 *** OpenSwathWorkflow
 Creates tsv with =-out_tsv=
+[[file:glaDIAtor/workflow.py::def buildDIAMatrix(\\]]
 
 
+#+begin_src nextflow
+process OpenSwathWorkflow {
+    memory: '16 GB'
+    input:
+    file dia_mzml_file from dia_mzml_files_ch.osw
+    file openswath_transitions from openswath_transitions_ch
+    file swath_truncated_windows from truncated_swath_windows_ch.first()
+    file irt_traml from Channel.fromPath(params.irt_traml_file)
+    output:
+    file dia_tsv_file into openswath_tsv_ch
+    file 
+    script:
+    dia_tsv_file = "${dia_mzml_file.baseName}-DIA.tsv"
+    to_execute =
+        "OpenSwathWorkflow " +
+        "-force " +
+        "-in $dia_mzml_file " +
+        "-tr $openswath_transitions " +
+        "-threads ${task.cpus} " +
+        "-min_upper_edge_dist 1 " +
+        "-sort_swath_maps " +
+        "-out_tsv ${dia_tsv-file}" 
+        "-swath_windows_file $swath_truncated_windows "
+    if (params.use_irt)
+        to_execute +=  "-tr_irt $irt_traml "
+    to_execute
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.irt_traml_file = "iRTAssayLibrary.TraML"
+#+end_src
+
+#+begin_quote
+Extraction windows have a gap. Will abort (override with -force)
+#+end_quote
+**** What is the relation between =irt.txt= and =iRTAssayLibrary.TraML=
+
+The =irt.txt= seems to contain pairs of 
+~CompoundList/Peptide@sequence~ and ~Compoundlist/Peptide/RetentionTimeList/cvParam[@name="normalized retention time"]@value~
+of the traml file, except
+#+begin_quote
+LFLQFGAQGSPFLK  98.0897
+#+end_quote
+is not present in the traml file.
+# xpath notation https://www.w3schools.com/xml/xpath_syntax.asp
+
+traml was _not_ gotten from here:
+https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/PASS_View?identifier=PASS00779
+file:/ftp:PASS00779@ftp.peptideatlas.org:/
+(but is comparable)
+
+#+begin_quote
+<OA> The files have been downloaded from net and for now they are
+	      intended to be used "as is". If there becomes a need to modify
+	      those, then there will be a need figure out how to do it. So, it
+	      is very much unexplored how to generate those files for now.
+								        [10:56]
+<NA> looks like the .txt contains pairs of "sequence - Normalized retention
+       time" from the traml. The only one in the .txt that isnt in the traml
+       seems to be LFLQFGAQGSPFLK  [10:59]
+<NA> where did you download them froM?  [11:00]
+<OA> That is a good question. I guess it was some example dataset for
+	      openswath, but I don't remember which. If you have time and
+	      interest, you could try to figure out how iRT assay library
+	      should be built.  [11:07]
+#+end_quote
+
+#+begin_quote
+
+Retention time normalization¶
+
+The retention time normalization peptides are provided using the optional parameter tr_irt in TraML format. We
+suggest to use the iRTassays.TraML file provided in the tutorial dataset, if the Biognosys iRT-kit was used during sample
+preparation.
+
+If the iRT-kit was not used, it is highly recommended to use or generate a set of endogenous peptides for RT
+normalization. A recent publication [5] provides such a set of CiRT peptides suitable for many eukaryotic samples. The
+TraML file from the supplementary information can be used as input for tr_irt. Since not all CiRT peptides might be
+found, the flag RTNormalization:estimateBestPeptides should be set to improve initial filtering of poor signals.
+Further parameters for optimization can be found when invoking OpenSwathWorkflow --helphelp under the
+RTNormalization section. Those do not require adjustment for most common sample types and LC-MS/MS setups, but
+might be useful to tweak for specific scenarios.
+#+end_quote
+#+begin_quote
+5 Röst HL, Liu Y, D’Agostino G, Zanella M, Navarro P, Rosenberger G, Collins BC, Gillet L, Testa G, Malmström L, Aebersold R. TRIC:
+an automated alignment strategy for reproducible protein quantification in targeted proteomics. Nat Methods. 2016 Sep;13(9):777-83. doi:
+10.1038/nmeth.3954. Epub 2016 Aug 1. PMID: 27479329
+#+end_quote
+doi:10.1038/nmeth.3954
+file:/ftp:PASS00788@ftp.peptideatlas.org:/
+
+also not from here 
+
+*** Pyprophet
+https://github.com/PyProphet/pyprophet
+=pyprophet=
+License: 3-clause BSD
+#+begin_src nextflow :tangle no
+process pyprophet {
+    input:
+    file dia_tsv from openswath_tsv_ch
+    output:
+    script:
+    seed="928418756933579397"
+    "pyprophet --delim=tab --export.mayo "
+    
+    
+     
+}
+#+end_src
+
+
+*** feature-alignment
+
+*** Swath2stats
 
 * Putting it together
 ** gwl
@@ -1318,7 +1445,6 @@ singularity.autoMounts = true
 process.container="file://../../gladiator/gladiator-images/what-gladiator-next.simg"
 process.executor='slurm'
 singularity.enabled = true
-
 <<nf-params>>
 #+end_src
 
