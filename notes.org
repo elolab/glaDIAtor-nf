@@ -1072,6 +1072,7 @@ params.xtandem_template="xtandem-template.xml"
 process CombineSearchResults {
     when:
     params.search_engines.size() > 1
+    publishDir 'data/speclib'
     input:
     file xtandem_search_results from xtandem_search_results_ch
     file comet_search_results from comet_search_results_ch
@@ -1165,6 +1166,7 @@ process  FindMinimumPeptideProbability {
 
 #+begin_src  nextflow :noweb-ref nf-params :tangle no
 // sensible values = floats between 0 and 1 
+//target FDR for mayu
 params.protFDR=0.01
 #+end_src
 http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST
@@ -1305,7 +1307,7 @@ and pass result tsv to OpenSwathWorkflow as =-tr=.
 
 ** TODO Building Dia Matrix
 https://openswath.org/_/downloads/en/latest/pdf/
-https://openswath.org/_/downloads/en/latest/html/
+https://openswath.org/_/downloads/en/latest/htmlzip/
 *** OpenSwathWorkflow
 Creates tsv with =-out_tsv=
 [[file:glaDIAtor/workflow.py::def buildDIAMatrix(\\]]
@@ -1313,7 +1315,7 @@ Creates tsv with =-out_tsv=
 
 #+begin_src nextflow
 process OpenSwathWorkflow {
-    memory: '16 GB'
+    memory '16 GB'
     input:
     file dia_mzml_file from dia_mzml_files_ch.osw
     file openswath_transitions from openswath_transitions_ch
@@ -1321,9 +1323,10 @@ process OpenSwathWorkflow {
     file irt_traml from Channel.fromPath(params.irt_traml_file)
     output:
     file dia_tsv_file into openswath_tsv_ch
-    file 
+    file dia_osw_file into openswath_osw_ch
     script:
     dia_tsv_file = "${dia_mzml_file.baseName}-DIA.tsv"
+    dia_osw_file = "${dia_mzml_file.baseName}-DIA.osw"
     to_execute =
         "OpenSwathWorkflow " +
         "-force " +
@@ -1332,7 +1335,8 @@ process OpenSwathWorkflow {
         "-threads ${task.cpus} " +
         "-min_upper_edge_dist 1 " +
         "-sort_swath_maps " +
-        "-out_tsv ${dia_tsv-file}" 
+        "-out_tsv ${dia_tsv_file} " +
+        "-out_osw ${dia_osw_file} " + 
         "-swath_windows_file $swath_truncated_windows "
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
@@ -1409,23 +1413,76 @@ also not from here
 https://github.com/PyProphet/pyprophet
 =pyprophet=
 License: 3-clause BSD
-#+begin_src nextflow :tangle no
-process pyprophet {
+#+begin_src nextflow 
+process pyprophet_legacy {
+    publishDir 'data/pyprophet/' 
+
     input:
     file dia_tsv from openswath_tsv_ch
     output:
+    file dscore_csv into pypropet_legacy_ch
     script:
     seed="928418756933579397"
-    "pyprophet --delim=tab --export.mayo "
+    dscore_csv="${dia_tsv.baseName}_with_dscore.csv"
     
-    
-     
+    "pyprophet --random_seed=${seed} --delim=tab --export.mayu ${dia_tsv} --ignore.invalid_score_columns"
 }
 #+end_src
 
+#+begin_quote
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_summary_stat.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_full_stat.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_with_dscore.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_with_dscore_filtered.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_report.pdf
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_cutoffs.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_svalues.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_qvalues.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_dscores_top_target_peaks.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_dscores_top_decoy_peaks.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_mayu.cutoff
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_mayu.fasta
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_mayu.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_scorer.bin
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_weights.txt
+#+end_quote
 
+#+begin_src nextflow :tangle no
+process pyprophet_new  {
+
+}
+#+end_src
 *** feature-alignment
+#+begin_src nextflow
+process feature_alignment
+{
+    input:
+    file dscore_csvs from pypropet_legacy_ch.collect()
+    script:
+    outfile = "DIA-analysis-results.csv"
+    if (params.use_irt) {
+        realign_method = "dIRT" 
+    } else {
+        realign_method = "linear"
+    }
+    "feature_alignment.py " +
+        "--method best_ov erall " +
+        "--max_rt_diff 90"
+        "--target_fdr $params.trig_target_fdr " +
+        "--max_fdr_quality $params.trig_max_fdr " +
+        "--in $dscore_csvs " +         // will this break on filenames with spaces
+        " --realign_method $realign_method " + 
+        "--out $outfile"
+}
+#+end_src
 
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// Target FDR used in TRIG alignment in dirT mode [default 0.01]
+params.trig_target_fdr=0.01
+// Maximum FDR for TRIG alignment in dirT mode [default 0.05]
+params.trig_max_fdr=0.05
+
+#+end_src
 *** Swath2stats
 
 * Putting it together
@@ -1442,7 +1499,7 @@ process pyprophet {
 ** nf
 #+begin_src nextflow :tangle nextflow.config :noweb yes
 singularity.autoMounts = true
-process.container="file://../../gladiator/gladiator-images/what-gladiator-next.simg"
+process.container="file://../../gladiator/gladiator-images/gladiator-pyprophet-legacy.simg"
 process.executor='slurm'
 singularity.enabled = true
 <<nf-params>>
@@ -1528,7 +1585,7 @@ same `major-mode'."
 				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf"))
 	;; dont ask about saving things
 	(compilation-save-buffers-predicate 'ignore))
-    (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow -log `mktemp -u XXX.nextflow.log` run gladiator.nf")))
+    (compile "module use /appl/user/modulefiles/ && module load nextflow && sbatch nextflow -log `mktemp -u XXX.nextflow.log` run gladiator.nf")))
 ;; -process.container='file://../gladiator/gladiator.simg' -with-singularity -main-script gladiator
 (defun gladiator-tangle-and-compile ()
   (interactive)
