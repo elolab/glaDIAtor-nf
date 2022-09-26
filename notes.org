@@ -18,7 +18,7 @@ done
 mkdir -p MZML-pwiz
 find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
 #+end_src
-* Analysis [3/5]
+* Analysis [4/5]
 Gladiator paper: doi:10.1038/s43705-022-00137-0
 diatools: doi:10.1021/acs.jproteome.9b00606
 ** Headers
@@ -54,6 +54,7 @@ diatools: doi:10.1021/acs.jproteome.9b00606
 ** DONE building database
 *Overview*
 [[file:glaDIAtor/workflow.py::def build_database(\\][build_database definition]]
+
 #+NAME: dot-build-database
 #+begin_src dot 
 digraph {
@@ -520,7 +521,7 @@ process MakeSwathWindows {
 
 we'll have to get minswath and maxswath by reading ~"swath-windows.txt"~
 
-** TODO Building {Pseudo-,}Spectral library  [1/4]
+** DONE Building {Pseudo-,}Spectral library  [4/4]
 *** Choosing Comet/Xtandem
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
@@ -529,7 +530,7 @@ CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
 params.search_engines = ["comet","xtandem"]
 
 #+end_src
-*** TODO Comet 
+*** DONE Comet 
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 13:56]--[2022-06-10 Fri 16:09] =>  2:13
 CLOCK: [2022-06-10 Fri 11:00]--[2022-06-10 Fri 13:31] =>  2:31
@@ -770,7 +771,7 @@ params.precursor_mass_tolerance=20 // ppm
 params.fragment_mass_tolerance=0.3  // Dalton
 params.comet_template="comet_template.txt"
 #+end_src
-*** TODO Xtandem
+*** DONE Xtandem
 :LOGBOOK:
 
 CLOCK: [2022-06-22 Wed 10:24]--[2022-06-22 Wed 16:28] =>  6:04
@@ -1085,7 +1086,7 @@ process CombineSearchResults {
 
 
 #+end_src
-*** TODO Building Specral Library
+*** DONE Building Specral Library
 [[file:glaDIAtor/UI/ui/__init__.py::workflow.buildlib(]]
 [[file:glaDIAtor/workflow.py::def buildlib(event, \\]]
 Inputs from [[*Creating Swath window files][Creating Swath window files]]
@@ -1219,6 +1220,10 @@ process SpectrastCreateSpecLib {
     to_run += "\n /opt/tpp/bin/spectrast -cN${prefix}_cons -cD$fastadb_with_decoy -cIHCD -cAC ${prefix}.splib"
 }
  #+end_src
+
+from original gladiator implementation
+source is unclear;
+author forgot.
 
 #+begin_src fundamental :tangle irt.txt 
 LGGNEQVTR   -28.308
