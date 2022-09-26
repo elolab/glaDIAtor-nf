@@ -1070,9 +1070,9 @@ params.xtandem_template="xtandem-template.xml"
 
 #+begin_src nextflow 
 process CombineSearchResults {
+    publishDir '/data/speclib'
     when:
     params.search_engines.size() > 1
-    publishDir 'data/speclib'
     input:
     file xtandem_search_results from xtandem_search_results_ch
     file comet_search_results from comet_search_results_ch
@@ -1415,8 +1415,7 @@ https://github.com/PyProphet/pyprophet
 License: 3-clause BSD
 #+begin_src nextflow 
 process pyprophet_legacy {
-    publishDir 'data/pyprophet/' 
-
+    publishDir '/data/pyprophet/' 
     input:
     file dia_tsv from openswath_tsv_ch
     output:
