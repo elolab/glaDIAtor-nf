@@ -356,13 +356,13 @@ params.ddafiles = "DDA/*.mzXML"
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
 // dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
-dda_assisted_p = true
+dda_assisted_p = false 
 
 (initial_dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
     [ Channel.fromPath(params.diafiles), Channel.empty() ] :
    // take(2) for development short cycle
-  Channel.fromPath(params.diafiles).take(2).into(2)
+  Channel.fromPath(params.diafiles).into(2)
   // Channel.fromPath(params.diafiles).into(2)
 )
 
@@ -748,6 +748,14 @@ process Comet {
     """
 }
 process XinteractComet {
+    memory '16 GB'
+    // memory usage scales with the number of input files
+    // find the correct usage per input file or size
+    // also for xinteractxtandem
+    // usage there seems to be a lot smaller
+    // as input files seems to be smaller
+    //
+    // 
     input:
     file pepxmls from comet_pepxml_ch.collect()
     // the filename of needed fastdadb was defined in cometcfg
@@ -1038,6 +1046,7 @@ process XTandem {
 }
 
 process XinteractXTandem {
+    memory '16 GB'
     input:
     file pepxmls from xtandem_pepxml_ch.collect()
     // the filename of needed fastdadb was defined in cometcfg
@@ -1060,7 +1069,11 @@ process XinteractXTandem {
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 params.xtandem_template="xtandem-template.xml"
 #+end_src
-
+| # pepxml | size pepxml (GiB) |
+|       69 |         0.7890625 |
+|          |                   |
+#+TBLFM: @2$2=808/1024
+Why is this much smaller than comet?
 
 *** DONE Joining Comet & Xtandem
 [[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
@@ -1071,20 +1084,30 @@ params.xtandem_template="xtandem-template.xml"
 
 #+begin_src nextflow 
 process CombineSearchResults {
-    publishDir '/data/speclib'
+    publishDir 'data/speclib'
     when:
     params.search_engines.size() > 1
     input:
     file xtandem_search_results from xtandem_search_results_ch
     file comet_search_results from comet_search_results_ch
     output:
-    file "lib_iprophet.peps.xml" into combined_search_results_ch 
+    file "lib_iprophet.peps.xml" into both_combined_search_results_ch
     """
     /opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet.peps.xml
     """
 }
 
-
+// we handle the one or two engines case
+// DSL2 incompat
+// would be in workflow body
+if(params.search_engines.size()) > 1 {
+    both_combined_search_results_ch.tap{combined_search_results_ch}
+} else if (params.search_engines.contains("comet")) {
+    comet_search_results_ch.tap{combined_search_results_ch}
+    
+} else if (params.search_engines.contains("xtandem")) {
+    xtandem_search_results_ch.tap{combined_search_results_ch}
+}
 #+end_src
 *** DONE Building Specral Library
 [[file:glaDIAtor/UI/ui/__init__.py::workflow.buildlib(]]
@@ -1427,16 +1450,17 @@ https://github.com/PyProphet/pyprophet
 License: 3-clause BSD
 #+begin_src nextflow 
 process pyprophet_legacy {
-    publishDir '/data/pyprophet/' 
+    publishDir 'data/pyprophet/' 
     input:
     file dia_tsv from openswath_tsv_ch
     output:
     file dscore_csv into pypropet_legacy_ch
     script:
     seed="928418756933579397"
+    
     dscore_csv="${dia_tsv.baseName}_with_dscore.csv"
     
-    "pyprophet --random_seed=${seed} --delim=tab --export.mayu ${dia_tsv} --ignore.invalid_score_columns"
+    "/opt/pyprophet/bin/pyprophet --random_seed=${seed} --delim=tab --export.mayu ${dia_tsv} --ignore.invalid_score_columns"
 }
 #+end_src
 
@@ -1467,18 +1491,23 @@ process pyprophet_new  {
 #+begin_src nextflow
 process feature_alignment
 {
+    publishDir 'data/dia/'
     input:
     file dscore_csvs from pypropet_legacy_ch.collect()
+    output:
+    file outfile into feature_alignment_ch
     script:
     outfile = "DIA-analysis-results.csv"
+    
     if (params.use_irt) {
         realign_method = "dIRT" 
     } else {
         realign_method = "linear"
     }
+    
     "feature_alignment.py " +
-        "--method best_ov erall " +
-        "--max_rt_diff 90"
+        "--method best_overall " +
+        "--max_rt_diff 90 " +
         "--target_fdr $params.trig_target_fdr " +
         "--max_fdr_quality $params.trig_max_fdr " +
         "--in $dscore_csvs " +         // will this break on filenames with spaces
@@ -1491,11 +1520,99 @@ process feature_alignment
 // Target FDR used in TRIG alignment in dirT mode [default 0.01]
 params.trig_target_fdr=0.01
 // Maximum FDR for TRIG alignment in dirT mode [default 0.05]
-params.trig_max_fdr=0.05
+params.trig_max_fdr=1.00
 
 #+end_src
 *** Swath2stats
 
+#+NAME: r-swath2stats
+#+begin_src R :tangle no :eval no :var diafile="" :var strict_checking=0 :var peptideoutputfile="" :var proteinoutputfile="" :var decoyprefix="DECOY_"
+.libPaths("/opt/Rlibs/") 
+
+suppressPackageStartupMessages(library(SWATH2stats))
+suppressPackageStartupMessages(library(data.table))
+
+remove_irt <- function(df)
+  df[grep("iRT", df[["ProteinName"]], invert=TRUE, fixed=TRUE),, drop=FALSE]
+
+## original gladiator decoy removing behaviour
+remove_decoy_strict <- function(df,decoyprefix)
+  df[grep(decoyprefix, df[["ProteinName"]], invert=TRUE, fixed=TRUE),, drop=FALSE]
+
+
+remove_decoy_loose <- function(df)
+  df[!df[["decoy"]],, drop = FALSE]
+
+
+basename_sans_ext <- function(f)
+  unlist(strsplit(basename(f), ".",fixed=TRUE))[[1]]
+
+
+main <- function(diafile,
+                 strict_checking=FALSE,
+                 peptideoutputfile="",
+                 proteinoutputfile="",
+                 decoyprefix="DECOY_")
+{
+  remove_decoy <- `if`(strict_checking,
+                       function(df) remove_decoy_strict(df,decoyprefix),
+                       remove_decoy_loose)
+  filtered_data <-
+    data.table::fread(diafile,header=TRUE) |> 
+    data.frame(stringsAsFactors = FALSE) |>
+    within(run_id <- basename(filename)) |>
+    SWATH2stats::reduce_OpenSWATH_output() |>
+    remove_irt() |>
+    remove_decoy()
+
+  # Writing output
+  filtered_data |>
+    SWATH2stats::write_matrix_peptides(filename = basename_sans_ext(peptideoutputfile)) |>
+    write.table(sep="\t",file=peptideoutputfile,row.names = FALSE)
+
+  filtered_data |>
+    SWATH2stats::write_matrix_proteins(filename = basename_sans_ext(proteinoutputfile)) |>
+    write.table(sep="\t",file=proteinoutputfile,row.names = FALSE)
+}
+#+end_src
+
+
+
+#+begin_src nextflow :noweb yes
+process swath2stats {
+    publishDir 'data/dia/'
+    input:
+    file dia_score from feature_alignment_ch
+    script:
+    strict_checking_=true
+    peptide_matrix="DIA-peptide-matrix.tsv"
+    protein_matrix="DIA-protein-matrix.tsv"
+    
+    """
+    /usr/bin/env Rscript
+    """ +
+        '''
+    <<r-swath2stats>>
+        ''' +
+        """
+    main(dia_score, strict_checking = as.logical("$strict_checking"),
+	peptideoutputfile="$peptidematrix",
+	proteinoutputfile="$proteinmatrix",
+	decoyprefix="DECOY_")
+	
+    """
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// whether to exclude in final DIA matrices
+// proteins of which
+// any peptide can be a decoy.
+// this is the default behaviour of original gladiator implementation.
+// if set to false, just instead remove anything
+// that has the "decoy" column set to false
+params.swath2stats_strict_checking=true
+#+end_src
 * Putting it together
 ** gwl
 #+begin_src scheme :noweb yes
@@ -1508,6 +1625,27 @@ params.trig_max_fdr=0.05
     ))))
 #+end_src
 ** nf
+according to =nextflow/docs/process.rst=,
+the cache looks at the timestamp for cache-correctness,
+which can be inconsistent in on shared file systems,
+satting =process.cache= to 'lenient' maybe will work around this?
+See alos 
+#+begin_quote
+``'lenient'``         Enable caching. Cache keys are created indexing input files path and size attributes (this policy provides a workaround for incorrect caching invalidation observed on shared file systems due to inconsistent files timestamps; requires version 0.32.x or later).
+#+end_quote
+
+there is also 'deep' hashing, based on file content
+and the undocumented 'sha256' hashing bashed on the shasum of the file
+See also here: https://www.nextflow.io/blog/2019/troubleshooting-nextflow-resume.html
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+process.cache='lenient'
+#+end_src
+
+though this will break if you replace input files with files with the same
+path but different content.
+'sha256' might be the best one?
+
 #+begin_src nextflow :tangle nextflow.config :noweb yes
 singularity.autoMounts = true
 process.container="file://../../gladiator/gladiator-images/gladiator-pyprophet-legacy.simg"
@@ -1515,7 +1653,6 @@ process.executor='slurm'
 singularity.enabled = true
 <<nf-params>>
 #+end_src
-
 
 * File local variables
 For this file
