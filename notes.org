@@ -1323,15 +1323,15 @@ process OpenSwathWorkflow {
     memory '16 GB'
     input:
     file dia_mzml_file from dia_mzml_files_ch.osw
-    file openswath_transitions from openswath_transitions_ch
+    file openswath_transitions from openswath_transitions_ch.first()
     file swath_truncated_windows from truncated_swath_windows_ch.first()
-    file irt_traml from Channel.fromPath(params.irt_traml_file)
+    file irt_traml from Channel.fromPath(params.irt_traml_file).first()
     output:
     file dia_tsv_file into openswath_tsv_ch
-    file dia_osw_file into openswath_osw_ch
+    // file dia_osw_file into openswath_osw_ch
     script:
     dia_tsv_file = "${dia_mzml_file.baseName}-DIA.tsv"
-    dia_osw_file = "${dia_mzml_file.baseName}-DIA.osw"
+    // dia_osw_file = "${dia_mzml_file.baseName}-DIA.osw"
     to_execute =
         "OpenSwathWorkflow " +
         "-force " +
@@ -1341,7 +1341,7 @@ process OpenSwathWorkflow {
         "-min_upper_edge_dist 1 " +
         "-sort_swath_maps " +
         "-out_tsv ${dia_tsv_file} " +
-        "-out_osw ${dia_osw_file} " + 
+        // "-out_osw ${dia_osw_file} " + 
         "-swath_windows_file $swath_truncated_windows "
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
@@ -1356,6 +1356,13 @@ params.irt_traml_file = "iRTAssayLibrary.TraML"
 #+begin_quote
 Extraction windows have a gap. Will abort (override with -force)
 #+end_quote
+
+OpenSwathWorkflow invocation can output tsv XOR osw, not both.
+You will get exit status 8 
+#+begin_quote
+  Error: Unexpected internal error (Either out_features, out_tsv or out_osw needs to be set (but not two or three at the same time))
+#+end_quote
+
 **** What is the relation between =irt.txt= and =iRTAssayLibrary.TraML=
 
 The =irt.txt= seems to contain pairs of 
