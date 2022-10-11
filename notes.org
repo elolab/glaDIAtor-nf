@@ -727,9 +727,19 @@ process MakeCometConfig {
     """
     
 }
+#+end_src
 
+
+setting memory & error strategy like this prevents caching
+even with process.cache='lenient'
+maybe because the task.attempt = 1
+is tried first 
+#+begin_src nextflow
 process Comet {
     // we probably also want to publish thees
+    memory { 5.GB * task.attempt }
+    errorStrategy { task.exitStatus in 137..137 ? 'retry' : 'terminate' }
+    maxRetries 2
     input:
     file comet_config from comet_config_ch.first()
     // future dev: we can .mix with DDA here?
@@ -747,15 +757,17 @@ process Comet {
     /opt/comet/comet-ms -P$comet_config $mzxml 
     """
 }
+#+end_src
+
+#+begin_src nextflow
 process XinteractComet {
     memory '16 GB'
+    time '5h'
     // memory usage scales with the number of input files
     // find the correct usage per input file or size
     // also for xinteractxtandem
     // usage there seems to be a lot smaller
     // as input files seems to be smaller
-    //
-    // 
     input:
     file pepxmls from comet_pepxml_ch.collect()
     // the filename of needed fastdadb was defined in cometcfg
@@ -1100,13 +1112,14 @@ process CombineSearchResults {
 // we handle the one or two engines case
 // DSL2 incompat
 // would be in workflow body
-if(params.search_engines.size()) > 1 {
+if(params.search_engines.size() > 1) {
     both_combined_search_results_ch.tap{combined_search_results_ch}
 } else if (params.search_engines.contains("comet")) {
     comet_search_results_ch.tap{combined_search_results_ch}
-    
 } else if (params.search_engines.contains("xtandem")) {
     xtandem_search_results_ch.tap{combined_search_results_ch}
+} else {
+    combined_search_results_ch = Channel.create()
 }
 #+end_src
 *** DONE Building Specral Library
@@ -1299,17 +1312,17 @@ process CreateOpenswathTransitions {
     file outputfile into openswath_transitions_ch
 
     script:
-    outputfile="SpecLib_cons_decoys_openswath.tsv"
+    outputfile="SpecLib_cons_decoys.TraML"
     
     """
     MINWINDOW=`head -n1 $swath_windows | cut -d'	' -f1`
     MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
     spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a SpecLib_cons_openswath.tsv $sptxt
-    OpenSwathDecoyGenerator -in SpecLib_cons_openswath.tsv -out SpecLib_cons_decoys_openswath.tsv -method reverse
+    TargetedFileConverter -in SpecLib_cons_openswath.tsv -out SpecLib_cons.TraML
+    OpenSwathDecoyGenerator -in SpecLib_cons.TraML -out SpecLib_cons_decoys.TraML -method reverse
     """
 }
 #+end_src
-
 
 
 =TargetedFileConverter= from msproteomics.
@@ -1322,6 +1335,7 @@ can give tsv directly to OpenSwathDecoyGenerator.
 and pass result tsv to OpenSwathWorkflow as =-tr=.
 
 *** OpenSwathDecoyGenerator
+
 
 #+begin_src nextflow
 
@@ -1448,13 +1462,17 @@ also not from here
 https://github.com/PyProphet/pyprophet
 =pyprophet=
 License: 3-clause BSD
+Pyprophet aggregates various quality scores into one score
+=d_score= (discriminant_score)
+
+
 #+begin_src nextflow 
 process pyprophet_legacy {
     publishDir 'data/pyprophet/' 
     input:
     file dia_tsv from openswath_tsv_ch
     output:
-    file dscore_csv into pypropet_legacy_ch
+    file dscore_csv into pyprophet_legacy_ch
     script:
     seed="928418756933579397"
     
@@ -1488,19 +1506,27 @@ process pyprophet_new  {
 }
 #+end_src
 *** feature-alignment
+of =msproteomicstools/analysis/alignment/feature_alignment.py=
+
+Note: If things fail here,
+because the right fdr cannot be reached,
+try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
+earlier upstream.
+
+
 #+begin_src nextflow
 process feature_alignment
 {
     publishDir 'data/dia/'
     input:
-    file dscore_csvs from pypropet_legacy_ch.collect()
+    file dscore_csvs from pyprophet_legacy_ch.collect()
     output:
     file outfile into feature_alignment_ch
     script:
     outfile = "DIA-analysis-results.csv"
     
     if (params.use_irt) {
-        realign_method = "dIRT" 
+        realign_method = "diRT" 
     } else {
         realign_method = "linear"
     }
@@ -1521,8 +1547,10 @@ process feature_alignment
 params.trig_target_fdr=0.01
 // Maximum FDR for TRIG alignment in dirT mode [default 0.05]
 params.trig_max_fdr=1.00
-
 #+end_src
+
+
+
 *** Swath2stats
 
 #+NAME: r-swath2stats
@@ -1584,20 +1612,20 @@ process swath2stats {
     input:
     file dia_score from feature_alignment_ch
     script:
-    strict_checking_=true
+    strict_checking=params.swath2stats_strict_checking
     peptide_matrix="DIA-peptide-matrix.tsv"
     protein_matrix="DIA-protein-matrix.tsv"
     
     """
-    /usr/bin/env Rscript
+    #!/usr/bin/env Rscript
     """ +
         '''
-    <<r-swath2stats>>
+<<r-swath2stats>>
         ''' +
         """
-    main(dia_score, strict_checking = as.logical("$strict_checking"),
-	peptideoutputfile="$peptidematrix",
-	proteinoutputfile="$proteinmatrix",
+    main("$dia_score", strict_checking = as.logical("$strict_checking"),
+	peptideoutputfile="$peptide_matrix",
+	proteinoutputfile="$protein_matrix",
 	decoyprefix="DECOY_")
 	
     """
@@ -1676,6 +1704,8 @@ For the nextflow file
 #+end_src
 
 
+
+
 * Note
 :LOGBOOK:
 - State "TODO"       from              [2022-06-03 Fri 15:52]
@@ -1684,6 +1714,28 @@ Pyprophet calling convention altered after v2.1.0,
 check what changed
 so can't literally copy invocation from =workflow.py=.
 (S. said)
+* Launching
+#+NAME: launch-nextflow
+#+begin_example sh :eval no
+module use /appl/user/modulefiles/
+module load nextflow
+mkdir -p runs
+RUNLOGDIR=`mktemp -p runs -d run.XXXX`
+echo $RUNLOGDIR
+sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot -resume
+#+end_example
+
+#+begin_src emacs-lisp :var nextflow-compile-command=launch-nextflow
+(let ((default-directory (concat (file-remote-p default-directory)
+				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf"))
+	;; dont ask about saving things
+	(compilation-save-buffers-predicate 'ignore))
+  (compile nextflow-compile-command))
+
+#+end_src
+
+#+RESULTS:
+: #<buffer *compilation*>
 
 * COMMENT for editing
 To make the file links work,
@@ -1743,6 +1795,8 @@ same `major-mode'."
 (use-local-map (copy-keymap org-mode-map))
 (local-set-key (kbd "C-c m") 'gladiator-tangle-and-compile)
 #+end_src
+
+
 
 #+RESULTS:
 : gladiator-tangle-and-compile
