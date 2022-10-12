@@ -69,7 +69,6 @@ RUN wget -O -  'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xE298A3A82
 RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
 RUN apt update
 RUN apt -y install r-base r-base-core r-recommended r-base-dev
-
 RUN apt-get -y install r-base-dev
 #    && apt-get -y install r-cran-data.table\
 #    && apt-get -y install r-bioc-biobase\
@@ -196,14 +195,8 @@ RUN chmod +x miniconda3.sh
 # install conda  in /opt/conda, -b flag is for batch, 
 RUN ./miniconda3.sh -b -p /opt/conda/
 RUN /opt/conda/bin/conda create --quiet --yes --prefix=/opt/pyprophet  --channel=bioconda/label/cf201901 pyprophet
-
 # we put this last for quicker development cycle
-COPY UI/ /opt/gladiator/UI/
 COPY gladiator.py rawconverterhandler.py workflow.py progress.py annotation.py annotateSwath2stats.py /opt/gladiator/
-ENV PYTHONPATH=/opt/gladiator:/opt/gladiator/UI/
-WORKDIR /opt/gladiator/UI/
-COPY ./gladiator-js-deps/ /opt/gladiator/UI/ui/assets/
-RUN pip3 install .
 
 WORKDIR /workdir
 
