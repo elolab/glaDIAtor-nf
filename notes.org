@@ -769,7 +769,7 @@ process XinteractComet {
     // usage there seems to be a lot smaller
     // as input files seems to be smaller
     input:
-    file pepxmls from comet_pepxml_ch.collect()
+    file pepxmls from comet_pepxml_ch.collect().sort()
     // the filename of needed fastdadb was defined in cometcfg
     // and stored in pepxml in the comet-ms step
     // -a suppplies the absulute path to the data directory where the mzxmls
@@ -777,7 +777,7 @@ process XinteractComet {
     // where the mzxml are, because its not very
     // nextflow to look outside the cwd.
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file mzxmls from  xinteract_comet_mzxml_ch.collect()
+    file mzxmls from  xinteract_comet_mzxml_ch.collect().sort()
     output: 
     file "interact_comet.pep.xml" into comet_search_results_ch 
     """
@@ -787,10 +787,13 @@ process XinteractComet {
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-params :tangle no
-params.precursor_mass_tolerance=20 // ppm 
-params.fragment_mass_tolerance=0.3  // Dalton
+params.precursor_mass_tolerance=10 // ppm 
+params.fragment_mass_tolerance=0.02  // Dalton
 params.comet_template="comet_template.txt"
 #+end_src
+
+Notably, a more stringent (lower) tolerance increases memorary usage by comet.
+
 *** DONE Xtandem
 :LOGBOOK:
 
@@ -1060,7 +1063,7 @@ process XTandem {
 process XinteractXTandem {
     memory '16 GB'
     input:
-    file pepxmls from xtandem_pepxml_ch.collect()
+    file pepxmls from xtandem_pepxml_ch.collect().sort()
     // the filename of needed fastdadb was defined in cometcfg
     // and stored in pepxml in the comet-ms step
     // -a suppplies the absulute path to the data directory where the mzxmls
@@ -1068,7 +1071,7 @@ process XinteractXTandem {
     // where the mzxml are, because its not very
     // nextflow to look outside the cwd.
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file mzxmls from  xinteract_xtandem_mzxml_ch.collect()
+    file mzxmls from  xinteract_xtandem_mzxml_ch.collect().sort()
     output: 
     file "interact_xtandem.pep.xml" into xtandem_search_results_ch 
     """
@@ -1242,7 +1245,7 @@ process SpectrastCreateSpecLib {
     file irtfile from Channel.fromPath(params.irt_file)
     file combined_search_results from combined_search_results_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file spectra from maybespectra_ch.spectrast.collect()
+    file spectra from maybespectra_ch.spectrast.collect().sort()
     val cutoff from minimum_peptide_probability
     output:
     tuple file ("${prefix}_cons.splib"), file("${prefix}_cons.spidx") into spectrast_ch
@@ -1284,6 +1287,12 @@ params.use_irt=true
 **** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// optional 
+params.openswath_transitions = ""
+
+#+end_src
+
 #+begin_src nextflow
 process CreateOpenswathTransitions {
     /*
@@ -1360,6 +1369,7 @@ process OpenSwathWorkflow {
     memory '16 GB'
     input:
     file dia_mzml_file from dia_mzml_files_ch.osw
+    // file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
     file openswath_transitions from openswath_transitions_ch.first()
     file swath_truncated_windows from truncated_swath_windows_ch.first()
     file irt_traml from Channel.fromPath(params.irt_traml_file).first()
@@ -1468,11 +1478,14 @@ Pyprophet aggregates various quality scores into one score
 
 #+begin_src nextflow 
 process pyprophet_legacy {
-    publishDir 'data/pyprophet/' 
+    publishDir 'data/pyprophet/', pattern: "*.csv"
+    publishDir 'data/reports/pyprophet/', pattern: "*.pdf"
     input:
     file dia_tsv from openswath_tsv_ch
     output:
     file dscore_csv into pyprophet_legacy_ch
+    // just for publishing
+    file "${dia_tsv.baseName}_report.pdf" 
     script:
     seed="928418756933579397"
     
@@ -1519,7 +1532,7 @@ process feature_alignment
 {
     publishDir 'data/dia/'
     input:
-    file dscore_csvs from pyprophet_legacy_ch.collect()
+    file dscore_csvs from pyprophet_legacy_ch.collect().sort()
     output:
     file outfile into feature_alignment_ch
     script:
@@ -1546,7 +1559,7 @@ process feature_alignment
 // Target FDR used in TRIG alignment in dirT mode [default 0.01]
 params.trig_target_fdr=0.01
 // Maximum FDR for TRIG alignment in dirT mode [default 0.05]
-params.trig_max_fdr=1.00
+params.trig_max_fdr=0.05
 #+end_src
 
 
