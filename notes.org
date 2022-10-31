@@ -18,7 +18,7 @@ done
 mkdir -p MZML-pwiz
 find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
 #+end_src
-* Analysis [4/5]
+* Analysis [5/5]
 Gladiator paper: doi:10.1038/s43705-022-00137-0
 diatools: doi:10.1021/acs.jproteome.9b00606
 ** Headers
@@ -94,7 +94,7 @@ def join_fasta_files(input_files, output_file):
 #+begin_src nextflow :noweb yes
 process JoinFastaFiles {
     input:
-    file fasta_files from fasta_files_ch.collect()
+    file fasta_files from fasta_files_ch.toSortedList()
     output:
     file 'joined_database.fasta' into joined_fasta_database_ch
 
@@ -110,10 +110,23 @@ process JoinFastaFiles {
 params.fastafiles='fasta/*.fasta'
 #+end_src
 
+
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
-Channel.fromPath(params.fastafiles).set({fasta_files_ch})
+Channel.fromPath(params.fastafiles).set{fasta_files_ch}
 #+end_src
 
+This was how we could set the fasta_files_ch to be in the same order as
+the original bruderer run
+#+begin_src nextflow :tangle no
+Channel.from([
+    "fasta/Q7M135.fasta",
+    "fasta/irtfusion.fasta",
+    "fasta/trypsin.fasta",
+    "fasta/uniprot_human_2017_04_05.fasta",
+    "fasta/Bruderer_QS-spike-in-proteins.fasta"])
+    .map{file(it)}
+    .set({fasta_files_ch})
+#+end_src
 #+NAME: gwl-joinfastafiles-deps
 #+begin_src scheme :noweb-ref deps :tangle no
 ("join-fasta-files"
@@ -335,6 +348,16 @@ process MgfToMzxml {
 }
 #+end_src
 
+If you get an error of
+#+begin_src fundamental :tangle no
+  processing file: RD139_Narrow_UPS1_50fmol_inj3.mzML
+  [SpectrumList_mzML::create()] Bad istream.
+  Error processing file RD139_Narrow_UPS1_50fmol_inj3.mzML
+#+end_src
+in =MzmltoMzxml=, that can mean that something went wrong
+when you used =msconvert= to convert from the propriatary format to mzml
+
+
 #+begin_src scheme :noweb-ref deps :tangle no 
 ("generate-pseudo-spectra"
  "dia-umpire" 
@@ -349,6 +372,7 @@ mstools
 params.diaumpireconfig='diaumpireconfig.txt'
 params.diafiles = "DIA/*.mzML"
 params.ddafiles = "DDA/*.mzXML"
+params.dda_assisted = true
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
@@ -356,7 +380,7 @@ params.ddafiles = "DDA/*.mzXML"
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
 // dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
-dda_assisted_p = false 
+dda_assisted_p = params.dda_assisted
 
 (initial_dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
@@ -737,7 +761,7 @@ is tried first
 #+begin_src nextflow
 process Comet {
     // we probably also want to publish thees
-    memory { 5.GB * task.attempt }
+    memory { 5.GB * 2 *  task.attempt }
     errorStrategy { task.exitStatus in 137..137 ? 'retry' : 'terminate' }
     maxRetries 2
     input:
@@ -769,7 +793,7 @@ process XinteractComet {
     // usage there seems to be a lot smaller
     // as input files seems to be smaller
     input:
-    file pepxmls from comet_pepxml_ch.collect().sort()
+    file pepxmls from comet_pepxml_ch.toSortedList()
     // the filename of needed fastdadb was defined in cometcfg
     // and stored in pepxml in the comet-ms step
     // -a suppplies the absulute path to the data directory where the mzxmls
@@ -777,7 +801,7 @@ process XinteractComet {
     // where the mzxml are, because its not very
     // nextflow to look outside the cwd.
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file mzxmls from  xinteract_comet_mzxml_ch.collect().sort()
+    file mzxmls from  xinteract_comet_mzxml_ch.toSortedList()
     output: 
     file "interact_comet.pep.xml" into comet_search_results_ch 
     """
@@ -906,6 +930,8 @@ CLOCK: [2022-06-09 Thu 09:31]--[2022-06-09 Thu 18:58] =>  9:27
 	<note type="input" label="refine, spectrum synthesis">yes</note>
 	<note type="input" label="refine, maximum valid expectation value">0.1</note>
 	<note type="input" label="refine, potential N-terminus modifications">+42.010565@[</note>
+
+
 	<note type="input" label="refine, potential C-terminus modifications"></note>
 	<note type="input" label="refine, unanticipated cleavage">yes</note>
 	<note type="input" label="refine, potential modification mass"></note>
@@ -1063,7 +1089,7 @@ process XTandem {
 process XinteractXTandem {
     memory '16 GB'
     input:
-    file pepxmls from xtandem_pepxml_ch.collect().sort()
+    file pepxmls from xtandem_pepxml_ch.toSortedList()
     // the filename of needed fastdadb was defined in cometcfg
     // and stored in pepxml in the comet-ms step
     // -a suppplies the absulute path to the data directory where the mzxmls
@@ -1071,7 +1097,7 @@ process XinteractXTandem {
     // where the mzxml are, because its not very
     // nextflow to look outside the cwd.
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file mzxmls from  xinteract_xtandem_mzxml_ch.collect().sort()
+    file mzxmls from  xinteract_xtandem_mzxml_ch.toSortedList()
     output: 
     file "interact_xtandem.pep.xml" into xtandem_search_results_ch 
     """
@@ -1100,30 +1126,34 @@ Why is this much smaller than comet?
 the tap seems to hap after nextflow has stopped,
 look more into this.
 
-#+begin_src nextflow 
-process CombineSearchResults {
-    publishDir 'data/speclib'
-    when:
-    params.search_engines.size() > 1
-    input:
-    file xtandem_search_results from xtandem_search_results_ch
-    file comet_search_results from comet_search_results_ch
-    output:
-    file "lib_iprophet.peps.xml" into both_combined_search_results_ch
-    """
-    /opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet.peps.xml
-    """
-}
+possible causes:
+[[https://github.com/nextflow-io/nextflow/issues/2502][Queue remains open when data is staged from an external source · Issue #2502 · nextflow-io/nextflow · GitHub]]
+[[https://github.com/nextflow-io/nextflow/issues/1230][Parent nextflow process doesn't exit after all compute tasks are complete · Issue #1230 · nextflow-io/nextflow · GitHub]]
 
+
+#+begin_src nextflow
 // we handle the one or two engines case
 // DSL2 incompat
 // would be in workflow body
-if(params.search_engines.size() > 1) {
-    both_combined_search_results_ch.tap{combined_search_results_ch}
+
+if (params.search_engines.size() > 1) {  
+    process CombineSearchResults {
+	publishDir 'data/speclib'
+	when:
+	
+	input:
+	file xtandem_search_results from xtandem_search_results_ch
+	file comet_search_results from comet_search_results_ch
+	output:
+	file "lib_iprophet.peps.xml" into combined_search_results_ch
+	"""
+	/opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet.peps.xml
+	"""
+    }
 } else if (params.search_engines.contains("comet")) {
-    comet_search_results_ch.tap{combined_search_results_ch}
+    combined_search_results_ch = comet_search_results_ch
 } else if (params.search_engines.contains("xtandem")) {
-    xtandem_search_results_ch.tap{combined_search_results_ch}
+    combined_search_results_ch =xtandem_search_results_ch
 } else {
     combined_search_results_ch = Channel.create()
 }
@@ -1174,7 +1204,6 @@ my $id_csv_file = $psm_file_base
                 . $version . '.csv';
                 
 #+end_quote
-
 
 #+begin_src nextflow 
 process  FindMinimumPeptideProbability {
@@ -1248,7 +1277,7 @@ process SpectrastCreateSpecLib {
     file irtfile from Channel.fromPath(params.irt_file)
     file combined_search_results from combined_search_results_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file spectra from maybespectra_ch.spectrast.collect().sort()
+    file spectra from maybespectra_ch.spectrast.toSortedList()
     val cutoff from minimum_peptide_probability
     output:
     tuple file ("${prefix}_cons.splib"), file("${prefix}_cons.spidx") into spectrast_ch
@@ -1359,7 +1388,7 @@ and pass result tsv to OpenSwathWorkflow as =-tr=.
 
 
 
-** TODO Building Dia Matrix
+** DONE Building Dia Matrix
 https://openswath.org/_/downloads/en/latest/pdf/
 https://openswath.org/_/downloads/en/latest/htmlzip/
 *** OpenSwathWorkflow
@@ -1541,14 +1570,6 @@ six==1.15.0
 subprocess32==3.5.4
 #+end_src
 
-
-#+begin_src fundamental
-numpy==1.16.5
-numexpr==2.7.3
-seaborn==0.9.1
-pyprophet==0.24.1
-#+end_src
-
 #+begin_src fundamental :tangle pyprophet-legacy-standalone.dockerfile
 FROM ubuntu:20.04
 MAINTAINER GlaDIAtorAdmin
@@ -1587,7 +1608,7 @@ process feature_alignment
 {
     publishDir 'data/dia/'
     input:
-    file dscore_csvs from pyprophet_legacy_ch.collect().sort()
+    file dscore_csvs from pyprophet_legacy_ch.toSortedList()
     output:
     file outfile into feature_alignment_ch
     script:
@@ -1620,7 +1641,6 @@ params.trig_max_fdr=0.05
 
 
 *** Swath2stats
-
 #+NAME: r-swath2stats
 #+begin_src R :tangle no :eval no :var diafile="" :var strict_checking=0 :var peptideoutputfile="" :var proteinoutputfile="" :var decoyprefix="DECOY_"
 .libPaths("/opt/Rlibs/") 
@@ -1679,6 +1699,11 @@ process swath2stats {
     publishDir 'data/dia/'
     input:
     file dia_score from feature_alignment_ch
+    
+    output:
+    file peptide_matrix
+    file protein_matrix
+    
     script:
     strict_checking=params.swath2stats_strict_checking
     peptide_matrix="DIA-peptide-matrix.tsv"
@@ -1796,7 +1821,7 @@ module load nextflow
 mkdir -p runs
 RUNLOGDIR=`mktemp -p runs -d run.XXXX`
 echo $RUNLOGDIR
-sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot -resume
+sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.025 --fastafiles=/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd026600/REF_EColi_K12_UPS1_combined.fasta --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd026600/DIA/MZML-pwiz/*.mzML' --ddafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd026600/DDA/MZXML-pwiz/*.mzXML'
 #+end_example
 
 #+begin_src emacs-lisp :var nextflow-compile-command=launch-nextflow
