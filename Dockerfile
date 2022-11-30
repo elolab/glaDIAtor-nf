@@ -10,10 +10,7 @@ RUN apt-get update \
 RUN apt-get update \
     && apt-get -y install wget\
     && apt-get -y install git\
-    && apt-get -y install emacs-nox\
     && apt-get -y install build-essential\
-    && apt-get -y install openssh-server\
-    && apt-get -y install sshfs\
     && apt-get -y install tandem-mass\
     && apt-get -y install openjdk-8-jdk\
     && apt-get -y install screen\
@@ -196,7 +193,6 @@ RUN chmod +x miniconda3.sh
 RUN ./miniconda3.sh -b -p /opt/conda/
 RUN /opt/conda/bin/conda create --quiet --yes --prefix=/opt/pyprophet  --channel=bioconda/label/cf201901 pyprophet
 # we put this last for quicker development cycle
-COPY gladiator.py rawconverterhandler.py workflow.py progress.py annotation.py annotateSwath2stats.py /opt/gladiator/
 
 WORKDIR /workdir
 
