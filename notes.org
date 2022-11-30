@@ -3,9 +3,28 @@
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
 #+TODO: TODO(t) | DONE(d)
 #+LINK: gladiator file:../glaDIAtor/%s
+* About this document
+This is a literate programming (org-mode) document that describes the
+the nextflow implemantiation of gladiator (https://github.com/elolab/glaDIAtor)
+and all needed template files.
+This directory should already contain the tangled files.
+To learn more about org-mode, see 
+
+** Tangling
+in order to turn this file into the needed files run
+#+begin_src sh 
+yes '//' | emacs --batch -Q --file notes.org -f org-babel-tangle 
+#+end_src
+
+* Overview of this pipeline
+# hacky space between node and [ for fontlocking
 
 * Preprocessing Data
-This will not be in the main pipeline
+We will not distribute the vendored msconvert,
+but if you have DDA-files you need to convert froma propriatry format, to mzmxml,
+following the picking peaks step,
+and you can use the docker image of =dockerhub:chambm/pwiz-skyline-i-agree-to-the-vendor-licenses=.
+You can convert your DIA-files with the same container following "Converting Dia Raw with Msconvert"
 ** Picking Peaks
 #+begin_src sh 
 mkdir -p MZXML-pwiz
@@ -18,6 +37,8 @@ done
 mkdir -p MZML-pwiz
 find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
 #+end_src
+
+
 * Analysis [5/5]
 Gladiator paper: doi:10.1038/s43705-022-00137-0
 diatools: doi:10.1021/acs.jproteome.9b00606
@@ -416,7 +437,6 @@ if (dda_assisted_p){
 }
 #+end_src 
 
-
 ** DONE Creating Swath window files
 :PROPERTIES:
 :ID:       1469cbd6-2fe8-4919-8808-85f17dfee228
@@ -810,6 +830,8 @@ process XinteractComet {
 }
 #+end_src
 
+Some scientific papers use =mmu= which is equal to 1 milidalton
+0.001 Dalton
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 params.precursor_mass_tolerance=10 // ppm 
 params.fragment_mass_tolerance=0.02  // Dalton
@@ -1107,7 +1129,7 @@ process XinteractXTandem {
 
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 params.xtandem_template="xtandem-template.xml"
 #+end_src
 | # pepxml | size pepxml (GiB) |
@@ -1395,6 +1417,12 @@ https://openswath.org/_/downloads/en/latest/htmlzip/
 Creates tsv with =-out_tsv=
 [[file:glaDIAtor/workflow.py::def buildDIAMatrix(\\]]
 
+Using a the cache will decrease memomry usage at the cost of writes & time
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// wheter to use -readOptions cacheWorkingInMemory in OSW
+// this actually crashes so disabled
+params.osw_use_cache = false 
+#+end_src
 
 #+begin_src nextflow
 process OpenSwathWorkflow {
@@ -1424,6 +1452,12 @@ process OpenSwathWorkflow {
         "-swath_windows_file $swath_truncated_windows "
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
+    // the single ticks so $TMPDIR doesnt expand in groovy but to the shell variable
+    //  slash at the end because OSW expects it
+    // this crashes with errors that the cached mzml file is incorrectly formed.
+    // if (params.osw_use_cache)
+    // 	to_execute += '-readOptions cache -batchSize 1000'
+    // to_execute += '-readOptions cacheWorkingInMemory -tempDirectory "$TMPDIR/" -batchSize 1000'
     to_execute
 }
 #+end_src
@@ -1588,6 +1622,12 @@ COPY pyprophet-legacy-requirements.txt .
 RUN pip2 install -r pyprophet-legacy-requirements.txt
 RUN pip2 install pyprophet==0.24.1
 #+end_src
+
+If you get an error here as
+#+begin_quote
+      raise Exception("got empty input file")
+#+end_quote
+try running with ~params.use_irt=false~
 
 #+begin_src nextflow :tangle no
 process pyprophet_new  {
@@ -1804,7 +1844,6 @@ For the nextflow file
 
 
 
-
 * Note
 :LOGBOOK:
 - State "TODO"       from              [2022-06-03 Fri 15:52]
@@ -1820,8 +1859,9 @@ module use /appl/user/modulefiles/
 module load nextflow
 mkdir -p runs
 RUNLOGDIR=`mktemp -p runs -d run.XXXX`
+export TMPDIR=$PWD/tmp
 echo $RUNLOGDIR
-sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.025 --fastafiles=/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd026600/REF_EColi_K12_UPS1_combined.fasta --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd026600/DIA/MZML-pwiz/*.mzML' --ddafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd026600/DDA/MZXML-pwiz/*.mzXML'
+sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=13-11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.350 --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd000672/DIA/MZML-pwiz/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --osw_use_cache=false -resume -c pxd000672.config 
 #+end_example
 
 #+begin_src emacs-lisp :var nextflow-compile-command=launch-nextflow
