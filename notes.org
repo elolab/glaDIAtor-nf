@@ -1,10 +1,30 @@
 #+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm"
-#+PROPERTY: header-args:nextflow :tangle "gladiator.nf" 
+#+PROPERTY: header-args:nextflow :tangle "gladiator.nf" :comments link
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
 #+TODO: TODO(t) | DONE(d)
 #+LINK: gladiator file:../glaDIAtor/%s
+* About this document
+This is a literate programming (org-mode) document that describes the
+the nextflow implemantiation of gladiator (https://github.com/elolab/glaDIAtor)
+and all needed template files.
+This directory should already contain the tangled files.
+To learn more about org-mode, see 
+
+** Tangling
+in order to turn this file into the needed files run
+#+begin_src sh 
+yes '//' | emacs --batch -Q --file notes.org -f org-babel-tangle 
+#+end_src
+
+* Overview of this pipeline
+# hacky space between node and [ for fontlocking
+
 * Preprocessing Data
-This will not be in the main pipeline
+We will not distribute the vendored msconvert,
+but if you have DDA-files you need to convert froma propriatry format, to mzmxml,
+following the picking peaks step,
+and you can use the docker image of =dockerhub:chambm/pwiz-skyline-i-agree-to-the-vendor-licenses=.
+You can convert your DIA-files with the same container following "Converting Dia Raw with Msconvert"
 ** Picking Peaks
 #+begin_src sh 
 mkdir -p MZXML-pwiz
@@ -17,7 +37,11 @@ done
 mkdir -p MZML-pwiz
 find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
 #+end_src
-* Analysis [3/5]
+
+
+* Analysis [5/5]
+Gladiator paper: doi:10.1038/s43705-022-00137-0
+diatools: doi:10.1021/acs.jproteome.9b00606
 ** Headers
 #+begin_src emacs-lisp :tangle no
 (setq org-babel-tangle-lang-exts
@@ -51,6 +75,7 @@ find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'tit
 ** DONE building database
 *Overview*
 [[file:glaDIAtor/workflow.py::def build_database(\\][build_database definition]]
+
 #+NAME: dot-build-database
 #+begin_src dot 
 digraph {
@@ -90,7 +115,7 @@ def join_fasta_files(input_files, output_file):
 #+begin_src nextflow :noweb yes
 process JoinFastaFiles {
     input:
-    file fasta_files from fasta_files_ch.collect()
+    file fasta_files from fasta_files_ch.toSortedList()
     output:
     file 'joined_database.fasta' into joined_fasta_database_ch
 
@@ -102,11 +127,27 @@ process JoinFastaFiles {
 }
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 params.fastafiles='fasta/*.fasta'
-Channel.fromPath(params.fastafiles).set({fasta_files_ch})
 #+end_src
 
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+Channel.fromPath(params.fastafiles).set{fasta_files_ch}
+#+end_src
+
+This was how we could set the fasta_files_ch to be in the same order as
+the original bruderer run
+#+begin_src nextflow :tangle no
+Channel.from([
+    "fasta/Q7M135.fasta",
+    "fasta/irtfusion.fasta",
+    "fasta/trypsin.fasta",
+    "fasta/uniprot_human_2017_04_05.fasta",
+    "fasta/Bruderer_QS-spike-in-proteins.fasta"])
+    .map{file(it)}
+    .set({fasta_files_ch})
+#+end_src
 #+NAME: gwl-joinfastafiles-deps
 #+begin_src scheme :noweb-ref deps :tangle no
 ("join-fasta-files"
@@ -320,13 +361,23 @@ process MgfToMzxml {
     input:
     file mgf from pseudospectra_mgf_ch
     output:
-    file "*.mzXML" into pseudospectra_ch,pseudospectra_for_comet_ch,pseudospectra_for_xtandem_ch
+    file "*.mzXML" into pseudospectra_ch
     
     """
     msconvert $mgf --mzXML 
     """
 }
 #+end_src
+
+If you get an error of
+#+begin_src fundamental :tangle no
+  processing file: RD139_Narrow_UPS1_50fmol_inj3.mzML
+  [SpectrumList_mzML::create()] Bad istream.
+  Error processing file RD139_Narrow_UPS1_50fmol_inj3.mzML
+#+end_src
+in =MzmltoMzxml=, that can mean that something went wrong
+when you used =msconvert= to convert from the propriatary format to mzml
+
 
 #+begin_src scheme :noweb-ref deps :tangle no 
 ("generate-pseudo-spectra"
@@ -338,28 +389,53 @@ process MgfToMzxml {
 though this  might also be done with openms's =FileConverter= ? which is more conventionally build 
 https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/release/latest/html/TOPP_FileConverter.html
 mstools
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 params.diaumpireconfig='diaumpireconfig.txt'
 params.diafiles = "DIA/*.mzML"
 params.ddafiles = "DDA/*.mzXML"
+params.dda_assisted = true
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
 // so that this is a singleton channel
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
 // dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
-dda_assisted_p = false
+dda_assisted_p = params.dda_assisted
 
-(dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
+(initial_dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
     [ Channel.fromPath(params.diafiles), Channel.empty() ] :
    // take(2) for development short cycle
-  Channel.fromPath(params.diafiles).take(2).into(2)
+  Channel.fromPath(params.diafiles).into(2)
   // Channel.fromPath(params.diafiles).into(2)
 )
-#+end_src 
+
+initial_dia_mzml_files_ch.multiMap{
+    it -> swath_windows: osw: it
+    }.set{dia_mzml_files_ch}
+    
+#+end_src
 As dia will be listened to by two in the case of not dda-assisted,
 we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
 
 
+The channel-juggling below  makes the path for pseudo-spectra and "real" input spectra
+follow the same path after =MgfToMzxml= / from comet&xtandem onwards,
+by putting the ones to act on in the =maybespectra_ch.{comet,xtandem}= channels.
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+// we forward-declare pseudospectra_ch here (output of the MgfToMzxml process)
+// so that we can define a multiMap rule for it.
+pseudospectra_ch = Channel.create()
+// maybe-spectra can be either real spectra or pseudo-spectra
+if (dda_assisted_p){
+    dda_files_ch.multiMap { it ->
+	spectrast: comet: xtandem: it }.set{maybespectra_ch}
+} else {
+    pseudospectra_ch.multiMap { it ->
+	spectrast: comet: xtandem: it }.set{maybespectra_ch}
+}
+#+end_src 
 
 ** DONE Creating Swath window files
 :PROPERTIES:
@@ -460,7 +536,7 @@ def create_swath_window_files(cwd, dia_mzML):
 
         fh_tswaths.write("LowerOffset"+tab_character+"HigherOffset"+newline_character)
 
-        for i in range(len(swaths)):
+        for i in range(len(swaths)): 
             fh_swaths.write(str(swaths[i][0]) + tab_character + str(swaths[i][1])  + newline_character)
             fh_tswaths.write(str(tswaths[i][0]) + tab_character + str(tswaths[i][1])  + newline_character)
 
@@ -471,7 +547,7 @@ def create_swath_window_files(cwd, dia_mzML):
 #+begin_src nextflow  :noweb yes
 process MakeSwathWindows {
     input:
-    file diafile from dia_mzml_files_ch.first()
+    file diafile from dia_mzml_files_ch.swath_windows.first()
     output: 
     file "swath-windows.txt" into  swath_windows_ch
     file "truncated-swath-windows.txt" into truncated_swath_windows_ch
@@ -489,7 +565,7 @@ process MakeSwathWindows {
 
 we'll have to get minswath and maxswath by reading ~"swath-windows.txt"~
 
-** TODO Building {Pseudo-,}Spectral library  [0/4]
+** DONE Building {Pseudo-,}Spectral library  [4/4]
 *** Choosing Comet/Xtandem
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
@@ -498,7 +574,7 @@ CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
 params.search_engines = ["comet","xtandem"]
 
 #+end_src
-*** TODO Comet 
+*** DONE Comet 
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 13:56]--[2022-06-10 Fri 16:09] =>  2:13
 CLOCK: [2022-06-10 Fri 11:00]--[2022-06-10 Fri 13:31] =>  2:31
@@ -695,15 +771,25 @@ process MakeCometConfig {
     """
     
 }
+#+end_src
 
+
+setting memory & error strategy like this prevents caching
+even with process.cache='lenient'
+maybe because the task.attempt = 1
+is tried first 
+#+begin_src nextflow
 process Comet {
     // we probably also want to publish thees
+    memory { 5.GB * 2 *  task.attempt }
+    errorStrategy { task.exitStatus in 137..137 ? 'retry' : 'terminate' }
+    maxRetries 2
     input:
     file comet_config from comet_config_ch.first()
     // future dev: we can .mix with DDA here?
     // though we might need to tag for DDA / Pseudo
     // so that xinteract 
-    file mzxml from pseudospectra_for_comet_ch
+    file mzxml from maybespectra_ch.comet
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     output:
     file("${mzxml.baseName}.pep.xml") into comet_pepxml_ch
@@ -715,9 +801,19 @@ process Comet {
     /opt/comet/comet-ms -P$comet_config $mzxml 
     """
 }
+#+end_src
+
+#+begin_src nextflow
 process XinteractComet {
+    memory '16 GB'
+    time '5h'
+    // memory usage scales with the number of input files
+    // find the correct usage per input file or size
+    // also for xinteractxtandem
+    // usage there seems to be a lot smaller
+    // as input files seems to be smaller
     input:
-    file pepxmls from comet_pepxml_ch.collect()
+    file pepxmls from comet_pepxml_ch.toSortedList()
     // the filename of needed fastdadb was defined in cometcfg
     // and stored in pepxml in the comet-ms step
     // -a suppplies the absulute path to the data directory where the mzxmls
@@ -725,7 +821,7 @@ process XinteractComet {
     // where the mzxml are, because its not very
     // nextflow to look outside the cwd.
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file mzxmls from  xinteract_comet_mzxml_ch.collect()
+    file mzxmls from  xinteract_comet_mzxml_ch.toSortedList()
     output: 
     file "interact_comet.pep.xml" into comet_search_results_ch 
     """
@@ -734,12 +830,17 @@ process XinteractComet {
 }
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-params.precursor_mass_tolerance=20 // ppm 
-params.fragment_mass_tolerance=0.3  // Dalton
+Some scientific papers use =mmu= which is equal to 1 milidalton
+0.001 Dalton
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.precursor_mass_tolerance=10 // ppm 
+params.fragment_mass_tolerance=0.02  // Dalton
 params.comet_template="comet_template.txt"
 #+end_src
-*** TODO Xtandem
+
+Notably, a more stringent (lower) tolerance increases memorary usage by comet.
+
+*** DONE Xtandem
 :LOGBOOK:
 
 CLOCK: [2022-06-22 Wed 10:24]--[2022-06-22 Wed 16:28] =>  6:04
@@ -851,6 +952,8 @@ CLOCK: [2022-06-09 Thu 09:31]--[2022-06-09 Thu 18:58] =>  9:27
 	<note type="input" label="refine, spectrum synthesis">yes</note>
 	<note type="input" label="refine, maximum valid expectation value">0.1</note>
 	<note type="input" label="refine, potential N-terminus modifications">+42.010565@[</note>
+
+
 	<note type="input" label="refine, potential C-terminus modifications"></note>
 	<note type="input" label="refine, unanticipated cleavage">yes</note>
 	<note type="input" label="refine, potential modification mass"></note>
@@ -988,8 +1091,8 @@ process XTandem {
     params.search_engines.contains("xtandem")
 
     input:
-    file mzxml from pseudospectra_for_xtandem_ch
-    file tandem_config from xtandem_config_ch
+    file mzxml from maybespectra_ch.xtandem
+    file tandem_config from xtandem_config_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     output:
     file("${mzxml.baseName}.tandem.pep.xml") into xtandem_pepxml_ch
@@ -1006,8 +1109,9 @@ process XTandem {
 }
 
 process XinteractXTandem {
+    memory '16 GB'
     input:
-    file pepxmls from xtandem_pepxml_ch.collect()
+    file pepxmls from xtandem_pepxml_ch.toSortedList()
     // the filename of needed fastdadb was defined in cometcfg
     // and stored in pepxml in the comet-ms step
     // -a suppplies the absulute path to the data directory where the mzxmls
@@ -1015,7 +1119,7 @@ process XinteractXTandem {
     // where the mzxml are, because its not very
     // nextflow to look outside the cwd.
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    file mzxmls from  xinteract_xtandem_mzxml_ch.collect()
+    file mzxmls from  xinteract_xtandem_mzxml_ch.toSortedList()
     output: 
     file "interact_xtandem.pep.xml" into xtandem_search_results_ch 
     """
@@ -1025,38 +1129,58 @@ process XinteractXTandem {
 
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 params.xtandem_template="xtandem-template.xml"
 #+end_src
+| # pepxml | size pepxml (GiB) |
+|       69 |         0.7890625 |
+|          |                   |
+#+TBLFM: @2$2=808/1024
+Why is this much smaller than comet?
 
-
-*** TODO Joining Comet & Xtandem
+*** DONE Joining Comet & Xtandem
 [[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
 [[file:glaDIAtor/workflow.py::def combine_search_engine_results]]
 #+begin_src nextflow
 
 #+end_src
 
-#+begin_src nextflow 
-process CombineSearchResults {
-    when:
-    params.search_engines.size() > 1
-    input:
-    file xtandem_search_results from xtandem_search_results_ch
-    file comet_search_results from comet_search_results_ch
-    output:
-    file "lib_iprophet_peps.xml" into combined_search_results_ch 
-    """
-    /opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet_peps.xml
-    """
+the tap seems to hap after nextflow has stopped,
+look more into this.
+
+possible causes:
+[[https://github.com/nextflow-io/nextflow/issues/2502][Queue remains open when data is staged from an external source · Issue #2502 · nextflow-io/nextflow · GitHub]]
+[[https://github.com/nextflow-io/nextflow/issues/1230][Parent nextflow process doesn't exit after all compute tasks are complete · Issue #1230 · nextflow-io/nextflow · GitHub]]
+
+
+#+begin_src nextflow
+// we handle the one or two engines case
+// DSL2 incompat
+// would be in workflow body
+
+if (params.search_engines.size() > 1) {  
+    process CombineSearchResults {
+	publishDir 'data/speclib'
+	when:
+	
+	input:
+	file xtandem_search_results from xtandem_search_results_ch
+	file comet_search_results from comet_search_results_ch
+	output:
+	file "lib_iprophet.peps.xml" into combined_search_results_ch
+	"""
+	/opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet.peps.xml
+	"""
+    }
+} else if (params.search_engines.contains("comet")) {
+    combined_search_results_ch = comet_search_results_ch
+} else if (params.search_engines.contains("xtandem")) {
+    combined_search_results_ch =xtandem_search_results_ch
+} else {
+    combined_search_results_ch = Channel.create()
 }
-
-if(params.search_engines.size() == 1)
-    combined_search_results_ch.
-
-
 #+end_src
-*** TODO Building Specral Library
+*** DONE Building Specral Library
 [[file:glaDIAtor/UI/ui/__init__.py::workflow.buildlib(]]
 [[file:glaDIAtor/workflow.py::def buildlib(event, \\]]
 Inputs from [[*Creating Swath window files][Creating Swath window files]]
@@ -1103,7 +1227,6 @@ my $id_csv_file = $psm_file_base
                 
 #+end_quote
 
-
 #+begin_src nextflow 
 process  FindMinimumPeptideProbability {
     input: 
@@ -1129,26 +1252,528 @@ process  FindMinimumPeptideProbability {
     # test if psm_csv was made
     test -e $psm_csv || exit 1
     # test if the results arent empty
-    test `wc -l $psm_csv` -gt 1 || exit 1 
+    test `wc -l $psm_csv | cut -d' ' -f1` -gt 1 || exit 1 
     PEPTIDEPROBABILITY=`cat $psm_csv | cut -f 5 -d ',' |tail -n+2 |sort -u | head -n1`
     """
 }
 #+end_src
 
-#+begin_src  nextflow :noweb-ref nf-vars :tangle no
-params.protfdr=0.01
+#+begin_src  nextflow :noweb-ref nf-params :tangle no
+// sensible values = floats between 0 and 1 
+//target FDR for mayu
+params.protFDR=0.01
+#+end_src
+http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST
+
+
+Spectrast in =SpectraSTPepXMLLibImporter.cpp= =readFromFile= =processSearchHit= will read
+the mzxmls contained in the pepxml. It defaults to looking for the mzxml in the CWD
+otherwise it checks the path in the =base_name= property of msms_run_summary element in =<search_summary=
+so we need again give the =maybespectra_ch= on.
+From the above url
+#+begin_quote
+- Creating Consensus Libraries
+1. Importing the raw spectra into SpectraST
+[ ... ]
+Remember that the .mzXML files must be in the same directories as their
+corresponding .pepXML files. 
+#+end_quote
+
+Spectrast is from =tpp=
+Note that spectrast flags are single-dash multilettered underscored argument-concatenated.thanks.
+Its argument-parser is *very* funky, so be careful here.
+It also doesn't check if illegal flags are given, they will pass silently instead, *grumble.*
+#+begin_src fundamental :tangle no
+(\_/) .~~ 
+(._.)/~~~
+(_ _)     
+#+end_src
+**** Spectrast
+#+begin_src nextflow
+// spectrast will create *.splib, *.spidx, *.pepidx, 
+// note that where-ever a splib goes, so must its spidx and pepidx
+///and they must have the same part
+
+process SpectrastCreateSpecLib {
+    input:
+    file irtfile from Channel.fromPath(params.irt_file)
+    file combined_search_results from combined_search_results_ch.first()
+    file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    file spectra from maybespectra_ch.spectrast.toSortedList()
+    val cutoff from minimum_peptide_probability
+    output:
+    tuple file ("${prefix}_cons.splib"), file("${prefix}_cons.spidx") into spectrast_ch
+    file("${prefix}_cons.sptxt") into consensus_lib_sptxt_ch
+    script:
+    prefix = "SpecLib"
+    to_run = "/opt/tpp/bin/spectrast -cN${prefix} -cIHCD -cf\"Protein! ~ DECOY_\" -cP$cutoff -c_IRR "
+    if (params.use_irt)
+	to_run += "-c_IRT$irtfile "
+    to_run +=  "$combined_search_results" // spectrast really wants its input-files last.
+    to_run += "\n /opt/tpp/bin/spectrast -cN${prefix}_cons -cD$fastadb_with_decoy -cIHCD -cAC ${prefix}.splib"
+}
+ #+end_src
+
+from original gladiator implementation
+source is unclear;
+author forgot.
+
+#+begin_src fundamental :tangle irt.txt 
+LGGNEQVTR   -28.308
+GAGSSEPVTGLDAK  0.227
+VEATFGVDESNAK   13.1078
+YILAGVENSK  22.3798
+TPVISGGPYEYR    28.9999
+TPVITGAPYEYR    33.6311
+DGLDAASYYAPVR   43.2819
+ADVTPADFSEWSK   54.969
+GTFIIDPGGVIR    71.3819
+GTFIIDPAAVIR    86.7152
+LFLQFGAQGSPFLK  98.0897
 #+end_src
 
-#+begin_src 
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// white-space-delimited file of peptide-sequences and internal retention times
+params.irt_file="irt.txt"
+// whether or not to use the retention-
+params.use_irt=true
+ #+end_src
+**** OpenSwathDecoys
+specrast2tsv.py is from =msproteomicstools=
+OpenSwathDecoyGenerator from =OpenMS= =topp=
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// optional 
+params.openswath_transitions = ""
 
 #+end_src
-** TODO Building Dia Matrix
-http://openswath.org/_/downloads/en/latest/pdf/
+
+#+begin_src nextflow
+process CreateOpenswathTransitions {
+    /*
+     Choice parts of sprectrast2.tsv --help
+     
+     spectrast2tsv.py
+     ---------------
+     This script is used as filter from spectraST files to swath input files.
+     python spectrast2tsv.py [options] spectrast_file(s)
+     
+     -d                  Remove duplicate masses from labeling
+     -e                  Use theoretical mass
+     -k    output_key    Select the output provided. Keys available: openswath, peakview. Default: peakview
+     -l    mass_limits   Lower and upper mass limits of fragment ions. Example: -l 400,2000
+     -s    ion_series    List of ion series to be used. Example: -s y,b
+
+     -w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)
+     -n    int           Max number of reported ions per peptide/z. Default: 20
+     -o    int           Min number of reported ions per peptide/z. Default: 3
+     -a    outfile       Output file name (default: appends _peakview.txt)
+     ,*/
+    input:
+    file swath_windows from swath_windows_ch
+    file sptxt from consensus_lib_sptxt_ch
+    output:
+    file outputfile into openswath_transitions_ch
+
+    script:
+    outputfile="SpecLib_cons_decoys.TraML"
+    
+    """
+    MINWINDOW=`head -n1 $swath_windows | cut -d'	' -f1`
+    MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
+    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a SpecLib_cons_openswath.tsv $sptxt
+    TargetedFileConverter -in SpecLib_cons_openswath.tsv -out SpecLib_cons.TraML
+    OpenSwathDecoyGenerator -in SpecLib_cons.TraML -out SpecLib_cons_decoys.TraML -method reverse
+    """
+}
+#+end_src
+
+
+=TargetedFileConverter= from msproteomics.
+#+begin_quote
+/usr/bin/TargetedFileConverter: error while loading shared libraries: libQt5Core.so.5: cannot open shared object file: No such file or directory
+#+end_quote
+
+Here we might actually not need TargetedFileConverter,
+can give tsv directly to OpenSwathDecoyGenerator.
+and pass result tsv to OpenSwathWorkflow as =-tr=.
+
+*** OpenSwathDecoyGenerator
+
+
+#+begin_src nextflow
+
+// process OpenSwathDecoys{
+//     "e
+// }
+#+end_src
+
+
+
+
+** DONE Building Dia Matrix
+https://openswath.org/_/downloads/en/latest/pdf/
+https://openswath.org/_/downloads/en/latest/htmlzip/
 *** OpenSwathWorkflow
 Creates tsv with =-out_tsv=
+[[file:glaDIAtor/workflow.py::def buildDIAMatrix(\\]]
+
+Using a the cache will decrease memomry usage at the cost of writes & time
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// wheter to use -readOptions cacheWorkingInMemory in OSW
+// this actually crashes so disabled
+params.osw_use_cache = false 
+#+end_src
+
+#+begin_src nextflow
+process OpenSwathWorkflow {
+    memory '16 GB'
+    input:
+    file dia_mzml_file from dia_mzml_files_ch.osw
+    // file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
+    file openswath_transitions from openswath_transitions_ch.first()
+    file swath_truncated_windows from truncated_swath_windows_ch.first()
+    file irt_traml from Channel.fromPath(params.irt_traml_file).first()
+    output:
+    file dia_tsv_file into openswath_tsv_ch
+    // file dia_osw_file into openswath_osw_ch
+    script:
+    dia_tsv_file = "${dia_mzml_file.baseName}-DIA.tsv"
+    // dia_osw_file = "${dia_mzml_file.baseName}-DIA.osw"
+    to_execute =
+        "OpenSwathWorkflow " +
+        "-force " +
+        "-in $dia_mzml_file " +
+        "-tr $openswath_transitions " +
+        "-threads ${task.cpus} " +
+        "-min_upper_edge_dist 1 " +
+        "-sort_swath_maps " +
+        "-out_tsv ${dia_tsv_file} " +
+        // "-out_osw ${dia_osw_file} " + 
+        "-swath_windows_file $swath_truncated_windows "
+    if (params.use_irt)
+        to_execute +=  "-tr_irt $irt_traml "
+    // the single ticks so $TMPDIR doesnt expand in groovy but to the shell variable
+    //  slash at the end because OSW expects it
+    // this crashes with errors that the cached mzml file is incorrectly formed.
+    // if (params.osw_use_cache)
+    // 	to_execute += '-readOptions cache -batchSize 1000'
+    // to_execute += '-readOptions cacheWorkingInMemory -tempDirectory "$TMPDIR/" -batchSize 1000'
+    to_execute
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.irt_traml_file = "iRTAssayLibrary.TraML"
+#+end_src
+
+#+begin_quote
+Extraction windows have a gap. Will abort (override with -force)
+#+end_quote
+
+OpenSwathWorkflow invocation can output tsv XOR osw, not both.
+You will get exit status 8 
+#+begin_quote
+  Error: Unexpected internal error (Either out_features, out_tsv or out_osw needs to be set (but not two or three at the same time))
+#+end_quote
+
+**** What is the relation between =irt.txt= and =iRTAssayLibrary.TraML=
+
+The =irt.txt= seems to contain pairs of 
+~CompoundList/Peptide@sequence~ and ~Compoundlist/Peptide/RetentionTimeList/cvParam[@name="normalized retention time"]@value~
+of the traml file, except
+#+begin_quote
+LFLQFGAQGSPFLK  98.0897
+#+end_quote
+is not present in the traml file.
+# xpath notation https://www.w3schools.com/xml/xpath_syntax.asp
+
+traml was _not_ gotten from here:
+https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/PASS_View?identifier=PASS00779
+file:/ftp:PASS00779@ftp.peptideatlas.org:/
+(but is comparable)
+
+#+begin_quote
+<OA> The files have been downloaded from net and for now they are
+	      intended to be used "as is". If there becomes a need to modify
+	      those, then there will be a need figure out how to do it. So, it
+	      is very much unexplored how to generate those files for now.
+								        [10:56]
+<NA> looks like the .txt contains pairs of "sequence - Normalized retention
+       time" from the traml. The only one in the .txt that isnt in the traml
+       seems to be LFLQFGAQGSPFLK  [10:59]
+<NA> where did you download them froM?  [11:00]
+<OA> That is a good question. I guess it was some example dataset for
+	      openswath, but I don't remember which. If you have time and
+	      interest, you could try to figure out how iRT assay library
+	      should be built.  [11:07]
+#+end_quote
+
+#+begin_quote
+
+Retention time normalization¶
+
+The retention time normalization peptides are provided using the optional parameter tr_irt in TraML format. We
+suggest to use the iRTassays.TraML file provided in the tutorial dataset, if the Biognosys iRT-kit was used during sample
+preparation.
+
+If the iRT-kit was not used, it is highly recommended to use or generate a set of endogenous peptides for RT
+normalization. A recent publication [5] provides such a set of CiRT peptides suitable for many eukaryotic samples. The
+TraML file from the supplementary information can be used as input for tr_irt. Since not all CiRT peptides might be
+found, the flag RTNormalization:estimateBestPeptides should be set to improve initial filtering of poor signals.
+Further parameters for optimization can be found when invoking OpenSwathWorkflow --helphelp under the
+RTNormalization section. Those do not require adjustment for most common sample types and LC-MS/MS setups, but
+might be useful to tweak for specific scenarios.
+#+end_quote
+#+begin_quote
+5 Röst HL, Liu Y, D’Agostino G, Zanella M, Navarro P, Rosenberger G, Collins BC, Gillet L, Testa G, Malmström L, Aebersold R. TRIC:
+an automated alignment strategy for reproducible protein quantification in targeted proteomics. Nat Methods. 2016 Sep;13(9):777-83. doi:
+10.1038/nmeth.3954. Epub 2016 Aug 1. PMID: 27479329
+#+end_quote
+doi:10.1038/nmeth.3954
+file:/ftp:PASS00788@ftp.peptideatlas.org:/
+
+also not from here 
+
+*** Pyprophet
+https://github.com/PyProphet/pyprophet
+=pyprophet=
+License: 3-clause BSD
+Pyprophet aggregates various quality scores into one score
+=d_score= (discriminant_score)
+
+
+#+begin_src nextflow 
+process pyprophet_legacy {
+    publishDir 'data/pyprophet/', pattern: "*.csv"
+    publishDir 'data/reports/pyprophet/', pattern: "*.pdf"
+    input:
+    file dia_tsv from openswath_tsv_ch
+    output:
+    file dscore_csv into pyprophet_legacy_ch
+    // just for publishing
+    file "${dia_tsv.baseName}_report.pdf" 
+    script:
+    seed="928418756933579397"
+    
+    dscore_csv="${dia_tsv.baseName}_with_dscore.csv"
+    """
+    pyprophet --random_seed=${seed} --delim=tab --export.mayu ${dia_tsv} --ignore.invalid_score_columns
+    """
+}
+#+end_src
+
+#+begin_quote
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_summary_stat.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_full_stat.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_with_dscore.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_with_dscore_filtered.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_report.pdf
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_cutoffs.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_svalues.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_qvalues.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_dscores_top_target_peaks.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_dscores_top_decoy_peaks.txt
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_mayu.cutoff
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_mayu.fasta
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_mayu.csv
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_scorer.bin
+WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_weights.txt
+#+end_quote
+
+The pip pyprophet install would be
+
+generated from =pip freeze= on dockerhub://elolab/gladiator,
+and removing entries that are not in conda legacy-pyprophet
+
+#+begin_src fundamental :tangle pyprophet-legacy-requirements.txt
+backports.functools-lru-cache==1.6.4
+cycler==0.10.0
+kiwisolver==1.1.0
+matplotlib==2.2.5
+numexpr==2.7.3
+numpy==1.16.5
+pandas==0.24.2
+pyparsing==2.4.7
+# pyprophet==0.24.1
+python-dateutil==2.8.1
+pytz==2021.1
+scikit-learn==0.20.4
+scipy==1.2.3
+seaborn==0.9.1
+six==1.15.0
+subprocess32==3.5.4
+#+end_src
+
+#+begin_src fundamental :tangle pyprophet-legacy-standalone.dockerfile
+FROM ubuntu:20.04
+MAINTAINER GlaDIAtorAdmin
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /tmp/
+RUN apt-get update \
+    && apt-get install -y apt-utils
+# python-dev and g++ for compiling pyprophet
+RUN apt-get update \
+    && apt-get -y install wget python python-dev g++
+
+RUN wget https://bootstrap.pypa.io/pip/2.7/get-pip.py -O get-pip.py
+RUN python2 get-pip.py
+COPY pyprophet-legacy-requirements.txt .
+# we first install version locked requirements, then pyprophet in this order because pip is dumb.
+RUN pip2 install -r pyprophet-legacy-requirements.txt
+RUN pip2 install pyprophet==0.24.1
+#+end_src
+
+If you get an error here as
+#+begin_quote
+      raise Exception("got empty input file")
+#+end_quote
+try running with ~params.use_irt=false~
+
+#+begin_src nextflow :tangle no
+process pyprophet_new  {
+
+}
+#+end_src
+*** feature-alignment
+of =msproteomicstools/analysis/alignment/feature_alignment.py=
+
+Note: If things fail here,
+because the right fdr cannot be reached,
+try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
+earlier upstream.
+
+
+#+begin_src nextflow
+process feature_alignment
+{
+    publishDir 'data/dia/'
+    input:
+    file dscore_csvs from pyprophet_legacy_ch.toSortedList()
+    output:
+    file outfile into feature_alignment_ch
+    script:
+    outfile = "DIA-analysis-results.csv"
+    
+    if (params.use_irt) {
+        realign_method = "diRT" 
+    } else {
+        realign_method = "linear"
+    }
+    
+    "feature_alignment.py " +
+        "--method best_overall " +
+        "--max_rt_diff 90 " +
+        "--target_fdr $params.trig_target_fdr " +
+        "--max_fdr_quality $params.trig_max_fdr " +
+        "--in $dscore_csvs " +         // will this break on filenames with spaces
+        " --realign_method $realign_method " + 
+        "--out $outfile"
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// Target FDR used in TRIG alignment in dirT mode [default 0.01]
+params.trig_target_fdr=0.01
+// Maximum FDR for TRIG alignment in dirT mode [default 0.05]
+params.trig_max_fdr=0.05
+#+end_src
 
 
 
+*** Swath2stats
+#+NAME: r-swath2stats
+#+begin_src R :tangle no :eval no :var diafile="" :var strict_checking=0 :var peptideoutputfile="" :var proteinoutputfile="" :var decoyprefix="DECOY_"
+.libPaths("/opt/Rlibs/") 
+
+suppressPackageStartupMessages(library(SWATH2stats))
+suppressPackageStartupMessages(library(data.table))
+
+remove_irt <- function(df)
+  df[grep("iRT", df[["ProteinName"]], invert=TRUE, fixed=TRUE),, drop=FALSE]
+
+## original gladiator decoy removing behaviour
+remove_decoy_strict <- function(df,decoyprefix)
+  df[grep(decoyprefix, df[["ProteinName"]], invert=TRUE, fixed=TRUE),, drop=FALSE]
+
+
+remove_decoy_loose <- function(df)
+  df[!df[["decoy"]],, drop = FALSE]
+
+
+basename_sans_ext <- function(f)
+  unlist(strsplit(basename(f), ".",fixed=TRUE))[[1]]
+
+
+main <- function(diafile,
+                 strict_checking=FALSE,
+                 peptideoutputfile="",
+                 proteinoutputfile="",
+                 decoyprefix="DECOY_")
+{
+  remove_decoy <- `if`(strict_checking,
+                       function(df) remove_decoy_strict(df,decoyprefix),
+                       remove_decoy_loose)
+  filtered_data <-
+    data.table::fread(diafile,header=TRUE) |> 
+    data.frame(stringsAsFactors = FALSE) |>
+    within(run_id <- basename(filename)) |>
+    SWATH2stats::reduce_OpenSWATH_output() |>
+    remove_irt() |>
+    remove_decoy()
+
+  # Writing output
+  filtered_data |>
+    SWATH2stats::write_matrix_peptides(filename = basename_sans_ext(peptideoutputfile)) |>
+    write.table(sep="\t",file=peptideoutputfile,row.names = FALSE)
+
+  filtered_data |>
+    SWATH2stats::write_matrix_proteins(filename = basename_sans_ext(proteinoutputfile)) |>
+    write.table(sep="\t",file=proteinoutputfile,row.names = FALSE)
+}
+#+end_src
+
+
+
+#+begin_src nextflow :noweb yes
+process swath2stats {
+    publishDir 'data/dia/'
+    input:
+    file dia_score from feature_alignment_ch
+    
+    output:
+    file peptide_matrix
+    file protein_matrix
+    
+    script:
+    strict_checking=params.swath2stats_strict_checking
+    peptide_matrix="DIA-peptide-matrix.tsv"
+    protein_matrix="DIA-protein-matrix.tsv"
+    
+    """
+    #!/usr/bin/env Rscript
+    """ +
+        '''
+<<r-swath2stats>>
+        ''' +
+        """
+    main("$dia_score", strict_checking = as.logical("$strict_checking"),
+	peptideoutputfile="$peptide_matrix",
+	proteinoutputfile="$protein_matrix",
+	decoyprefix="DECOY_")
+	
+    """
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// whether to exclude in final DIA matrices
+// proteins of which
+// any peptide can be a decoy.
+// this is the default behaviour of original gladiator implementation.
+// if set to false, just instead remove anything
+// that has the "decoy" column set to false
+params.swath2stats_strict_checking=true
+#+end_src
 * Putting it together
 ** gwl
 #+begin_src scheme :noweb yes
@@ -1161,15 +1786,40 @@ Creates tsv with =-out_tsv=
     ))))
 #+end_src
 ** nf
-#+begin_src nextflow :tangle nextflow.config :noweb yes
-singularity.autoMounts = true
-process.container="file://../../gladiator/gladiator-images/gladiatorserver.simg"
-process.executor='slurm'
-singularity.enabled = true
+according to =nextflow/docs/process.rst=,
+the cache looks at the timestamp for cache-correctness,
+which can be inconsistent in on shared file systems,
+satting =process.cache= to 'lenient' maybe will work around this?
+See alos 
+#+begin_quote
+``'lenient'``         Enable caching. Cache keys are created indexing input files path and size attributes (this policy provides a workaround for incorrect caching invalidation observed on shared file systems due to inconsistent files timestamps; requires version 0.32.x or later).
+#+end_quote
 
-<<nf-params>>
+there is also 'deep' hashing, based on file content
+and the undocumented 'sha256' hashing bashed on the shasum of the file
+See also here: https://www.nextflow.io/blog/2019/troubleshooting-nextflow-resume.html
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+process.cache='lenient'
 #+end_src
 
+though this will break if you replace input files with files with the same
+path but different content.
+'sha256' might be the best one?
+
+#+begin_src nextflow :tangle nextflow.config :noweb yes
+singularity.autoMounts = true
+process {
+    container="file://../../gladiator/gladiator-images/gladiator-pyprophet-legacy.simg"
+    withName: pyprophet_legacy {
+	container = 'file://../../gladiator/gladiator-images/pyprophet-legacy-standalone.simg'
+	}
+
+}
+process.executor='slurm'
+singularity.enabled = true
+<<nf-params>>
+#+end_src
 
 * File local variables
 For this file
@@ -1193,6 +1843,7 @@ For the nextflow file
 #+end_src
 
 
+
 * Note
 :LOGBOOK:
 - State "TODO"       from              [2022-06-03 Fri 15:52]
@@ -1201,6 +1852,29 @@ Pyprophet calling convention altered after v2.1.0,
 check what changed
 so can't literally copy invocation from =workflow.py=.
 (S. said)
+* Launching
+#+NAME: launch-nextflow
+#+begin_example sh :eval no
+module use /appl/user/modulefiles/
+module load nextflow
+mkdir -p runs
+RUNLOGDIR=`mktemp -p runs -d run.XXXX`
+export TMPDIR=$PWD/tmp
+echo $RUNLOGDIR
+sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=13-11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.350 --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd000672/DIA/MZML-pwiz/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --osw_use_cache=false -resume -c pxd000672.config 
+#+end_example
+
+#+begin_src emacs-lisp :var nextflow-compile-command=launch-nextflow
+(let ((default-directory (concat (file-remote-p default-directory)
+				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf"))
+	;; dont ask about saving things
+	(compilation-save-buffers-predicate 'ignore))
+  (compile nextflow-compile-command))
+
+#+end_src
+
+#+RESULTS:
+: #<buffer *compilation*>
 
 * COMMENT for editing
 To make the file links work,
@@ -1250,7 +1924,7 @@ same `major-mode'."
 				   "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf"))
 	;; dont ask about saving things
 	(compilation-save-buffers-predicate 'ignore))
-    (compile "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow -log `mktemp -u XXX.nextflow.log` run gladiator.nf -resume")))
+    (compile "module use /appl/user/modulefiles/ && module load nextflow && sbatch nextflow -log `mktemp -u XXX.nextflow.log` run gladiator.nf")))
 ;; -process.container='file://../gladiator/gladiator.simg' -with-singularity -main-script gladiator
 (defun gladiator-tangle-and-compile ()
   (interactive)
@@ -1260,6 +1934,8 @@ same `major-mode'."
 (use-local-map (copy-keymap org-mode-map))
 (local-set-key (kbd "C-c m") 'gladiator-tangle-and-compile)
 #+end_src
+
+
 
 #+RESULTS:
 : gladiator-tangle-and-compile
