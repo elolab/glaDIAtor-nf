@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 
 MAINTAINER GlaDIAtorAdmin
-
+LABEL version="0.1.1"
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
@@ -53,7 +53,6 @@ RUN apt-get update \
     && apt-get -y install python-dev \
     && apt-get -y install libxml2-dev \
     && apt-get -y install libcurl4-openssl-dev
-
 
 RUN apt-get -y purge r-base* r-recommended r-cran-*
 RUN apt -y autoremove
@@ -146,9 +145,8 @@ RUN wget https://sourceforge.net/projects/luciphor2/files/luciphor2.jar
 # INSTALL dia-umpire
 RUN mkdir /opt/dia-umpire
 WORKDIR /opt/dia-umpire
-RUN wget https://github.com/guoci/DIA-Umpire/releases/download/v2.1.3/v2.1.3.zip
-RUN unzip v2.1.3.zip
-RUN ln -s v2.1.3/DIA_Umpire_SE.jar DIA_Umpire_SE.jar
+RUN wget https://github.com/Nesvilab/DIA-Umpire/releases/download/v2.2.8/DIA_Umpire_SE-2.2.8.jar
+RUN ln -s DIA_Umpire_SE-2.2.8.jar DIA_Umpire_SE.jar
 
 ## Fetch gladiator and install needed R-packages
 RUN mkdir /opt/gladiator
