@@ -185,13 +185,6 @@ WORKDIR /
 # TODO: I have to move this to the apt section after i'm done devving.
 RUN strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
 
-# INSTALL PYPROPHET
-WORKDIR /tmp/
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh -O miniconda3.sh
-RUN chmod +x miniconda3.sh
-# install conda  in /opt/conda, -b flag is for batch, 
-RUN ./miniconda3.sh -b -p /opt/conda/
-RUN /opt/conda/bin/conda create --quiet --yes --prefix=/opt/pyprophet  --channel=bioconda/label/cf201901 pyprophet
 # we put this last for quicker development cycle
 
 WORKDIR /workdir
