@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 
 MAINTAINER GlaDIAtorAdmin
-LABEL version="0.1.1"
+LABEL version="0.1.2"
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
@@ -150,17 +150,11 @@ RUN ln -s DIA_Umpire_SE-2.2.8.jar DIA_Umpire_SE.jar
 
 ## Fetch gladiator and install needed R-packages
 RUN mkdir /opt/gladiator
-COPY comet_settings_template.xml xtandem_settings_template.xml install-R-packages.R iRTAssayLibrary.TraML iRT.txt diaumpire-params-template.txt swaths2stats.R /opt/gladiator/
+COPY  install-R-packages.R /opt/gladiator/
 RUN mkdir /.Rcache
 RUN mkdir /opt/Rlibs/
 RUN chmod u+x /opt/gladiator/install-R-packages.R
 RUN /opt/gladiator/install-R-packages.R
-
-WORKDIR /root
-
-# UI
-RUN pip3 install "pyramid==1.10.2" waitress
-RUN pip3 install cookiecutter
 
 WORKDIR /
 
