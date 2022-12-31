@@ -16,6 +16,24 @@ in order to turn this file into the needed files run
 yes '//' | emacs --batch -Q --file notes.org -f org-babel-tangle 
 #+end_src
 
+The following is a list of all files this document tangles into
+#+begin_src emacs-lisp :exports results :tangle no
+(mapcar 'list (mapcar 'car (org-babel-tangle-collect-blocks)))
+#+end_src
+
+#+RESULTS:
+| gwl-gladiator.scm                      |
+| gladiator.nf                           |
+| diaumpireconfig.txt                    |
+| comet_template.txt                     |
+| xtandem-template.xml                   |
+| irt.txt                                |
+| pyprophet-legacy-requirements.txt      |
+| pyprophet-legacy-standalone.dockerfile |
+| nextflow.config                        |
+
+
+
 * Overview of this pipeline
 # hacky space between node and [ for fontlocking
 
