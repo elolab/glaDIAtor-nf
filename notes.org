@@ -1,14 +1,16 @@
-#+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm"
+#+PROPERTY: header-args :exports code :eval no-export 
+#+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm" 
 #+PROPERTY: header-args:nextflow :tangle "gladiator.nf" :comments link
 #+PROPERTY: header-args:dot :output-dir img :file-ext svg
 #+TODO: TODO(t) | DONE(d)
+#+OPTIONS: ^:{} todo:nil
 #+LINK: gladiator file:../glaDIAtor/%s
 * About this document
 This is a literate programming (org-mode) document that describes the
 the nextflow implemantiation of gladiator (https://github.com/elolab/glaDIAtor)
 and all needed template files.
 This directory should already contain the tangled files.
-To learn more about org-mode, see 
+To learn more about org-mode, see https://orgmode.org/
 
 ** Tangling
 in order to turn this file into the needed files run
@@ -73,10 +75,8 @@ diatools: doi:10.1021/acs.jproteome.9b00606
 
 #+RESULTS:
 : ((scheme . scm) (python . py) (D . d) (C++ . cpp) (emacs-lisp . el) (elisp . el))
-
-
 #+NAME: gwl-header-block
-#+begin_src scheme :noweb yes
+#+begin_src scheme :noweb no-export
 (define-module (workflow)
   #:use-module (gwl workflows)
   #:use-module (gwl processes)
@@ -87,7 +87,7 @@ diatools: doi:10.1021/acs.jproteome.9b00606
 #+end_src
 
 #+NAME: nf-header-block
-#+begin_src nextflow :noweb yes 
+#+begin_src nextflow :noweb no-export 
 <<nf-vars>>
 #+end_src
 ** DONE building database
@@ -130,7 +130,7 @@ def join_fasta_files(input_files, output_file):
 #+end_src
 
 #+NAME: nf-joinfastafiles
-#+begin_src nextflow :noweb yes
+#+begin_src nextflow :noweb no-export
 process JoinFastaFiles {
     input:
     file fasta_files from fasta_files_ch.toSortedList()
@@ -174,7 +174,7 @@ Channel.from([
 #+end_src
 
 #+NAME: gwl-joinfastafiles
-#+begin_src scheme :noweb yes
+#+begin_src scheme :noweb no-export
 (define (join-fasta-files fasta-files)
   (make-process
    (name "join-fasta-files")
@@ -562,7 +562,7 @@ def create_swath_window_files(cwd, dia_mzML):
 
 #+end_src
 
-#+begin_src nextflow  :noweb yes
+#+begin_src nextflow  :noweb no-export
 process MakeSwathWindows {
     input:
     file diafile from dia_mzml_files_ch.swath_windows.first()
@@ -1091,7 +1091,7 @@ CLOCK: [2022-06-09 Thu 09:31]--[2022-06-09 Thu 18:58] =>  9:27
 
 We are making the =xtandem_taxonomy= xml in the same process because its kinda a pseudo dependency 
 
-#+begin_src nextflow :noweb yes
+#+begin_src nextflow :noweb no-export
 process MakeXtandemConfig {
     input:
     file template from Channel.fromPath(params.xtandem_template)
@@ -1229,13 +1229,12 @@ In the output csv the =score= column is the the =probability= in PSM (in mayu do
 We find the lowest =probability= that still has an =mFDR= that matched the above,
 and that is what we use as the filtering criterian in spectrast
 
-
 This is what we will than filter on with specrtrast
 
 Hmhf why can't mayu return deterministic filenames.
 (It incorporates the mayu version number in the filename grumbl,
 it follows the pattern
-#+begin_quote perl
+#+begin_src perl :eval no :exports code :tangle no
 my $psm_file_base = $out_base . '_psm_';
 my $id_csv_file = $psm_file_base
                 . $fdr_type
@@ -1243,7 +1242,7 @@ my $id_csv_file = $psm_file_base
                 . $target_decoy . '_'
                 . $version . '.csv';
                 
-#+end_quote
+#+end_src
 
 #+begin_src nextflow 
 process  FindMinimumPeptideProbability {
@@ -1752,9 +1751,9 @@ main <- function(diafile,
 
 
 
-#+begin_src nextflow :noweb yes
+#+begin_src nextflow :noweb no-export
 process swath2stats {
-    publishDir 'data/dia/'
+    publishDir "${params.outdir}/dia/"
     input:
     file dia_score from feature_alignment_ch
     
@@ -1794,7 +1793,7 @@ params.swath2stats_strict_checking=true
 #+end_src
 * Putting it together
 ** gwl
-#+begin_src scheme :noweb yes
+#+begin_src scheme :noweb no-export
 (make-workflow
  (name "my-workflow")
  (processes
@@ -1953,12 +1952,18 @@ same `major-mode'."
 (local-set-key (kbd "C-c m") 'gladiator-tangle-and-compile)
 #+end_src
 
-
-
 #+RESULTS:
 : gladiator-tangle-and-compile
 
-
-
-
-
+** Exporting to pdf :noexport:
+#+begin_src emacs-lisp
+(require 'ox-latex)
+(let ((org-latex-packages-alist '("newfloat" "minted"))
+      (org-latex-listigs 'minted)
+      (org-latex-pdf-process
+       '("latexmk -shell-escape -f -pdf -%latex -interaction=nonstopmode -output-directory=%o %f"))
+      (org-latex-minted-langs
+       (cons '(nextflow "groovy")
+	     org-latex-minted-langs)))
+  (org-latex-export-to-pdf))
+#+end_src
