@@ -1277,10 +1277,13 @@ process  FindMinimumPeptideProbability {
 
 #+begin_src  nextflow :noweb-ref nf-params :tangle no
 // sensible values = floats between 0 and 1 
-//target FDR for mayu
+// target FDR for mayu
+// this is equivalent to the "pvalue" parameter in the original (python) gladiator implementation
+// which is labeld as "Spectral library building FDR" in the UI
 params.protFDR=0.01
 #+end_src
 http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST
+
 
 
 Spectrast in =SpectraSTPepXMLLibImporter.cpp= =readFromFile= =processSearchHit= will read
@@ -1690,14 +1693,15 @@ process feature_alignment
 
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // Target FDR used in TRIG alignment in dirT mode [default 0.01]
+// This was "trig_target_pvalue" in the original python gladiator implementation
 params.trig_target_fdr=0.01
 // Maximum FDR for TRIG alignment in dirT mode [default 0.05]
+// This was "trig_max_pvalue" in the original python gladiator implementation
 params.trig_max_fdr=0.05
 #+end_src
 
-
-
 *** Swath2stats
+
 #+NAME: r-swath2stats
 #+begin_src R :tangle no :eval no :var diafile="" :var strict_checking=0 :var peptideoutputfile="" :var proteinoutputfile="" :var decoyprefix="DECOY_"
 .libPaths("/opt/Rlibs/") 
@@ -1890,8 +1894,21 @@ mkdir -p runs
 RUNLOGDIR=`mktemp -p runs -d run.XXXX`
 export TMPDIR=$PWD/tmp
 echo $RUNLOGDIR
-sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=13-11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.350 --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd000672/DIA/MZML-pwiz/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --osw_use_cache=false -resume -c pxd000672.config 
+sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=13-11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.350 --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd003497/DIA/MZML-pwiz/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --osw_use_cache=false -resume -c pxd000672.config 
 #+end_example
+
+#+NAME: launch-test
+#+begin_example sh
+module use /appl/user/modulefiles/
+module load nextflow
+mkdir -p runs
+RUNLOGDIR=`mktemp -p runs -d run.XXXX`
+export TMPDIR=$PWD/tmp
+echo $RUNLOGDIR
+sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.logo nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.350 --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/bruderer/DIA/MZML-pwiz/B_D140314_SGSDSsample1_R01_MHRM_T0.mzML' --protFDR=0.01  --precursor_mass_tolerance=10 --fragment_mass_tolerance=0.02 -- 
+#+end_example
+
+
 
 #+begin_src emacs-lisp :var nextflow-compile-command=launch-nextflow
 (let ((default-directory (concat (file-remote-p default-directory)
