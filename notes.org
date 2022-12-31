@@ -1178,7 +1178,7 @@ possible causes:
 
 if (params.search_engines.size() > 1) {  
     process CombineSearchResults {
-	publishDir 'data/speclib'
+	publishDir "${params.outdir}/speclib"
 	when:
 	
 	input:
@@ -1561,11 +1561,10 @@ License: 3-clause BSD
 Pyprophet aggregates various quality scores into one score
 =d_score= (discriminant_score)
 
-
 #+begin_src nextflow 
 process pyprophet_legacy {
-    publishDir 'data/pyprophet/', pattern: "*.csv"
-    publishDir 'data/reports/pyprophet/', pattern: "*.pdf"
+    publishDir "${params.outdir}/pyprophet/", pattern: "*.csv"
+    publishDir "${params.outdir}/reports/pyprophet/", pattern: "*.pdf"
     input:
     file dia_tsv from openswath_tsv_ch
     output:
@@ -1666,7 +1665,7 @@ earlier upstream.
 #+begin_src nextflow
 process feature_alignment
 {
-    publishDir 'data/dia/'
+    publishDir "${params.outdir}/dia/"
     input:
     file dscore_csvs from pyprophet_legacy_ch.toSortedList()
     output:
@@ -1840,10 +1839,19 @@ though this will break if you replace input files with files with the same
 path but different content.
 'sha256' might be the best one?
 
-#+begin_src nextflow :tangle nextflow.config :noweb yes
+The results files will all be output in the following directory
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// directory where the  results will be output to 
+params.outdir = "./results"
+#+end_src
+
+
+
+
+#+begin_src nextflow :tangle nextflow.config :noweb no-export
 singularity.autoMounts = true
 process {
-    container="file://../../gladiator/gladiator-images/gladiator-pyprophet-legacy.simg"
+    container="file://../../gladiator/gladiator-images/gladiator-diaumpire-upgrade-2.simg"
     withName: pyprophet_legacy {
 	container = 'file://../../gladiator/gladiator-images/pyprophet-legacy-standalone.simg'
 	}
