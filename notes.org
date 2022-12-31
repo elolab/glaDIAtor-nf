@@ -1791,6 +1791,18 @@ process swath2stats {
 // that has the "decoy" column set to false
 params.swath2stats_strict_checking=true
 #+end_src
+
+**** Dependencies
+#+NAME: gwl-swath2stats-deps
+#+begin_src scheme :noweb-ref deps :tangle no
+("swath2stats"
+ "r-minimal"
+ "r-swath2stats"
+ "r-peca"
+ "r-tidyr"
+ "r-argparse"
+ "r-corrplot")
+#+end_src
 * Putting it together
 ** gwl
 #+begin_src scheme :noweb no-export
@@ -1892,6 +1904,38 @@ sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.lo
 
 #+RESULTS:
 : #<buffer *compilation*>
+
+* Guixy Containers for nextflow :noexport:
+
+** For tracing
+#+begin_src scheme :noweb-ref deps :tangle no
+("trace"
+ "procps"
+ "grep"
+ "bash-minimal"
+ "gawk"
+ "sed")
+#+end_src
+
+** summmarize containers
+#+begin_src scheme :noweb no-export :results code
+(map
+ (lambda (x)
+   (cons (car x)
+   (list
+    'specifications->manifest
+    (cdr x))))
+   
+ '(
+  <<deps>>
+))
+#+end_src
+
+#+RESULTS:
+#+begin_src scheme
+(("join-fasta-files" specifications->manifest ("python" "biopython")) ("generate-pseudo-spectra" specifications->manifest ("dia-umpire" "pwiz")) ("swath2stats" specifications->manifest ("r-minimal" "r-swath2stats" "r-peca" "r-tidyr" "r-argparse" "r-corrplot")) ("trace" specifications->manifest ("procps" "grep" "bash-minimal" "gawk" "sed")))
+#+end_src
+
 
 * COMMENT for editing
 To make the file links work,
