@@ -1,0 +1,56 @@
+# This file is a template, and might need editing before it works on your project.
+# This is a sample GitLab CI/CD configuration file that should run without any modifications.
+# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
+# it uses echo commands to simulate the pipeline execution.
+#
+# A pipeline is composed of independent jobs that run scripts, grouped into stages.
+# Stages run in sequential order, but jobs within stages run in parallel.
+#
+# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
+#
+# You can copy and paste this template into a new `.gitlab-ci.yml` file.
+# You should not add this template to an existing `.gitlab-ci.yml` file by using the `include:` keyword.
+#
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+default:
+  image: rgrunbla/ubuntu-plus-guix
+  cache:
+    key:
+      files:
+        - guix/channels.scm
+        - guix/manifest.scm
+    paths:
+      - archive/
+  before_script:
+    - guix-daemon --build-users-group=_guixbuild --disable-chroot &
+    - test -e archive/archive.nar && guix archive --import archive/archive.nar
+  # singularsyntax/guix-bootstrap
+stages:          # List of stages for jobs, and their order of executionn
+  - setup-cache
+  - build
+
+build-cache:
+  stage: setup-cache
+  timeout:  2h
+  script:
+    - mkdir -p archive
+    - guix archive --export -r `guix time-machine -C ci/guix/channels.scm -- shell -m ci/guix/documentation-manifest.scm -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
+    
+build-html:       # This job runs in the build stage, which runs first.
+  stage: build
+  artifacts:
+    paths:
+    - notes.html
+  script:
+    - guix time-machine -C ci/guix/channels.scm -- shell -m ci/guix/documentation-manifest.scm  --pure   -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org  -f org-html-export-to-html
+
+build-pdf:
+  stage: build
+  artifacts:
+    paths:
+      - notes.pdf
+  script:
+    - guix time-machine -C ci/guix/channels.scm -- shell -m ci/guix/documentation-manifest.scm --pure  -- emacs --batch --eval "(setq enable-local-variables :all org-latex-remove-logfiles t user-full-name \"\")" --file notes.org  -f org-latex-export-to-pdf     
