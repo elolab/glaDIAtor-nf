@@ -2036,3 +2036,49 @@ same `major-mode'."
 	     org-latex-minted-langs)))
   (org-latex-export-to-pdf))
 #+end_src
+
+
+** COMMENT dir-locals
+Here we set the dir-locals,
+this is to be run interactively
+especially so that ~org-html-head~ can be inferred from the 
+#+begin_src emacs-lisp  :results value file :file .dir-locals.el :eval no-export :tangle no
+(format
+ "%S"
+ (list
+  (cons 'org-mode
+	`(
+	  (org-latex-packages-alist "newfloat" "minted")
+	  (org-latex-listings . minted)
+	  (org-latex-pdf-process "latexmk -shell-escape -f -pdf -%latex -interaction=nonstopmode -output-directory=%o %f")
+	  ;; minted knows grooct but not nextflow
+	  ;; so we map nextflow to groovy
+	  (org-latex-minted-langs
+	   (emacs-lisp "common-lisp")
+	   (cc "c++")
+	   (cperl "perl")
+	   (shell-script "bash")
+	   (caml "ocaml")
+	   (nextflow "groovy"))
+	  ;; for batch export
+	  (org-html-htmlize-output-type . css)
+	  (org-html-head . ,
+			 (with-current-buffer
+			     (let ((htmlize-css-name-prefix "org-")
+				   (htmlize-output-type 'css)
+				   )
+			       
+			       (htmlize-buffer))
+			   (when (re-search-forward "<style" nil t)
+			     (delete-region (point-min) (match-beginning 0)))
+			   (when (re-search-forward "</style>" nil t)
+			     (delete-region (1+ (match-end 0)) (point-max)))
+			   (current-buffer)
+			   (buffer-string)))))))
+#+end_src
+
+#+RESULTS:
+[[file:.dir-locals.el]]
+
+
+
