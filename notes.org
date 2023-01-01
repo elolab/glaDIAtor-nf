@@ -1,7 +1,7 @@
 #+PROPERTY: header-args :exports code :eval no-export 
 #+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm" 
 #+PROPERTY: header-args:nextflow :tangle "gladiator.nf" :comments link
-#+PROPERTY: header-args:dot :output-dir img :file-ext svg
+#+PROPERTY: header-args:dot :output-dir img :file-ext (pcase org-export-current-backend ('latex "png") (_ "svg")) :eval yes :exports results
 #+TODO: TODO(t) | DONE(d)
 #+OPTIONS: ^:{} todo:nil
 #+LINK: gladiator file:../glaDIAtor/%s
@@ -2043,12 +2043,11 @@ Here we set the dir-locals,
 this is to be run interactively
 especially so that ~org-html-head~ can be inferred from the 
 #+begin_src emacs-lisp  :results value file :file .dir-locals.el :eval no-export :tangle no
-(format
- "%S"
+(pp
  (list
   (cons 'org-mode
 	`(
-	  (org-latex-packages-alist "newfloat" "minted")
+	  (org-latex-packages-alist . (("newfloat" "minted")))
 	  (org-latex-listings . minted)
 	  (org-latex-pdf-process "latexmk -shell-escape -f -pdf -%latex -interaction=nonstopmode -output-directory=%o %f")
 	  ;; minted knows grooct but not nextflow
@@ -2060,6 +2059,8 @@ especially so that ~org-html-head~ can be inferred from the
 	   (shell-script "bash")
 	   (caml "ocaml")
 	   (nextflow "groovy"))
+	  (org-babel-load-languages
+	   ((dot . t)))
 	  ;; for batch export
 	  (org-html-htmlize-output-type . css)
 	  (org-html-head . ,
