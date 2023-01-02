@@ -60,7 +60,7 @@ build-html:       # This job runs in the build stage, which runs first.
     paths:
     - notes.html
   script:
-    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --manifest=ci/guix/manifests/pdf-doc.scm  --pure  -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org  -f org-html-export-to-html
+    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --manifest=ci/guix/manifests/html-doc.scm  --pure  -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org  -f org-html-export-to-html
 
 build-pdf:
   stage: build
