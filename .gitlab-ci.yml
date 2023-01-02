@@ -15,6 +15,8 @@
 # https://docs.gitlab.com/ee/development/cicd/templates.html
 # This specific template is located at:
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+variables:
+  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure -- make SHELL=guix
 default:
   image: rgrunbla/ubuntu-plus-guix
   cache:
@@ -37,7 +39,7 @@ stages:          # List of stages for jobs, and their order of executionn
 tangle-files:
   stage: tangle
   script:
-    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --pure -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org -f org-babel-tangle
+    - $MAKECMD tangle
   artifacts:
     untracked: true
     name: template-files
@@ -52,7 +54,7 @@ build-cache:
     - mkdir -p archive
     - guix archive --generate-key
     - cp /etc/guix/signing-key.pub archive/
-    - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
+    - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/emacs.scm ci/guix/manifests/doc*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
     
 build-html:       # This job runs in the build stage, which runs first.
   stage: build
@@ -60,7 +62,7 @@ build-html:       # This job runs in the build stage, which runs first.
     paths:
     - notes.html
   script:
-    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --manifest=ci/guix/manifests/html-doc.scm  --pure  -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org  -f org-html-export-to-html
+    - $MAKECMD notes.html
 
 build-pdf:
   stage: build
@@ -68,4 +70,12 @@ build-pdf:
     paths:
       - notes.pdf
   script:
-    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --manifest=ci/guix/manifests/pdf-doc.scm --pure  -- emacs --batch --eval "(setq enable-local-variables :all org-latex-remove-logfiles t user-full-name \"\")" --file notes.org  -f org-latex-export-to-pdf     
+    - $MAKECMD notes.pdf     
+
+build-pyprophet-container:
+  stage: build
+  artifacts:
+    paths:
+      - containers/pyprophet-legacy.simg
+  script:
+    - $MAKECMD containers/pyprophet-legacy.simg
