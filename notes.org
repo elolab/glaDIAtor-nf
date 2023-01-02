@@ -2063,6 +2063,7 @@ especially so that ~org-html-head~ can be inferred from the
 	   ((dot . t)))
 	  ;; for batch export
 	  (org-html-htmlize-output-type . css)
+	  (org-export-with-broken-links . t)
 	  (org-html-head . ,
 			 (with-current-buffer
 			     (let ((htmlize-css-name-prefix "org-")
