@@ -45,6 +45,6 @@ $(tangled-files) &: notes.org
 
 containers/pyprophet-legacy.simg: MANIFESTS=
 containers/pyprophet-legacy.simg: PACKAGES=guix coreutils bash-minimal
-containers/pyprophet-legacy.simg: ci/guix/pyrophet-channels.scm ci/guix/manifests/pyprophet.scm
+containers/pyprophet-legacy.simg: ci/guix/pyprophet-channels.scm ci/guix/manifests/pyprophet.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) --format=squashfs $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
