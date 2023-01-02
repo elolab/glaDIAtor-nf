@@ -31,16 +31,27 @@ default:
   # singularsyntax/guix-bootstrap
 stages:          # List of stages for jobs, and their order of executionn
   - setup-cache
+  - tangle
   - build
 
+tangle-files:
+  stage: tangle
+  script:
+    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --pure -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org -f org-babel-tangle
+  artifacts:
+    untracked: true
+    name: template-files
+    
+  
 build-cache:
   stage: setup-cache
   timeout:  2h
+  allow_failure: true
   script:
     - mkdir -p archive
     - guix archive --generate-key
     - cp /etc/guix/signing-key.pub archive/
-    - guix archive --export -r `guix time-machine -C ci/guix/channels.scm -- shell -m ci/guix/documentation-manifest.scm -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
+    - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
     
 build-html:       # This job runs in the build stage, which runs first.
   stage: build
@@ -48,7 +59,7 @@ build-html:       # This job runs in the build stage, which runs first.
     paths:
     - notes.html
   script:
-    - guix time-machine -C ci/guix/channels.scm -- shell -m ci/guix/documentation-manifest.scm  --pure   -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org  -f org-html-export-to-html
+    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --manifest=ci/guix/manifests/pdf-doc.scm  --pure  -- emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --file notes.org  -f org-html-export-to-html
 
 build-pdf:
   stage: build
@@ -56,4 +67,4 @@ build-pdf:
     paths:
       - notes.pdf
   script:
-    - guix time-machine -C ci/guix/channels.scm -- shell -m ci/guix/documentation-manifest.scm --pure  -- emacs --batch --eval "(setq enable-local-variables :all org-latex-remove-logfiles t user-full-name \"\")" --file notes.org  -f org-latex-export-to-pdf     
+    - guix time-machine --channels=ci/guix/channels.scm -- shell --manifest=ci/guix/manifests/emacs.scm --manifest=ci/guix/manifests/pdf-doc.scm --pure  -- emacs --batch --eval "(setq enable-local-variables :all org-latex-remove-logfiles t user-full-name \"\")" --file notes.org  -f org-latex-export-to-pdf     
