@@ -106,9 +106,6 @@ digraph {
 }
 #+end_src
 
-#+RESULTS: dot-build-database
-[[file:img/dot-build-database.svg]]
-
 
 *** Combining Fasta Files
 #+NAME: py-joinfastafiles
@@ -2042,7 +2039,7 @@ same `major-mode'."
 Here we set the dir-locals,
 this is to be run interactively
 especially so that ~org-html-head~ can be inferred from the 
-#+begin_src emacs-lisp  :results value file :file .dir-locals.el :eval no-export :tangle no
+#+begin_src emacs-lisp  :results value file :file .dir-locals.el :eval no-export :tangle no :var print-length='()
 (pp
  (list
   (cons 'org-mode
@@ -2061,6 +2058,8 @@ especially so that ~org-html-head~ can be inferred from the
 	   (nextflow "groovy"))
 	  (org-babel-load-languages
 	   ((dot . t)))
+	  (org-babel-confirm-evaluate-answer-no . nil)
+	  (org-confirm-babel-evaluate . nil)
 	  ;; for batch export
 	  (org-html-htmlize-output-type . css)
 	  (org-export-with-broken-links . t)
