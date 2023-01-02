@@ -26,6 +26,7 @@ default:
       - archive/
   before_script:
     - guix-daemon --build-users-group=_guixbuild --disable-chroot &
+    - test -e archive/signing-key.pub && cat archive/signing-key.pub && guix archive --authorize archive/signing-key.pub
     - test -e archive/archive.nar && guix archive --import archive/archive.nar
   # singularsyntax/guix-bootstrap
 stages:          # List of stages for jobs, and their order of executionn
@@ -37,6 +38,8 @@ build-cache:
   timeout:  2h
   script:
     - mkdir -p archive
+    - guix archive --generate-key
+    - cp /etc/guix/signing-key.pub archive/
     - guix archive --export -r `guix time-machine -C ci/guix/channels.scm -- shell -m ci/guix/documentation-manifest.scm -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
     
 build-html:       # This job runs in the build stage, which runs first.
