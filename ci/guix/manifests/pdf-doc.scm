@@ -1,3 +1,3 @@
 (specifications->manifest
- '(("emacs-auctex"
-    "texlive")))
+ '("emacs-auctex"
+    "texlive"))
