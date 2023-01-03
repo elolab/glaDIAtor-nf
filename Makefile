@@ -65,7 +65,7 @@ ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=containerd docker docker-cli coreutils
 endif
 ifneq ($(findstring podman,$(DOCKER_EXECUTABLE)),)
-containers/%.tar: PACKAGES=podman
+containers/%.tar: PACKAGES=podman coreutils
 endif
 containers/%.tar: MANIFESTS=
 containers/%.tar: Dockerfile $(tangled-files)
@@ -89,11 +89,11 @@ else
 	# we "export" the file system of a (in Docker-sepak) "container" rather than 
 	# "save" the "image" so that we can tar2sqfs it (from squashfs-tools-ng) 
 	# so that we dont need a singularity version that can deal  
-	$(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $(*F)`  -o $@
+	$(DOCKER_EXECUTABLE)pexport `$(DOCKER_EXECUTABLE) create $(*F)`  -o $@
 endif
 # gzip is the only compressor one that works for the singularity on the c
 # cat alpine-fs.tar | tar2sqfs --compressor=gzip  alpine-fs-gzip.sqfs
 containers/%.simg: MANIFEST=
-containers/%.simg: PACKAGES=squashfs-tools-ng
+containers/%.simg: PACKAGES=squashfs-tools-ng coreutils
 containers/%.simg: containers/%.tar
 	cat $< | tar2sqfs --compressor=gzip $@
