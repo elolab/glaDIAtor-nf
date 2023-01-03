@@ -1153,6 +1153,24 @@ params.xtandem_template="xtandem-template.xml"
 #+TBLFM: @2$2=808/1024
 Why is this much smaller than comet?
 
+
+We patch tpp to accept comet 2019015 
+
+#+begin_src diff :tangle tpp-5.2-fix.diff
+diff -Naur release_5-2-0/extern/Makefile release_5-2-0_mod/extern/Makefile
+--- release_5-2-0/extern/Makefile	2020-07-29 23:43:45.483620066 +0300
++++ release_5-2-0_mod/extern/Makefile	2020-07-29 23:47:41.796860274 +0300
+@@ -339,7 +339,7 @@
+ #
+ # http://comet-ms.sourceforge.net/
+ #
+-COMET_VER := 2018014
++COMET_VER := 2019015
+ COMET_ZIP := $(TPP_EXT)/comet_source_$(COMET_VER).zip
+ COMET_SRC := $(BUILD_SRC)/comet_source_$(COMET_VER)
+ .PHONY: comet comet-source comet-clean
+#+end_src
+
 *** DONE Joining Comet & Xtandem
 [[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
 [[file:glaDIAtor/workflow.py::def combine_search_engine_results]]

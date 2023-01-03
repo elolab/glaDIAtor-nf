@@ -80,3 +80,12 @@ build-pyprophet-container:
       - containers/pyprophet-legacy.simg
   script:
     - $MAKECMD containers/pyprophet-legacy.simg
+build-main-container:
+  stage: build
+  timeout: 2h
+  artifacts:
+    paths:
+      - containers/gladiator.simg
+  script:
+    - $MAKECMD containers/gladiator.simg
+  
