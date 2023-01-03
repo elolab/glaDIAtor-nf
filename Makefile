@@ -93,7 +93,7 @@ else
 endif
 # gzip is the only compressor one that works for the singularity on the c
 # cat alpine-fs.tar | tar2sqfs --compressor=gzip  alpine-fs-gzip.sqfs
-PACKAGES
+containers/%.simg: MANIFEST=
 containers/%.simg: PACKAGES=squashfs-tools-ng
 containers/%.simg: containers/%.tar
 	cat $< | tar2sqfs --compressor=gzip $@
