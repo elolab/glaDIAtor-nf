@@ -54,7 +54,7 @@ build-cache:
     - mkdir -p archive
     - guix archive --generate-key
     - cp /etc/guix/signing-key.pub archive/
-    - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/emacs.scm ci/guix/manifests/doc*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
+    - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/emacs.scm ci/guix/manifests/*doc*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
     
 build-html:       # This job runs in the build stage, which runs first.
   stage: build
@@ -74,6 +74,7 @@ build-pdf:
 
 build-pyprophet-container:
   stage: build
+  timeout: 2h
   artifacts:
     paths:
       - containers/pyprophet-legacy.simg
