@@ -81,7 +81,8 @@ build-pyprophet-container:
     paths:
       - containers/pyprophet-legacy.simg
   script:
-    - $MAKECMD containers/pyprophet-legacy.simg
+    # col --no-backspaces replaces ansi escape-codes ^M with the last output 
+    - $MAKECMD DOCKER_EXECUTABLE=docker containers/pyprophet-legacy.simg | col --no-backspaces
 build-main-container:
   stage: build
   timeout: 2h
@@ -89,5 +90,6 @@ build-main-container:
     paths:
       - containers/gladiator.simg
   script:
-    - $MAKECMD containers/gladiator.simg
+    # col --no-backspaces replaces ansi escape-codes ^M with the last output 
+    - $MAKECMD GUIX_PACK_FLAGS="--verbosity=1" containers/gladiator.simg |  col --no-backspaces
   
