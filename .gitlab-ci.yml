@@ -13,7 +13,6 @@
 #
 # To contribute improvements to CI/CD templates, please follow the Development guide at:
 # https://docs.gitlab.com/ee/development/cicd/templates.html
-# This specific template is located at:
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 variables:
   MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure -- make SHELL=guix
@@ -82,7 +81,7 @@ build-pyprophet-container:
       - containers/pyprophet-legacy.simg
   script:
     # col --no-backspaces replaces ansi escape-codes ^M with the last output 
-    - $MAKECMD DOCKER_EXECUTABLE=docker containers/pyprophet-legacy.simg | col --no-backspaces
+    - $MAKECMD  GUIX_PACK_FLAGS="--verbosity=1"containers/pyprophet-legacy.simg  2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' 
 build-main-container:
   stage: build
   timeout: 2h
@@ -91,5 +90,5 @@ build-main-container:
       - containers/gladiator.simg
   script:
     # col --no-backspaces replaces ansi escape-codes ^M with the last output 
-    - $MAKECMD GUIX_PACK_FLAGS="--verbosity=1" containers/gladiator.simg |  col --no-backspaces
+    - $MAKECMD DOCKER_EXECUTABLE=docker containers/gladiator.simg 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' 
   
