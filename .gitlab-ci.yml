@@ -81,7 +81,7 @@ build-pyprophet-container:
       - containers/pyprophet-legacy.simg
   script:
     # col --no-backspaces replaces ansi escape-codes ^M with the last output 
-    - $MAKECMD  GUIX_PACK_FLAGS="--verbosity=1"containers/pyprophet-legacy.simg  2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' 
+    - $MAKECMD  GUIX_PACK_FLAGS="--verbosity=1" containers/pyprophet-legacy.simg  2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' 
 build-main-container:
   stage: build
   timeout: 2h
