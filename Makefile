@@ -12,16 +12,15 @@
 
 
 # These variables are passed to guix time-machine and guix shell
-MANIFESTS=ci/guix/manifests/emacs.scm
+MANIFESTS=
 CHANNELS=ci/guix/channels.scm 
 PACKAGES=
 GUIX_PACK_FLAGS=
 
 # one of docker , podman, or something else with a docker compatible interface
 # can be prefixed by sudo and followed by common flags
-# on guix system passin on the CLI DOCKER_EXECUTABLE="$(which sudo) docker" seems to work the best
-# (you cannot pass sudo on as package,
-# because that one will not be owned by root)
+# on guix system passing on the CLI DOCKER_EXECUTABLE="$(which sudo) docker" seems to work the best
+# (you cannot pass sudo on as guix package, because that one will not be owned by root)
 DOCKER_EXECUTABLE=podman
 
 ifeq ($(SHELL),guix)
@@ -32,8 +31,10 @@ endif
 doc: notes.html notes.pdf
 EMACSCMD=emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --eval "(require 'ob-dot)"
 
-# determine what files notes.org tangles out into
+# temporarily set manifests to use to emacs.scm so that we can find what files the org-file tangles out to
+MANIFESTS=ci/guix/manifests/emacs.scm
 tangled-files :=$(shell $(EMACSCMD)  --file=notes.org --eval  "(princ (mapconcat 'car (org-babel-tangle-collect-blocks) \"\n\"))")
+MANIFESTS=
 tangle: $(tangled-files)
 
 %.html: MANIFESTS = ci/guix/manifests/emacs.scm ci/guix/manifests/html-doc.scm
