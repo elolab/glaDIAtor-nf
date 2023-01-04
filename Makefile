@@ -27,8 +27,12 @@ ifeq ($(SHELL),guix)
 .SHELLFLAGS=time-machine $(patsubst %,--channels=%,$(CHANNELS)) -- shell $(PACKAGES) --pure -v0 $(patsubst %,--manifest=%,$(MANIFESTS))  bash-minimal -- sh -c
 endif
 
-.PHONY: doc tangle
+.PHONY: doc tangle all singularity-containers
+singularity-containers: containers/pyprophet-legacy.simg containers/gladiator.simg
+all: tangle doc 
 doc: notes.html notes.pdf
+
+
 EMACSCMD=emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --eval "(require 'ob-dot)"
 
 # temporarily set manifests to use to emacs.scm so that we can find what files the org-file tangles out to
@@ -77,7 +81,8 @@ ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
 	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
 	# we "export" the file system of a (in Docker-sepak) "container" rather than 
 	# "save" the "image" so that we can tar2sqfs it (from squashfs-tools-ng) 
-	# so that we dont need a singularity version that can deal
+	# so that we dont need a singularity version that can "singularity build  docker-archive://file.tar"
+	# (as the version of singularity in guix at commit 05e4efe0c83c09929d15a0f5faa23a9afc0079e4 is quite outdated)
 	mkdir -p $(@D)
 	$(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $(*F)`  -o $@
 	if test -e dockerd.pid; then \
