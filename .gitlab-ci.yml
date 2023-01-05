@@ -87,8 +87,9 @@ build-main-container:
   timeout: 2h
   artifacts:
     paths:
-      - containers/gladiator.simg
+      - containers/*
+    when: always
   script:
-    # col --no-backspaces replaces ansi escape-codes ^M with the last output 
-    - $MAKECMD DOCKER_EXECUTABLE=docker containers/gladiator.simg 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' 
-  
+    # col --no-backspaces replaces ansi escape-codes ^M with the last output
+    - mdkir -p containers
+    - $MAKECMD DOCKER_EXECUTABLE=docker containers/gladiator.simg 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
