@@ -29,9 +29,11 @@ The following is a list of all files this document tangles into
 | diaumpireconfig.txt                    |
 | comet_template.txt                     |
 | xtandem-template.xml                   |
+| tpp-5.2-fix.diff                       |
 | irt.txt                                |
 | pyprophet-legacy-requirements.txt      |
 | pyprophet-legacy-standalone.dockerfile |
+| install-R-packages.R                   |
 | nextflow.config                        |
 
 
@@ -1820,6 +1822,25 @@ params.swath2stats_strict_checking=true
  "r-tidyr"
  "r-argparse"
  "r-corrplot")
+#+end_src
+
+
+The above as an R-script
+
+#+begin_src R :eval no :tangle install-R-packages.R 
+#!/usr/bin/env Rscript
+
+.libPaths("/opt/Rlibs/")
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = "3.15",ask=FALSE,update=FALSE)
+
+BiocManager::install("SWATH2stats", ask=FALSE,update=FALSE)
+BiocManager::install("PECA", ask=FALSE,update=FALSE)
+install.packages("tidyr",repos = "http://cran.us.r-project.org")
+install.packages("argparse",repos = "http://cran.us.r-project.org")
+install.packages("corrplot",repos = "http://cran.us.r-project.org")
 #+end_src
 * Putting it together
 ** gwl
