@@ -85,10 +85,8 @@ ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
 	# (as the version of singularity in guix at commit 05e4efe0c83c09929d15a0f5faa23a9afc0079e4 is quite outdated)
 	mkdir -p $(@D)
 	$(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $(*F)`  -o $@
-	if test -e dockerd.pid; then \
-	   $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; \
-	   rm -f dockerd.pid \
-	fi;
+	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
+	rm -f dockerd.pid 
 else
 	mkdir -p $(@D)
 	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
