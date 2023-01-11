@@ -1,3 +1,8 @@
+# This makefile automates container generation
+# and file tangling.
+# The following section (delimited by  (page breaks)
+# are variables you can set as the user.
+# 
 # if you set SHELL=guix,
 # this makefile will use guix time-machine & guix-shell to take care of dependencies
 # To make e.g the docs, invoke as 
@@ -11,24 +16,38 @@
 # $ guix time-machine -C ci/guix/channels.scm -- shell --pure  make guix -- make SHELL=guix doc
 
 
-# These variables are passed to guix time-machine and guix shell
-MANIFESTS=
-CHANNELS=ci/guix/channels.scm 
-PACKAGES=
-GUIX_PACK_FLAGS=
-
 # one of docker , podman, or something else with a docker compatible interface
 # can be prefixed by sudo and followed by common flags
 # on guix system passing on the CLI DOCKER_EXECUTABLE="$(which sudo) docker" seems to work the best
 # (you cannot pass sudo on as guix package, because that one will not be owned by root)
 DOCKER_EXECUTABLE=podman
 
+# These flags are passed to guix pack
+GUIX_PACK_FLAGS=
+
+
+# The variables in this section are used to control guix time-machine
+# and guix shell behaviour
+
+# These variables are passed to guix time-machine and guix shell
+MANIFESTS=
+CHANNELS=ci/guix/channels.scm 
+PACKAGES=
+
 ifeq ($(SHELL),guix)
 .SHELLFLAGS=time-machine $(patsubst %,--channels=%,$(CHANNELS)) -- shell $(PACKAGES) --pure -v0 $(patsubst %,--manifest=%,$(MANIFESTS))  bash-minimal -- sh -c
 endif
+
 
-.PHONY: doc tangle all singularity-containers
-singularity-containers: containers/pyprophet-legacy.simg containers/gladiator.simg
+################# TARGETS ###############################
+# This section defines the pseudo-targets that you might want to request
+
+.PHONY: doc tangle all singularity-containers docker-containers
+
+CONTAINER_NAMES:=pyprophet-legacy gladiator
+singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
+docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
+
 all: tangle doc 
 doc: notes.html notes.pdf
 
@@ -59,9 +78,15 @@ $(tangled-files) &: notes.org
 
 containers/pyprophet-legacy.simg: MANIFESTS=
 containers/pyprophet-legacy.simg: PACKAGES=guix coreutils bash-minimal
-containers/pyprophet-legacy.simg: ci/guix/pyprophet-channels.scm ci/guix/manifests/pyprophet.scm
+containers/pyprophet-legacy.simg: ci/guix/pyprophet-legacy-channels.scm ci/guix/manifests/pyprophet-legacy.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) --format=squashfs $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
+containers/pyprophet-legacy.tar: MANIFESTS=
+containers/pyprophet-legacy.tar: PACKAGES=guix coreutils bash-minimal
+containers/pyprophet-legacy.tar: ci/guix/pyprophet-legacy-channels.scm ci/guix/manifests/pyprophet-legacy.scm
+	mkdir -p $(@D)
+	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) --format=docker $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
+
 
 # If we are using docker as the docker execatuble,
 # set the pacakges for docker tars to docker packages
@@ -72,10 +97,15 @@ endif
 ifneq ($(findstring podman,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=podman coreutils
 endif
+
 containers/%.tar: MANIFESTS=
 containers/%.tar: Dockerfile $(tangled-files)
 # we launch the docker daemon and clean it up later
 # see https://stackoverflow.com/questions/31024268/starting-and-closing-applications-in-makefile
+# $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) returns:
+# - `/bin/sudo` if DOCKER_EXECUTABLE="/bin/sudo docker"  ...
+# - `sudo` if DOCKER_EXECUTABLE="sudo docker"
+# - `` (i.e empty string) if DOCKER_EXECUTABLE="docker"
 ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
 	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid
 	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
