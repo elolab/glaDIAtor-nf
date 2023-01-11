@@ -17,7 +17,7 @@
 variables:
   MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure -- make SHELL=guix
 default:
-  image: rgrunbla/ubuntu-plus-guix
+  image: $CI_REGISTRY/guix-runner:latest
   timeout: 2h
   cache:
     key:
