@@ -51,7 +51,6 @@ docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
 all: tangle doc 
 doc: notes.html notes.pdf
 
-
 EMACSCMD=emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --eval "(require 'ob-dot)"
 
 # temporarily set manifests to use to emacs.scm so that we can find what files the org-file tangles out to
@@ -91,43 +90,51 @@ containers/pyprophet-legacy.tar: ci/guix/pyprophet-legacy-channels.scm ci/guix/m
 # If we are using docker as the docker execatuble,
 # set the pacakges for docker tars to docker packages
 # and some coreutils for cleaning up after us
+# the %.tar files are 'docker-archives'
+# the %-fs.tar files are filesystem archives
 ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=containerd docker docker-cli coreutils
+containers/%-fs.tar:PACKAGES=containerd docker docker-cli coreutils sed
 endif
 ifneq ($(findstring podman,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=podman coreutils
+containers/%-fs.tar: PACKAGES=podman coreutils sed
 endif
 
-containers/%.tar: MANIFESTS=
-containers/%.tar: Dockerfile $(tangled-files)
 # we launch the docker daemon and clean it up later
 # see https://stackoverflow.com/questions/31024268/starting-and-closing-applications-in-makefile
 # $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) returns:
 # - `/bin/sudo` if DOCKER_EXECUTABLE="/bin/sudo docker"  ...
 # - `sudo` if DOCKER_EXECUTABLE="sudo docker"
 # - `` (i.e empty string) if DOCKER_EXECUTABLE="docker"
-ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
-	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid
+containers/%.tar: MANIFESTS=
+containers/%.tar: %.dockerfile $(tangled-files)
+	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
+		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
+		:)
+# the above is not a smiley `:)`, but rather a "no-op" for the shell
 	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
+	mkdir -p $(@D)
+	$(DOCKER_EXECUTABLE) save $(*F) -o $@
+	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
+	rm -f dockerd.pid
+
+# The following turns a docker image tarball into a filesystem tarball
+# so that they can be converted into a squashfs container
+containers/%-fs.tar: containers/%.tar
 	# we "export" the file system of a (in Docker-sepak) "container" rather than 
 	# "save" the "image" so that we can tar2sqfs it (from squashfs-tools-ng) 
 	# so that we dont need a singularity version that can "singularity build  docker-archive://file.tar"
 	# (as the version of singularity in guix at commit 05e4efe0c83c09929d15a0f5faa23a9afc0079e4 is quite outdated)
-	mkdir -p $(@D)
-	$(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $(*F)`  -o $@
+	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
+		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
+		:)
+	TAG=`$(DOCKER_EXECUTABLE) load --quiet --input $< | sed 's/^Loaded image: //g'`; $(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $$TAG` -o $@
 	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
-	rm -f dockerd.pid 
-else
-	mkdir -p $(@D)
-	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
-	# we "export" the file system of a (in Docker-sepak) "container" rather than 
-	# "save" the "image" so that we can tar2sqfs it (from squashfs-tools-ng) 
-	# so that we dont need a singularity version that can deal  
-	$(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $(*F)`  -o $@
-endif
-# gzip is the only compressor one that works for the singularity on the c
-# cat alpine-fs.tar | tar2sqfs --compressor=gzip  alpine-fs-gzip.sqfs
+	rm -f dockerd.pid
+
+# gzip is the only compressor one that works for the singularity on the cluster
 containers/%.simg: MANIFESTS=
 containers/%.simg: PACKAGES=squashfs-tools-ng coreutils
-containers/%.simg: containers/%.tar
+containers/%.simg: containers/%-fs.tar
 	cat $< | tar2sqfs --quiet --compressor=gzip $@
