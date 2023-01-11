@@ -155,7 +155,7 @@ docker-containers-push: docker-containers
 	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
 		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
 		:)
-	$(DOCKER_EXECUTABLE) $(DOCKER_LOGIN_FLAGS) $(DOCKER_REGISTRY)
+	$(DOCKER_EXECUTABLE) login $(DOCKER_LOGIN_FLAGS) $(DOCKER_REGISTRY)
 	$(patsubst %,\
 	BASENAME=% && \
 	TAG=`$(DOCKER_EXECUTABLE) load --quiet --input containers/$$BASENAME.tar|sed 's/^Loaded image: //g'` && \
