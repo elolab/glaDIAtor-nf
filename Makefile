@@ -130,4 +130,4 @@ endif
 containers/%.simg: MANIFESTS=
 containers/%.simg: PACKAGES=squashfs-tools-ng coreutils
 containers/%.simg: containers/%.tar
-	cat $< | tar2sqfs --compressor=gzip $@
+	cat $< | tar2sqfs --quiet --compressor=gzip $@
