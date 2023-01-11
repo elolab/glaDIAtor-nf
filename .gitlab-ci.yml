@@ -17,7 +17,7 @@
 variables:
   MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure -- make SHELL=guix
 default:
-  image: $CI_REGISTRY/guix-runner:latest
+  image: $CI_REGISTRY_IMAGE/guix-runner:latest
   timeout: 2h
   cache:
     key:
@@ -92,4 +92,4 @@ build-main-container:
   script:
     # col --no-backspaces replaces ansi escape-codes ^M with the last output
     - mkdir -p containers
-    - $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD" DOCKER_REGISTRY=$CI_REGISTRY docker-containers-push 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
+    - $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt

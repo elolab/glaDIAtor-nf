@@ -26,10 +26,11 @@ DOCKER_EXECUTABLE=podman
 # Continuous integration variables for developers
 # You can ignore these if you are not planning on doing a "docker push"
 # Flags to pass to the docker login call,
-# set to e.g. "-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+# set to e.g. "-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
 DOCKER_LOGIN_FLAGS=
-# 
-DOCKER_REGISTRY= 
+# whereunder the image should be placed
+# e.g registry.example.com/project
+DOCKER_REGISTRY_DIR=
 
 # These flags are passed to guix pack
 GUIX_PACK_FLAGS=
@@ -155,12 +156,12 @@ docker-containers-push: docker-containers
 	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
 		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
 		:)
-	$(DOCKER_EXECUTABLE) login $(DOCKER_LOGIN_FLAGS) $(DOCKER_REGISTRY)
+	$(DOCKER_EXECUTABLE) login $(DOCKER_LOGIN_FLAGS) 
 	$(patsubst %,\
 	BASENAME=% && \
 	TAG=`$(DOCKER_EXECUTABLE) load --quiet --input containers/$$BASENAME.tar|sed 's/^Loaded image: //g'` && \
-	$(DOCKER_EXECUTABLE) tag $$TAG $(DOCKER_REGISTRY)/$$BASENAME &&  \
-	$(DOCKER_EXECUTABLE) push $(DOCKER_REGISTRY)/$$BASENAME && ,\
+	$(DOCKER_EXECUTABLE) tag $$TAG $(DOCKER_REGISTRY_DIR)/$$BASENAME &&  \
+	$(DOCKER_EXECUTABLE) push $(DOCKER_REGISTRY_DIR)/$$BASENAME && ,\
 	$(CONTAINER_NAMES)) :
 	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
 	rm -f dockerd.pid
