@@ -22,13 +22,20 @@
 # (you cannot pass sudo on as guix package, because that one will not be owned by root)
 DOCKER_EXECUTABLE=podman
 
+
+# Continuous integration variables for developers
+# You can ignore these if you are not planning on doing a "docker push"
+# Flags to pass to the docker login call,
+# set to e.g. "-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+DOCKER_LOGIN_FLAGS=
+# 
+DOCKER_REGISTRY= 
+
 # These flags are passed to guix pack
 GUIX_PACK_FLAGS=
-
 
 # The variables in this section are used to control guix time-machine
 # and guix shell behaviour
-
 # These variables are passed to guix time-machine and guix shell
 MANIFESTS=
 CHANNELS=ci/guix/channels.scm 
@@ -42,7 +49,7 @@ endif
 ################# TARGETS ###############################
 # This section defines the pseudo-targets that you might want to request
 
-.PHONY: doc tangle all singularity-containers docker-containers
+.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push
 
 CONTAINER_NAMES:=pyprophet-legacy gladiator
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
@@ -58,6 +65,8 @@ MANIFESTS=ci/guix/manifests/emacs.scm
 tangled-files :=$(shell $(EMACSCMD)  --file=notes.org --eval  "(princ (mapconcat 'car (org-babel-tangle-collect-blocks) \"\n\"))")
 MANIFESTS=
 tangle: $(tangled-files)
+
+
 
 %.html: MANIFESTS = ci/guix/manifests/emacs.scm ci/guix/manifests/html-doc.scm
 %.html: %.org .dir-locals.el 
@@ -95,10 +104,12 @@ containers/pyprophet-legacy.tar: ci/guix/pyprophet-legacy-channels.scm ci/guix/m
 ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=containerd docker docker-cli coreutils
 containers/%-fs.tar:PACKAGES=containerd docker docker-cli coreutils sed
+docker-containers-push: PACKAGES=containerd docker docker-cli coreutils sed
 endif
 ifneq ($(findstring podman,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=podman coreutils
 containers/%-fs.tar: PACKAGES=podman coreutils sed
+docker-containers-push: PACKAGES=podman coreutils sed
 endif
 
 # we launch the docker daemon and clean it up later
@@ -138,3 +149,18 @@ containers/%.simg: MANIFESTS=
 containers/%.simg: PACKAGES=squashfs-tools-ng coreutils
 containers/%.simg: containers/%-fs.tar
 	cat $< | tar2sqfs --quiet --compressor=gzip $@
+
+# Continuous integration stuff
+docker-containers-push: docker-containers
+	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
+		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
+		:)
+	$(DOCKER_EXECUTABLE) $(DOCKER_LOGIN_FLAGS) $(DOCKER_REGISTRY)
+	$(patsubst %,\
+	BASENAME=% && \
+	TAG=`$(DOCKER_EXECUTABLE) load --quiet --input containers/$$BASENAME.tar|sed 's/^Loaded image: //g'` && \
+	$(DOCKER_EXECUTABLE) tag $$TAG $(DOCKER_REGISTRY)/$$BASENAME &&  \
+	$(DOCKER_EXECUTABLE) push $(DOCKER_REGISTRY)/$$BASENAME && ,\
+	$(CONTAINER_NAMES)) :
+	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
+	rm -f dockerd.pid

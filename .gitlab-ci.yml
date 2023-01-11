@@ -86,10 +86,10 @@ build-main-container:
   stage: build
   timeout: 2h
   artifacts:
-    paths:
-      - containers/*
     when: always
+    paths:
+      - containers/log.txt
   script:
     # col --no-backspaces replaces ansi escape-codes ^M with the last output
     - mkdir -p containers
-    - $MAKECMD DOCKER_EXECUTABLE=docker containers/gladiator.simg 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
+    - $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD" DOCKER_REGISTRY=$CI_REGISTRY docker-containers-push 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
