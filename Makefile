@@ -13,7 +13,7 @@
 # but even better
 # $ guix time-machine -C ci/guix/channels.scm -- shell --container --share=/var/guix/daemon-socket/socket  make guix nss-certs --network -- make SHELL=guix doc
 # or as 
-# $ guix time-machine -C ci/guix/channels.scm -- shell --pure --preseve'^SSL_'  make guix -- make SHELL=guix doc
+# $ guix time-machine -C ci/guix/channels.scm -- shell --pure --preserve='^SSL_'  make guix -- make SHELL=guix doc
 
 
 # one of docker , podman, or something else with a docker compatible interface
@@ -50,7 +50,7 @@ endif
 ################# TARGETS ###############################
 # This section defines the pseudo-targets that you might want to request
 
-.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push
+.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment
 
 CONTAINER_NAMES:=pyprophet-legacy gladiator
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
@@ -165,3 +165,8 @@ docker-containers-push: docker-containers
 	$(CONTAINER_NAMES)) :
 	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
 	rm -f dockerd.pid
+
+
+environment: PACKAGES=coreutils
+environment:
+	env 
