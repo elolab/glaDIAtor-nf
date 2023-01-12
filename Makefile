@@ -13,7 +13,7 @@
 # but even better
 # $ guix time-machine -C ci/guix/channels.scm -- shell --container --share=/var/guix/daemon-socket/socket  make guix nss-certs --network -- make SHELL=guix doc
 # or as 
-# $ guix time-machine -C ci/guix/channels.scm -- shell --pure  make guix -- make SHELL=guix doc
+# $ guix time-machine -C ci/guix/channels.scm -- shell --pure --preseve'^SSL_'  make guix -- make SHELL=guix doc
 
 
 # one of docker , podman, or something else with a docker compatible interface
@@ -43,7 +43,7 @@ CHANNELS=ci/guix/channels.scm
 PACKAGES=
 
 ifeq ($(SHELL),guix)
-.SHELLFLAGS=time-machine $(patsubst %,--channels=%,$(CHANNELS)) -- shell $(PACKAGES) --pure -v0 $(patsubst %,--manifest=%,$(MANIFESTS))  bash-minimal -- sh -c
+.SHELLFLAGS=time-machine $(patsubst %,--channels=%,$(CHANNELS)) -- shell $(PACKAGES) --pure --preserve='^SSL_' -v0 $(patsubst %,--manifest=%,$(MANIFESTS))  bash-minimal -- sh -c
 endif
 
 
@@ -91,7 +91,7 @@ containers/pyprophet-legacy.simg: ci/guix/pyprophet-legacy-channels.scm ci/guix/
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) --format=squashfs $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 containers/pyprophet-legacy.tar: MANIFESTS=
-containers/pyprophet-legacy.tar: PACKAGES=guix coreutils bash-minimal
+containers/pyprophet-legacy.tar: PACKAGES=guix coreutils bash-minimal 
 containers/pyprophet-legacy.tar: ci/guix/pyprophet-legacy-channels.scm ci/guix/manifests/pyprophet-legacy.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) --format=docker $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
