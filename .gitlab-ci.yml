@@ -39,7 +39,7 @@ stages:          # List of stages for jobs, and their order of executionn
 echo-environment:
   stage: ".pre"
   script:
-    - $MAKECMD environmnet
+    - $MAKECMD environment
 
 tangle-files:
   stage: tangle
