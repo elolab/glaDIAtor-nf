@@ -68,8 +68,10 @@
   (specifications->manifest
    '("guix"
      "bash"
+     "coreutils"
      "sed"
-     "coreutils"))
+     ;; so that guix-time-machine is happy with regards to pulling from git
+     "nss-certs"))
  (manifest 
   ;; see (info "(guix) Writing Manifests")
   ;;
