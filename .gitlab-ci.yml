@@ -15,7 +15,7 @@
 # https://docs.gitlab.com/ee/development/cicd/templates.html
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 variables:
-  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve="^SSL_" -- make SHELL=guix
+  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve=^SSL_ -- make SHELL=guix
 default:
   image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.1
   timeout: 2h
@@ -36,11 +36,6 @@ stages:          # List of stages for jobs, and their order of executionn
   - tangle
   - build
 
-echo-environment:
-  stage: ".pre"
-  script:
-    - env
-    - $MAKECMD environment
 
 tangle-files:
   stage: tangle
