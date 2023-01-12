@@ -22,7 +22,9 @@
 	(define build-group "guixbuild")
 	(define build-comment-pattern "Guix build user ~a")
 	(define build-name-pattern "guixbuilder~a")
+	
 	(invoke #$(file-append shadow "/sbin/groupadd") "--system" build-group)
+	
 	(do ((i 1 (1+ i))) ((>= i 10))
 	  (invoke #$(file-append shadow "/sbin/useradd")
 		  "-g" build-group
@@ -32,7 +34,15 @@
 		  "-c" (format #f build-comment-pattern i)
 		  "--system"
 		  (format #f build-name-pattern i)))
-	
+	;; because guix time-machine calls (getpw (getuid))
+	;; we need to have an entry for uid
+	;; also this and the above might be better as computed-file for /etc/passwd
+	;; and /etc/group
+	;; check how guix system does it?
+	(invoke #$(file-append shadow "/sbin/useradd")
+		"-d" "/var/empty"
+		"-u" (format #f "~a" (getuid))
+		"root")
 	;; this file is necessary for the daemon to connect to substitute servers
 	;; otherwise you will get the error:
 	;; In prpocedure getaddrinfo: Servname not supported for ai_socktype
