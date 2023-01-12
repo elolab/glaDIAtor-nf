@@ -21,6 +21,8 @@
      (guix-service-type config =>
 			(guix-configuration
 			 (inherit config)
+			 ;; save some time at startup to not need to generate a key
+			 (generate-substitute-key? #f)
 			 ;; in docker cannot chroot unless priviliged
 			 (extra-options '("--disable-chroot"))))))
   (file-systems %base-file-systems))
