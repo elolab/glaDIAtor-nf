@@ -27,7 +27,7 @@ default:
     paths:
       - archive/
   before_script:
-    - guix-daemon-helper --disable-chroot &
+    - guix-daemon-helper --disable-chroot 
     - test -e archive/signing-key.pub && cat archive/signing-key.pub | guix archive --authorize  || true 
     - test -e archive/archive.nar && cat archive/archive.nar | guix archive --import  || true
   # singularsyntax/guix-bootstrap
