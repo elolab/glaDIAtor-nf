@@ -1,3 +1,25 @@
+;;; a profile for running guix in a docker
+;;; This is _not_ part of GNU Guix
+;;; This program is free software: you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation, either version 3 of the License, or
+;;; (at your option) any later version.
+;;; 
+;;; This program is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;; GNU General Public License for more details.
+;;; 
+;;; You should have received a copy of the GNU General Public License
+;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;; 
+;;; when entering a container (assuming you're root in container) run
+;;; # guix-daemon-helper [args to pass do guix daemon]
+;;; and then you can guix things
+;;; you might want to add --disable-chroot
+;;; otherwise you cannot guix shell.
+;;; havent found a way to make it work singularity yet.
+;;; fakeroot doesnt work on our cluster
 (use-modules (gnu packages admin)
 	     (gnu packages package-management)
 	     (gnu packages base)
@@ -18,6 +40,13 @@
 		     (ice-9 popen)
 		     (ice-9 rdelim)
 		     (ice-9 ports))
+
+	;; The following groupadd / usedadd invocation might
+	;; be better as computed-file for /etc/passwd
+	;; and /etc/group
+	;; check how guix system does it?
+	;; see (gnu build accounts) and (gnu system accounts)
+	;; and esp. `create-user-database' in (gnu installer final)
 	(define build-group "guixbuild")
 	(define build-comment-pattern "Guix build user ~a")
 	(define build-name-pattern "guixbuilder~a")
@@ -35,9 +64,7 @@
 		  (format #f build-name-pattern i)))
 	;; because guix time-machine calls (getpw (getuid))
 	;; we need to have an entry for uid
-	;; also this and the above might be better as computed-file for /etc/passwd
-	;; and /etc/group
-	;; check how guix system does it?
+
 	(invoke #$(file-append shadow "/sbin/useradd")
 		"-d" "/var/empty"
 		"-u" (format #f "~a" (getuid))
