@@ -4,8 +4,7 @@
              (guix gexp)
 	     (guix profiles)
 	     (gnu packages certs)
-	     (ice-9 popen)
-	     )
+	     (ice-9 popen))
 
 
 ;; see https://www.systemreboot.net/post/deploy-scripts-using-g-expressions
@@ -61,16 +60,11 @@
 	       (let
 		   ((port (open-output-pipe (format #f "~a archive --authorize"
 						       #$(file-append guix "/bin/guix")))))
-		 
 	       (display 
 		(with-input-from-file file read-string)
 		port)
 	       (close-pipe port)))
-	     (find-files #$(file-append guix "/share/guix")))
-				
-
-	;; (invoke "guix-daemon" (format #f "--build-users-group=~a" build-group))
-	)))
+	     (find-files #$(file-append guix "/share/guix"))))))
 
 	
 (concatenate-manifests
@@ -84,7 +78,6 @@
      "nss-certs"))
  (manifest 
   ;; see (info "(guix) Writing Manifests")
-  ;;
   (list
    (let ((guix-daemon-helper (program-file "guix-daemon-helper" guix-daemon-helper-gexp)))
    (manifest-entry
