@@ -4,27 +4,41 @@
 ## Description
 
 glaDIAtor-nf is a Nextflow workflow for analyzing mass spectrometry data acquired using *data independent acquisition* (DIA) mode.
+This is programmed in a literate style in the file [notes.org](notes.org) in org-mode.
+See that to learn more about the details of the program,
+Common issues encountered are noted there.
+
 
 ## Installation
+This requires [nextflow](https://nextflow.io)
+ to be on the system where you launch this workflow from.
+This workflow has been developed under nextflow version `21.04.3`.
+For best compatibility set the environmnnt variable `NXF_VER` to this when the workflow is launched.
+(see also [this blogpost](https://nextflow.io/blog/2022/evolution-of-nextflow-runtime.html))
+
 
 gladiator-nf is designed to run under NextFlow bioinformatics workflow manager. The glaDIAtor-nf software is packaged as a container, so the computer environment needs to support container technology such as Docker and Podman.
 
-Example: Install glaDIAtor-nf
+Example: get glaDIAtor-nf
 ```
 $ git clone https://github.com/elolab/gladiator-nf.git
 ```
 
-The following folders are required...
-1) A folder for input files such as raw data and sequence database files (/data here).
-2) A folder for storing analysis results and intermediate files (/run-files here)
 
-## Analysis workflow
+## Usage:
 
-1. raw file conversion... 
-2. 
-3. 
-4. 
-5. Optional
+
+### Pre-Usage
+0. (Optional) Generate the containers using `make docker-containers`
+1. If your DIA data is not yet in MZML format and your (optional) DDA data is not yet in MZXML format, convert these following the `Preprocessing Data` in [notes.org](notes.org)
+2. determine the precursor 
+
+## Analysis workflow 
+
+
+## Parameters
+- 
+- `fastafiles`, glob pattern / path to fasta files to be used 
 
 ## Analysis Results
 Once the analysis has completed successfully, the analysis results are available... 
@@ -41,8 +55,8 @@ The default parameters are for a nanoflow HPLC system (Easy-nLC1200, Thermo Fish
 * Fixed modification: Carbamidomethyl (C)
 * Variable modification: Oxidation (M)
 
-glaDIAtor-nf provides a small set of search parameter settings that can be adjusted. If more settings needs to be adjusted, the default settings (comet_settings_template.xml and xtandem_settings_template.xml) can be accessed at the container image location /opt/gladiator/. 
-
+glaDIAtor-nf provides a small set of search parameter settings that can be adjusted. 
+If more settings needs to be adjusted, the default settings (`comet_settings_template.xml` and `xtandem_settings_template.xml`) can be edited from this directory, or directly in [notes.org](notes.org) if you tangle it afterwards.
 ### Annotate the peptide intensity matrix from command line
 
 
