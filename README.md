@@ -26,23 +26,23 @@ $ git clone https://github.com/elolab/gladiator-nf.git
 
 Pull the pwiz container
 
-´docker pull dockerhub:chambm/pwiz-skyline-i-agree-to-the-vendor-licenses´
+`docker pull dockerhub:chambm/pwiz-skyline-i-agree-to-the-vendor-licenses`
 
 
 #### Converting DIA raw data to mzXML
-´´´
+``` sh
 mkdir -p MZML-pwiz
 find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
-´´´
+```
 
 #### Optional: Converting DDA raw data to mzML
 If you are using DDA-assisted DIA-analysis, convert your DDA data to mzXML format.
-´´´
+``` sh
 mkdir -p MZXML-pwiz
 for f in RAW/*.wiff; do
     wine qtofpeakpicker --resolution=2000 --area=1 --threshold=1 --smoothwidth=1.1 --in $f --out MZXML-pwiz/$(basename --suffix=.wiff $f).mzXML
 done
-´´´
+```
 
 
 ## Analysis workflow 
