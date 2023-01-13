@@ -1,23 +1,13 @@
-# glaDIAtor
+# glaDIAtor-NF
 
 
 ## Description
 
-glaDIAtor-nf is a Nextflow workflow for analyzing mass spectrometry data acquired using *data independent acquisition* (DIA) mode.
-This is programmed in a literate style in the file [notes.org](notes.org) in org-mode.
-See that to learn more about the details of the program,
-Common issues encountered are noted there.
+glaDIAtor-nf is a workflow for analyzing mass spectrometry data acquired using *data independent acquisition* (DIA) mode.
 
+glaDIAtor-nf is designed to run under NextFlow ((https://nextflow.io)) bioinformatics workflow manager. This workflow has been developed under nextflow version `21.04.3`
 
-## Installation
-This requires [nextflow](https://nextflow.io)
- to be on the system where you launch this workflow from.
-This workflow has been developed under nextflow version `21.04.3`.
-For best compatibility set the environmnnt variable `NXF_VER` to this when the workflow is launched.
-(see also [this blogpost](https://nextflow.io/blog/2022/evolution-of-nextflow-runtime.html))
-
-
-gladiator-nf is designed to run under NextFlow bioinformatics workflow manager. The glaDIAtor-nf software is packaged as a container, so the computer environment needs to support container technology such as Docker and Podman.
+The glaDIAtor-nf software uses container technology, so the run environment needs to support container technology such as Docker, Podman or Singularity.
 
 Example: get glaDIAtor-nf
 ```
@@ -29,9 +19,31 @@ $ git clone https://github.com/elolab/gladiator-nf.git
 
 
 ### Pre-Usage
-0. (Optional) Generate the containers using `make docker-containers`
-1. If your DIA data is not yet in MZML format and your (optional) DDA data is not yet in MZXML format, convert these following the `Preprocessing Data` in [notes.org](notes.org)
-2. determine the precursor 
+1. If your DIA data is not in MZML format and your (optional) DDA data is not yet in MZXML format, convert the data to the open formats.
+2. Determine the precursor (MS1 spectrum, in ppm) and fragment (MS2 spectrum, in Dalton) mass tolerances of your data (instrument specific). 
+
+### Preprocessing Data
+
+Pull the pwiz container
+
+´docker pull dockerhub:chambm/pwiz-skyline-i-agree-to-the-vendor-licenses´
+
+
+#### Converting DIA raw data to mzXML
+´´´
+mkdir -p MZML-pwiz
+find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
+´´´
+
+#### Optional: Converting DDA raw data to mzML
+If you are using DDA-assisted DIA-analysis, convert your DDA data to mzXML format.
+´´´
+mkdir -p MZXML-pwiz
+for f in RAW/*.wiff; do
+    wine qtofpeakpicker --resolution=2000 --area=1 --threshold=1 --smoothwidth=1.1 --in $f --out MZXML-pwiz/$(basename --suffix=.wiff $f).mzXML
+done
+´´´
+
 
 ## Analysis workflow 
 
@@ -63,5 +75,11 @@ If more settings needs to be adjusted, the default settings (`comet_settings_tem
 ### Use DDA data for the library
 
 
+### Development
 
+This workflow has been developed under nextflow version `21.04.3`.
+
+This is programmed in a literate style in the file [notes.org](notes.org) in org-mode.
+See that to learn more about the details of the program,
+Common issues encountered are noted there.
 
