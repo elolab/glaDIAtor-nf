@@ -40,6 +40,107 @@ The following is a list of all files this document tangles into
 
 * Overview of this pipeline
 # hacky space between node and [ for fontlocking
+#+NAME: flow
+#+begin_src dot 
+digraph flow
+{
+  rankdir=LR
+  compound=true
+  subgraph processes
+  {
+    node[shape=square]
+    buildfastadatabase[label="Build\nFasta\nDatabase"]
+    comet[label="Comet"]
+    comet_and_tandem[label="Combine"]
+    tandem
+    diaumpire[label="Generate\n Pseudospectra"]
+    spectrast
+    find_swath_windows[label="Finding\nSwath\nwindows"]
+    create_transitions[label="Create\nTransitions"]
+    osw
+    pyprophet_legacy[label="Pyprophet"]
+    feature_alignment[label="Feature\nAlignment"]
+    swath2stats
+  }
+  subgraph data{
+    node[shape=circle]
+    subgraph inputs {
+      rank=same 
+      fasta[label="Fasta\nFiles"]
+      dda
+      dia
+    }
+  }
+  
+  subgraph cluster_spectra
+  {
+    label="Spectra"
+    style=dashed
+    diaumpire
+    dda
+    choose_spectra[shape=triangle,label="or"]
+  }
+
+  
+  subgraph cluster_spectral_libgen{
+    label="Creating The Spectral Library";
+    style=dashed;
+    // searching_inputs[style=invis,shape=point,fixedsize=true,label="",size=0,shape=point,height=0,width=0]
+    subgraph cluster_searching {
+      label="Searching"
+      style=dashed
+      comet
+      tandem
+      {comet tandem}->comet_and_tandem
+    }
+    spectrast
+  }
+
+  // searching_inputs -> {tandem comet}[ltail=cluster_searching]
+  subgraph cluster_diapart {
+    // edge[constraint=false]
+    style=dashed
+    label="DIA Analysis"
+    create_transitions
+    osw
+    find_swath_windows
+    pyprophet_legacy
+    feature_alignment
+    swath2stats
+  }
+
+  // choose_spectra->searching_inputs[lhead=cluster_searching ,ltail=cluster_spectra]
+  // buildfastadatabase->searching_inputs[lhead=cluster_searching]
+  
+  // these are the per-sample steps
+  {
+    edge[style="dashed,bold"]
+    { choose_spectra } -> {comet tandem}
+    { dia -> diaumpire }
+    diaumpire->choose_spectra
+    dda->choose_spectra
+    dia ->osw
+  }
+
+  // these are the all-samples-combined-steps
+  {
+    spectrast->create_transitions
+    dia->find_swath_windows
+    comet_and_tandem -> spectrast
+    buildfastadatabase -> spectrast
+
+    fasta->buildfastadatabase
+    osw -> pyprophet_legacy -> feature_alignment -> swath2stats
+  }
+  // these are steps that are not related to samples
+  {
+    { buildfastadatabase -> {comet tandem} }
+    find_swath_windows->{osw,create_transitions}
+    create_transitions -> osw
+  }
+
+}
+#+end_src
 
 * Preprocessing Data
 We will not distribute the vendored msconvert,
@@ -1938,7 +2039,7 @@ mkdir -p runs
 RUNLOGDIR=`mktemp -p runs -d run.XXXX`
 export TMPDIR=$PWD/tmp
 echo $RUNLOGDIR
-sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=13-11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.350 --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd003497/DIA/MZML-pwiz/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --osw_use_cache=false -resume -c pxd000672.config 
+sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=13-11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd003497/DIA/MZML-pwiz/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --osw_use_cache=false -resume -c pxd000672.config 
 #+end_example
 
 #+NAME: launch-test
@@ -1949,7 +2050,7 @@ mkdir -p runs
 RUNLOGDIR=`mktemp -p runs -d run.XXXX`
 export TMPDIR=$PWD/tmp
 echo $RUNLOGDIR
-sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.logo nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --fragment-mass-tolerance=0.350 --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/bruderer/DIA/MZML-pwiz/B_D140314_SGSDSsample1_R01_MHRM_T0.mzML' --protFDR=0.01  --precursor_mass_tolerance=10 --fragment_mass_tolerance=0.02 -- 
+sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.logo nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/bruderer/DIA/MZML-pwiz/B_D140314_SGSDSsample1_R01_MHRM_T0.mzML' --protFDR=0.01  --precursor_mass_tolerance=10 --fragment_mass_tolerance=0.02 -- 
 #+end_example
 
 
