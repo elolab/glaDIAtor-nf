@@ -20,13 +20,72 @@
 ;;; otherwise you cannot guix shell.
 ;;; havent found a way to make it work singularity yet.
 ;;; fakeroot doesnt work on our cluster
-(use-modules (gnu packages admin)
-	     (gnu packages package-management)
-	     (gnu packages base)
-             (guix gexp)
-	     (guix profiles)
-	     (gnu packages certs)
-	     (ice-9 popen))
+(use-modules  (gnu packages package-management)
+	      (gnu packages admin)
+              (guix gexp)
+	      (guix profiles)
+	      (gnu packages certs)
+	      (ice-9 popen)
+	      (srfi srfi-1)
+	      (srfi srfi-26)
+	      (gnu services base)
+	      (guix modules))
+
+(define (construct-users)
+  (fold (cut <> <>) 10
+	(list
+	 ;; create 10 guix build accounts
+	 (@@ (gnu services base) guix-build-accounts)
+	 ;; add the root account
+	 (cute
+	  cons*
+	  (user-account
+	   (name "root")
+	   (group "root")
+	   (uid 0)
+	   (home-directory "/var/empty")) <>)
+	 ;; turn it all into gexps so that the
+	 ;; gexp that uses these is happy
+	 (cute map (@@ (gnu system shadow) user-account->gexp) <>))))
+
+
+;; This gexp files /etc/passwd /etc/shadow /etc/group with the right
+;; stuff
+
+(define user+group-databases-gexp
+  (with-imported-modules (source-module-closure
+			  '((gnu build accounts)
+			    ((gnu system accounts))))
+    #~(begin
+	(use-modules ((gnu build accounts)))
+	((lambda ()
+	   (define-values (group password shadow)
+	     (user+group-databases (map (@ (gnu system accounts) sexp->user-account)
+					(list #$@(construct-users)))
+				   (cons 
+				    ((@ (gnu system accounts)  user-group)
+				     (name "guixbuild"))
+				    (map
+				     (@ (gnu system accounts) sexp->user-group)
+				     (list #$@(map (@@ (gnu system shadow)
+						       user-group->gexp)
+						   %base-groups))))
+				   #:current-passwd '()
+				   #:current-groups '()
+				   #:current-shadow '()))
+	   (let* ((etc-dir (string-append #$output "/etc"))
+		  (password-file (string-append etc-dir "/passwd"))
+		  (shadow-file (string-append etc-dir "/shadow"))
+		  (group-file (string-append etc-dir "/group")))
+	     (mkdir #$output)
+	     (mkdir etc-dir)
+	     (write-passwd password password-file)
+	     (write-shadow shadow shadow-file)
+	     (write-group group group-file)))))))
+
+(define user+group-databases 
+  (computed-file "user+group-databases"
+		 user+group-databases-gexp))
 
 
 ;; see https://www.systemreboot.net/post/deploy-scripts-using-g-expressions
@@ -39,44 +98,44 @@
         (use-modules (guix build utils)
 		     (ice-9 popen)
 		     (ice-9 rdelim)
-		     (ice-9 ports))
+		     (ice-9 ports)
+		     (ice-9 ftw))
 
-	;; The following groupadd / usedadd invocation might
-	;; be better as computed-file for /etc/passwd
-	;; and /etc/group
-	;; check how guix system does it?
-	;; see (gnu build accounts) and (gnu system accounts)
-	;; and esp. `create-user-database' in (gnu installer final)
-	(define build-group "guixbuild")
-	(define build-comment-pattern "Guix build user ~a")
-	(define build-name-pattern "guixbuilder~a")
+	;; `docker run` seems to overwrite /etc/ to write resolv.conf
+	;; https://docs.docker.com/engine/reference/run/
+	;; so here we put things back
+	;; actually if we guix pack --symlink /etc/group=etc/group
+	;; that works,
+	;; so is there a way to make only the children symlinks?
+	;; 
+	;; how about we only symlink /etc/ of #$user+group-databases here
+	;; and #$net-base, because those are the only ones we need.
+	;; then we dont need the ugle /guix-etc/ hack
+	;; and we dont even need to pass any symlink flags.
 	
-	(invoke #$(file-append shadow "/sbin/groupadd") "--system" build-group)
+	(define (symlink-dir-contents  source-dir target-dir)
+	  (when (and (access? source-dir R_OK)
+		     (access? target-dir W_OK))
+	    (map
+	     (lambda (f)
+	       (let ((target (string-append target-dir f)))
+		 (unless (file-exists? target)
+		   (symlink (string-append source-dir f) target))))
+	     (scandir source-dir))))
 	
-	(do ((i 1 (1+ i))) ((>= i 10))
-	  (invoke #$(file-append shadow "/sbin/useradd")
-		  "-g" build-group
-		  "-G" build-group
-		  "-d" "/var/empty"
-		  "-s" #$(file-append shadow "/sbin/nologin")
-		  "-c" (format #f build-comment-pattern i)
-		  "--system"
-		  (format #f build-name-pattern i)))
-	;; because guix time-machine calls (getpw (getuid))
-	;; we need to have an entry for uid
-
-	(invoke #$(file-append shadow "/sbin/useradd")
-		"-d" "/var/empty"
-		"-u" (format #f "~a" (getuid))
-		"root")
+	(symlink-dir-contents
+	 #$(file-append user+group-databases "/etc/")
+	 "/etc/")
+	;; net-base suppplies /etc/services
 	;; this file is necessary for the daemon to connect to substitute servers
 	;; otherwise you will get the error:
 	;; In prpocedure getaddrinfo: Servname not supported for ai_socktype
 	;; see: https://lists.gnu.org/archive/html/help-guix/2019-06/msg00122.html
-	(copy-file #$(file-append net-base "/etc/services") "/etc/services")
+	(symlink-dir-contents
+	 #$(file-append net-base "/etc/")
+	 "/etc/")
 
-	(setenv "SSL_CERT_DIR"  #$(file-append nss-certs "/etc/ssl/certs"))
-	(setenv "SSL_CERT_FILE" #$(file-append nss-certs "/etc/ssl/certs"))
+	(define build-group "guixbuild")
 	;; we start the daemon first
 	;; so that we can authorize the default keys
 	(apply open-pipe* OPEN_READ  #$(file-append guix "/bin/guix-daemon")
@@ -101,21 +160,27 @@
      "bash"
      "coreutils"
      "sed"
+     "net-base"
      ;; so that guix-time-machine is happy with regards to pulling from git
      "nss-certs"))
- (manifest 
-  ;; see (info "(guix) Writing Manifests")
-  (list
-   (let ((guix-daemon-helper (program-file "guix-daemon-helper" guix-daemon-helper-gexp)))
-   (manifest-entry
-     (name "guix-daemon-helper")
-     (version "0.0.1")
-     (item
-      (computed-file "guix-daemon-helper-directory"
-		     #~(let ((bin (string-append #$output "/bin")))
-                                   (mkdir #$output) (mkdir bin)
-                                    (symlink #$guix-daemon-helper
-                                             (string-append bin "/guix-daemon-helper")))))))))))
+  (manifest 
+   ;; see (info "(guix) Writing Manifests")
+   (list
+    (manifest-entry
+      (name "user+group-databases")
+      (version "0.0.1")
+      (item user+group-databases))
+    (manifest-entry
+      (name "guix-daemon-helper")
+      (version "0.0.1")
+      (item
+       (file-union
+	"guix-daemon-helper"
+	`(("bin"	   
+	   ,(file-union
+	     "bin"
+	     `(("guix-daemon-helper" ,(program-file "guix-daemon-helper" guix-daemon-helper-gexp)))))))))))))
+
 
 ;; in order to use guix shell in docker; chroot has to be disabled
 ;; `cloning not permitted`
@@ -124,5 +189,5 @@
 		     
 ;; 
 ;; Local Variables:
-;; compile-command: "guix time-machine -C ../channels.scm -- pack -f docker -S/bin=bin -S/etc=etc -m gitlab-runner-standalone.scm"
+;; compile-command: "guix time-machine -C ../channels.scm -- pack -f docker -S/bin/sh=bin/sh  -m gitlab-runner-standalone.scm"
 ;; End:
