@@ -76,12 +76,13 @@ build-pdf:
 
 build-pyprophet-container:
   stage: build
-  timeout: 4h
+  timeout: 8h
   artifacts:
     when: always
     paths:
       - containers/log.txt
   script:
+    - mkdir -p containers
     - $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
 build-main-container:
   stage: build
