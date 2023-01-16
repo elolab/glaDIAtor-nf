@@ -17,7 +17,7 @@
 variables:
   MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve=^SSL_ -- make SHELL=guix
 default:
-  image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.1
+  image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.2
   timeout: 2h
   cache:
     key:
@@ -76,8 +76,9 @@ build-pdf:
 
 build-pyprophet-container:
   stage: build
-  timeout: 3h
+  timeout: 4h
   artifacts:
+    when: always
     paths:
       - containers/log.txt
   script:
