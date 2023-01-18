@@ -1943,6 +1943,62 @@ install.packages("tidyr",repos = "http://cran.us.r-project.org")
 install.packages("argparse",repos = "http://cran.us.r-project.org")
 install.packages("corrplot",repos = "http://cran.us.r-project.org")
 #+end_src
+* Configuration for backends
+#+NAME: registry
+#+begin_src fundamental
+registry.gitlab.utu.fi/elixirdianf/gladiator-notes
+#+end_src
+#+NAME: local-container-dir
+#+begin_src fundamental
+containers
+#+end_src
+
+#+begin_src emacs-lisp :var property="access-protocol" :var network="online" :var container="docker"
+** Singularity
+:PROPERTIES:
+:header-args: :mkdirp t :noweb yes
+:END:
+
+#+begin_src nextflow :tangle config/singularity-remote.nf
+profile {
+    standard {
+	registry="<<registry>>/"
+	container_suffix=""
+	switch(true){
+	    case singularity.enabled:
+		container_access_protocol="docker://";
+		break;
+	    case default:
+		container_access_protocol="https://"
+		break;
+	}
+    }
+    localcontainers {
+	switch(true){
+	    case singularity.enabled:
+		container_access_protocol="file://"
+		registry="containers/"
+		container_suffix=".simg"
+		break
+	    case default:
+		container_access_protocol=""
+		registry="localhost/"
+	}
+    }
+}
+
+process {
+    container=container_access_protocol+registry+"gladiator" +container_suffix
+    withName: pyprophet_legacy
+    {
+	container=container_access_protocol+registry+"pyprophet_legacy"+container_suffix
+    }
+}
+#+end_src
+
+** Docker
+*** Remote
+
 * Putting it together
 ** gwl
 #+begin_src scheme :noweb no-export
