@@ -19,7 +19,8 @@
 ;;; you might want to add --disable-chroot
 ;;; otherwise you cannot guix shell.
 ;;; havent found a way to make it work singularity yet.
-;;; fakeroot doesnt work on our cluster
+;;; fakeroot dont work on our cluster
+;;; (--unsquash --writable requires a /tmp/ dir and util-linux's getopt
 (use-modules  (gnu packages package-management)
 	      (gnu packages admin)
               (guix gexp)
