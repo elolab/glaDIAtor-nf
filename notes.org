@@ -34,6 +34,12 @@ The following is a list of all files this document tangles into
 | pyprophet-legacy-requirements.txt      |
 | pyprophet-legacy-standalone.dockerfile |
 | install-R-packages.R                   |
+| config/singularity.nf                  |
+| config/singularity-local.nf            |
+| config/docker.nf                       |
+| config/docker-local.nf                 |
+| config/podman.nf                       |
+| config/podman-local.nf                 |
 | nextflow.config                        |
 
 
@@ -1944,60 +1950,135 @@ install.packages("argparse",repos = "http://cran.us.r-project.org")
 install.packages("corrplot",repos = "http://cran.us.r-project.org")
 #+end_src
 * Configuration for backends
+** Defining the config template
+Here we define what the registry is that hosts our images
 #+NAME: registry
-#+begin_src fundamental
-registry.gitlab.utu.fi/elixirdianf/gladiator-notes
-#+end_src
-#+NAME: local-container-dir
-#+begin_src fundamental
-containers
-#+end_src
+: registry.gitlab.utu.fi/elixirdianf/gladiator-notes/
 
-#+begin_src emacs-lisp :var property="access-protocol" :var network="online" :var container="docker"
-** Singularity
-:PROPERTIES:
-:header-args: :mkdirp t :noweb yes
-:END:
+This is the template that we fill with the container manager program to be used (~%p~),
+the gladiator container uri to be used (~%G~),
+and the pyprophet legacy container to be used (~%P~).
 
-#+begin_src nextflow :tangle config/singularity-remote.nf
-profile {
-    standard {
-	registry="<<registry>>/"
-	container_suffix=""
-	switch(true){
-	    case singularity.enabled:
-		container_access_protocol="docker://";
-		break;
-	    case default:
-		container_access_protocol="https://"
-		break;
-	}
-    }
-    localcontainers {
-	switch(true){
-	    case singularity.enabled:
-		container_access_protocol="file://"
-		registry="containers/"
-		container_suffix=".simg"
-		break
-	    case default:
-		container_access_protocol=""
-		registry="localhost/"
-	}
-    }
-}
-
+#+NAME: container-config-template
+#+begin_example nextflow
+%p.enabled=true
 process {
-    container=container_access_protocol+registry+"gladiator" +container_suffix
-    withName: pyprophet_legacy
-    {
-	container=container_access_protocol+registry+"pyprophet_legacy"+container_suffix
+   container='%G'
+    withName: pyprophet_legacy {
+	container='%P'
     }
 }
+#+end_example
+
+And here we write the logic that fills the template
+
+#+NAME: construct-container-config
+#+HEADER: :tangle no 
+#+begin_src emacs-lisp :noweb yes :var program-name="singularity" :var locality="remote" :var template=container-config-template :var registry=registry
+(defvar container-property-alist
+  (let ((remote-registry registry))
+    `(("remote"
+       ("singularity"
+	("access-protocol" . "docker://")
+	("registry" . ,remote-registry)
+	("container-suffix" . ""))
+       ("docker"
+	("access-protocol" . "https://")
+	("registry" . ,remote-registry)
+	("container-suffix" . "")))
+      ("local"
+       ("singularity"
+	("access-protocol" . "file://")
+	("registry" . "containers")
+	("container-suffix" . ".simg"))
+       ("docker"
+	("access-protocol" . "")
+	("registry" . "localhost/")
+	("container-suffix" . ""))))))
+
+(defun construct-container-uri (basename program-name locality)
+  (let ((properties
+	 (alist-get
+	  program-name
+	  (alist-get locality container-property-alist nil nil 'equal)
+	  nil nil 'equal)))
+    (unless properties
+      (error "Could not find properties for '%s' '%s'" program-name locality))
+    (format
+     "%s%s%s%s"
+     (alist-get "access-protocol" properties nil nil 'equal)
+     (alist-get "registry" properties  nil nil 'equal)
+     basename
+     (alist-get "container-suffix" properties nil nil 'equal))))
+
+
+(defun construct-container-config (template program-name locality)
+  (let ((program-name-key
+	 (pcase program-name
+	   ("podman" "docker")
+	   (_ program-name))))
+    (format-spec template
+	       `((?p . ,program-name)
+		 (?G . 
+		     ,(construct-container-uri "gladiator"
+					       program-name-key
+					       locality))
+	       (?P .
+		   ,(construct-container-uri
+		     "pyprophet-legacy"
+		     program-name-key
+		     locality))))))
+
+(construct-container-config template program-name locality)
+
 #+end_src
 
-** Docker
-*** Remote
+
+
+
+
+#+RESULTS: construct-container-uri
+: docker://registry.gitlab.utu.fi/elixirdianf/gladiator-notes/test
+
+#+RESULTS:
+: https://registry.gitlab.utu.fi/elixirdianf/gladiator-notes/gladiator
+** Per backend config files
+:PROPERTIES:
+:HEADER-ARGS:nextflow: :mkdirp t :tangle (format  "config/%s.nf" (replace-regexp-in-string "^config-" "" (org-element-property :name (org-element-at-point)))) :noweb tangle
+:END:
+So here we fill the templates that we defined in the previous section.
+If you are reading this as an org-mode file,
+this headings default tangle argument makes each blocks tangle output file
+based on the name of the 
+
+#+NAME: config-singularity
+#+begin_src nextflow
+<<construct-container-config("singularity","remote")>>
+#+end_src
+#+NAME: config-singularity-local
+#+begin_src nextflow 
+<<construct-container-config("singularity","local")>>
+#+end_src
+
+#+NAME: config-docker
+#+begin_src nextflow 
+<<construct-container-config("docker","remote")>>
+#+end_src
+
+#+NAME: config-docker-local
+#+begin_src nextflow
+<<construct-container-config("docker","local")>>
+#+end_src
+
+#+NAME: config-podman
+#+begin_src nextflow 
+<<construct-container-config("podman","remote")>>
+#+end_src
+
+#+NAME: config-podman-local
+#+begin_src nextflow
+<<construct-container-config("podman","local")>>
+#+end_src
 
 * Putting it together
 ** gwl
@@ -2042,16 +2123,6 @@ params.outdir = "./results"
 
 
 #+begin_src nextflow :tangle nextflow.config :noweb no-export
-singularity.autoMounts = true
-process {
-    container="file://../../gladiator/gladiator-images/gladiator-diaumpire-upgrade-2.simg"
-    withName: pyprophet_legacy {
-	container = 'file://../../gladiator/gladiator-images/pyprophet-legacy-standalone.simg'
-	}
-
-}
-process.executor='slurm'
-singularity.enabled = true
 <<nf-params>>
 #+end_src
 
