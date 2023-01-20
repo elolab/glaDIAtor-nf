@@ -35,7 +35,6 @@ mkdir -p MZML-pwiz
 find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML-pwiz/
 ```
 
-
 ### Running the analysis
 Fetch and unpack the template files to your project folder.
 Make sure you have nextflow installed and it is in your path when 
@@ -44,9 +43,7 @@ you run the workflow.
 NXF_VER=21.04.3 nextflow run gladiator.nf --fastafiles='fasta/*.fasta' --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
 ```
 Once the analysis run is completed,
-results can be found in the `--outdir` folder.
-The subfolder `dia` contains DIA-peptide-matrix.tsv and DIA-protein-matrix.tsv,
-which have peptides and proteins and their intensities (abundances) per sample.
+results can be found in the `--outdir` folder. (See the section `Analysis Results`)
 
 *Note*: When using asterisk or question marks in file parameters (such as `--fastafiles` and `--diafiles`), the quotes are needed like shown in the example. 
 
@@ -70,13 +67,17 @@ For example, one would invoke the program like so:
 ```
 NXF_VER=21.04.3 nextflow run gladiator.nf --dda_assisted=true -- --fastafiles='fasta/*.fasta' --ddafiles='mzXML/*.mzXML'  --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
 ```
-
-## Parameters
-- 
-- `fastafiles`, glob pattern / path to fasta files to be used 
-
+Once the analysis run is completed,
+results can be found in the `--outdir` folder. (See the section `Analysis Results`)
 ## Analysis Results
-Once the analysis has completed successfully, the analysis results are available... 
+Once the analysis run is completed,
+results can be found in directory specified by the  `--outdir` parameters (defaults to `./results`)
+The subfolder `dia` contains DIA-peptide-matrix.tsv and DIA-protein-matrix.tsv,
+which have peptides and proteins and their intensities (abundances) per sample.
+
+All intermediate files (like with any other nextflow program) can be found in nextflow's working directory
+, which defaults `./work` (See https://www.nextflow.io/docs/latest/cli.html)
+
 
 ## APPENDIX
 
