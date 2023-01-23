@@ -76,7 +76,7 @@ build-pdf:
 
 build-pyprophet-container:
   stage: build
-  timeout: 8h
+  timeout: 12h
   artifacts:
     when: always
     paths:
