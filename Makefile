@@ -169,4 +169,8 @@ docker-containers-push: docker-containers
 
 environment: PACKAGES=coreutils
 environment:
-	env 
+	env
+
+TAGS: MANIFESTS=ci/guix/manifests/emacs.scm
+TAGS: nextflow.tags $(wildcard *.org)
+	etags --regex=@$< $(wordlist 2,$(words $^),$^) --output=$@

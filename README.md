@@ -34,7 +34,7 @@ find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'tit
 ```
 
 ### Running the analysis
-Fetch and unpack the template files to your project folder.
+Fetch and unpack the template files to your project folder, or run `make tangle` (requires emacs, GNU make).
 Make sure you have nextflow installed and it is in your path when 
 you run the workflow.
 ```
