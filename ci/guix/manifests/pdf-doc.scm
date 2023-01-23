@@ -1,3 +1,4 @@
 (specifications->manifest
  '("emacs-auctex"
-    "texlive"))
+   "texlive"
+   "python-pygments"))
