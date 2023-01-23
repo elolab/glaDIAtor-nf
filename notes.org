@@ -517,7 +517,7 @@ mstools
 params.diaumpireconfig='diaumpireconfig.txt'
 params.diafiles = "DIA/*.mzML"
 params.ddafiles = "DDA/*.mzXML"
-params.dda_assisted = true
+params.dda_assisted = false
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
