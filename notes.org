@@ -41,6 +41,7 @@ The following is a list of all files this document tangles into
 | config/podman.nf                       |
 | config/podman-local.nf                 |
 | nextflow.config                        |
+| nextflow.tags                          |
 
 
 
@@ -1989,7 +1990,7 @@ And here we write the logic that fills the template
       ("local"
        ("singularity"
 	("access-protocol" . "file://")
-	("registry" . "containers")
+	("registry" . "containers/")
 	("container-suffix" . ".simg"))
        ("docker"
 	("access-protocol" . "")
