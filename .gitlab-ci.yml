@@ -15,9 +15,10 @@
 # https://docs.gitlab.com/ee/development/cicd/templates.html
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 variables:
-  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve=^SSL_ -- make SHELL=guix
+  GUIX_BUILD_OPTIONS: "--fallback" 
+  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve='^GUIX_BUILD_OPTIONS' --preserve=^SSL_ -- make SHELL=guix
 default:
-  image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.2
+  image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.3
   timeout: 2h
   cache:
     key:
@@ -76,7 +77,7 @@ build-pdf:
 
 build-pyprophet-container:
   stage: build
-  timeout: 12h
+  timeout: 24h
   artifacts:
     when: always
     paths:
@@ -84,7 +85,8 @@ build-pyprophet-container:
   script:
     - mkdir -p containers
     - echo $CI_JOB_TIMEOUT
-    - timeout 8h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
+    - free 
+    - timeout 23h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  col -b  | tee containers/log.txt
 build-main-container:
   stage: build
   timeout: 2h
