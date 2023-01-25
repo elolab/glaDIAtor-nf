@@ -163,7 +163,15 @@
      "sed"
      "net-base"
      ;; so that guix-time-machine is happy with regards to pulling from git
-     "nss-certs"))
+     "nss-certs"
+     ;;;; optional stuff 
+     ;;; for my utils
+     ;; this has col
+     "util-linux"
+     ;; this has free
+     "procps"
+     ;;;; end of optional stuff
+     ))
   (manifest 
    ;; see (info "(guix) Writing Manifests")
    (list
