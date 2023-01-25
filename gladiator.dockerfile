@@ -12,7 +12,7 @@ RUN apt-get update \
     && apt-get -y install git\
     && apt-get -y install build-essential\
     && apt-get -y install tandem-mass\
-    && apt-get -y install openjdk-8-jdk\
+    && apt-get -y install openjdk-17-jdk\
     && apt-get -y install screen\
     && apt-get -y install xpra\
     && apt-get -y install g++\
