@@ -16,7 +16,8 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 variables:
   GUIX_BUILD_OPTIONS: "--fallback" 
-  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve='^GUIX_BUILD_OPTIONS' --preserve=^SSL_ -- make SHELL=guix
+  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve=^GUIX_BUILD_OPTIONS --preserve=^SSL_ -- make SHELL=guix
+  
 default:
   image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.3
   timeout: 2h
@@ -41,7 +42,6 @@ show-env:
   stage: .pre
   script:
     - $MAKECMD environment
-
 tangle-files:
   stage: tangle
   script:
