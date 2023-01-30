@@ -82,7 +82,7 @@ build-pdf:
 
 build-pyprophet-container:
   stage: build
-  timeout: 24h
+  timeout: 48h
   artifacts:
     when: always
     paths:
@@ -91,7 +91,7 @@ build-pyprophet-container:
     - mkdir -p containers
     - echo $CI_JOB_TIMEOUT
     - free 
-    - timeout 23h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  col -b  | tee containers/log.txt
+    - timeout 47h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  col -b  | tee containers/log.txt
 build-main-container:
   stage: build
   timeout: 2h
@@ -102,4 +102,9 @@ build-main-container:
   script:
     # col --no-backspaces replaces ansi escape-codes ^M with the last output
     - mkdir -p containers
+    # because gitlab creates the cache _before_ git cloning, the tangled files are older than the source; ideally you'd just touch $TANGLED_FILES but then
+    # you'd require git in your path
+    # so here we just pretend notes.org is very old
+    # so that its outputs are always newer than itself.
+    - touch -t 197001010000 notes.org 
     - $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
