@@ -67,7 +67,7 @@ tangled-files:=$(shell $(EMACSCMD)  --file=notes.org --eval  "(princ (mapconcat 
 MANIFESTS=
 tangle: $(tangled-files)
 
-
+.INTERMEDIATE: dockerd.pid
 
 %.html: MANIFESTS = ci/guix/manifests/emacs.scm ci/guix/manifests/html-doc.scm
 %.html: %.org .dir-locals.el 
@@ -120,30 +120,25 @@ endif
 # - `sudo` if DOCKER_EXECUTABLE="sudo docker"
 # - `` (i.e empty string) if DOCKER_EXECUTABLE="docker"
 containers/%.tar: MANIFESTS=
-containers/%.tar: %.dockerfile $(tangled-files)
-	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
-		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
-		:)
+containers/%.tar: %.dockerfile $(tangled-files) | $(if $(findstring docker,$(DOCKER_EXECUTABLE)),dockerd.pid)
 # the above is not a smiley `:)`, but rather a "no-op" for the shell
 	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
 	mkdir -p $(@D)
 	$(DOCKER_EXECUTABLE) save $(*F) -o $@
-	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
-	rm -f dockerd.pid
 
 # The following turns a docker image tarball into a filesystem tarball
 # so that they can be converted into a squashfs container
-containers/%-fs.tar: containers/%.tar
+containers/%-fs.tar: containers/%.tar | $(if $(findstring docker,$(DOCKER_EXECUTABLE)),dockerd.pid)
 	# we "export" the file system of a (in Docker-sepak) "container" rather than 
 	# "save" the "image" so that we can tar2sqfs it (from squashfs-tools-ng) 
 	# so that we dont need a singularity version that can "singularity build  docker-archive://file.tar"
 	# (as the version of singularity in guix at commit 05e4efe0c83c09929d15a0f5faa23a9afc0079e4 is quite outdated)
-	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
-		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
-		:)
 	TAG=`$(DOCKER_EXECUTABLE) load --quiet --input $< | sed 's/^Loaded image: //g'`; $(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $$TAG` -o $@
-	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
-	rm -f dockerd.pid
+	# the permissions on $@ can 700, and thus if the DOCKER_EXECUTABLE has sudo
+	# it wont be readable by normal level processes.
+	# so we chmod hit here
+	chmod 755 $@
+
 
 # gzip is the only compressor one that works for the singularity on the cluster
 containers/%.simg: MANIFESTS=
@@ -152,10 +147,7 @@ containers/%.simg: containers/%-fs.tar
 	cat $< | tar2sqfs --quiet --compressor=gzip $@
 
 # Continuous integration stuff
-docker-containers-push: docker-containers
-	$(if $(findstring docker,$(DOCKER_EXECUTABLE)),\
-		$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid,\
-		:)
+docker-containers-push: docker-containers | $(if $(findstring docker,$(DOCKER_EXECUTABLE)),dockerd.pid)
 	$(DOCKER_EXECUTABLE) login $(DOCKER_LOGIN_FLAGS) 
 	$(patsubst %,\
 	BASENAME=% && \
@@ -163,8 +155,6 @@ docker-containers-push: docker-containers
 	$(DOCKER_EXECUTABLE) tag $$TAG $(DOCKER_REGISTRY_DIR)/$$BASENAME &&  \
 	$(DOCKER_EXECUTABLE) push $(DOCKER_REGISTRY_DIR)/$$BASENAME && ,\
 	$(CONTAINER_NAMES)) :
-	test -e dockerd.pid && $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) kill `cat dockerd.pid` || true; 
-	rm -f dockerd.pid
 
 
 environment: PACKAGES=coreutils
@@ -174,3 +164,10 @@ environment:
 TAGS: MANIFESTS=ci/guix/manifests/emacs.scm
 TAGS: nextflow.tags $(wildcard *.org)
 	etags --regex=@$< $(wordlist 2,$(words $^),$^) --output=$@
+
+dockerd.pid: MANIFESTS=
+dockerd.pid: PACKAGES=docker containerd coreutils
+dockerd.pid:
+	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid
+	# waiting for docker to come live
+	while ! test -e /var/run/docker.pid; do sleep 1; done
