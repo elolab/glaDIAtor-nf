@@ -367,7 +367,31 @@ digraph {
 #+RESULTS: dot-create-pseudospectra
 [[file:img/dot-create-pseudospectra.svg]]
 https://github.com/Nesvilab/DIA-Umpire/tree/master
-
+*** Problems you might encounter during this step
+**** Out of Memory in Dia-umpire
+Dia-umpire, which we use here for pseudo-spectra creation,
+has pretty extreme memory requirements,
+in  your config file you can set the process specific memory (required to be in Gigabyes) e.g. 
+#+begin_src nextflow :tangle no :eval no 
+process { 
+  withName: 'GeneratePseudoSpectra'
+  {
+	time='96h'
+	memory='400 GB'
+  }
+}
+#+end_src
+see also [[https://www.nextflow.io/docs/latest/process.html#memory][The Nextflow documentation about process memory]]
+**** =MzmlToMzxml= processigng error.
+If you get an error of
+#+begin_src fundamental :tangle no
+  processing file: RD139_Narrow_UPS1_50fmol_inj3.mzML
+  [SpectrumList_mzML::create()] Bad istream.
+  Error processing file RD139_Narrow_UPS1_50fmol_inj3.mzML
+#+end_src
+in =MzmltoMzxml=, that can mean that something went wrong
+when you used =msconvert= to convert from the propriatary format to mzml
+*** Steps that are run 
 DIAumpire is =Apache 2= licensed.
 #+NAME: diaumpireconfig
 #+begin_src conf :eval no :tangle diaumpireconfig.txt 
@@ -467,7 +491,7 @@ process MzmlToMzxml {
 }
 
 process GeneratePseudoSpectra  {
-    memory '16 GB'
+    memory '16 GB' 
     input:
     file diafile from dia_mzxml_files_for_pseudospectra_ch
     path diaumpireconfig from diaumpireconfig_ch.first()
@@ -493,15 +517,6 @@ process MgfToMzxml {
     """
 }
 #+end_src
-
-If you get an error of
-#+begin_src fundamental :tangle no
-  processing file: RD139_Narrow_UPS1_50fmol_inj3.mzML
-  [SpectrumList_mzML::create()] Bad istream.
-  Error processing file RD139_Narrow_UPS1_50fmol_inj3.mzML
-#+end_src
-in =MzmltoMzxml=, that can mean that something went wrong
-when you used =msconvert= to convert from the propriatary format to mzml
 
 
 #+begin_src scheme :noweb-ref deps :tangle no 
@@ -561,6 +576,7 @@ if (dda_assisted_p){
 	spectrast: comet: xtandem: it }.set{maybespectra_ch}
 }
 #+end_src 
+
 
 ** DONE Creating Swath window files
 :PROPERTIES:
