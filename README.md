@@ -74,7 +74,7 @@ Here `-c config/docker.config` specifies to use docker with the images from the 
 ## Analysis Results
 Once the analysis run is completed,
 results can be found in directory specified by the  `--outdir` parameters (defaults to `./results`)
-The subfolder `dia` contains DIA-peptide-matrix.tsv and DIA-protein-matrix.tsv,
+The sub-folder `dia` contains DIA-peptide-matrix.tsv and DIA-protein-matrix.tsv,
 which have peptides and proteins and their intensities (abundances) per sample.
 
 All intermediate files (like with any other nextflow program) can be found in nextflow's working directory
@@ -82,13 +82,14 @@ All intermediate files (like with any other nextflow program) can be found in ne
 
 
 <a id="container-backends">
+
 ## Container Backends
 </a>
 
 Gladiator currently has support for three container backends:
 docker,podman and singularity.
 These can be used with both the registry provided images or local images
-The nextflow config files `config/{docker,podman,singularity}.nf` are setup to 
+The nextflow config files `config/{docker,podman,singularity}.nf` are set up to 
 use the respective backend with images from the registry. 
 
 So in order to use singularity as the container backend, one would invoke nextflow as 
@@ -103,17 +104,33 @@ NXF_VER=21.04.3 nextflow -c config/podman.nf run gladiator.nf ...
 
 This is the most convenient way to use the pipeline.
 
+Nextflow config files for local images are provided as `config/{docker,podman,singularity}-local.nf`.
+For singularity this assumes your images are contained in the sub-directory 'containers/',
+and  requires the main gladiator image `gladiator.simg`, and the pyprophet image `pyprophet-image.simg` to be located there.
+
+
 If you prefer to  build the images yourself, 
 run `make docker-containers` or `make singularity-containers`, 
-both of which require [GNU guix](https://guix.gnu.org) and one of `docker` or `podman`.
+both of which require [GNU guix](https://guix.gnu.org) or one of `docker` or `podman`.
 The latter requires singularity (or Apptainer) to be installed in addition to the other tools.
-Then you can use the nextflow config files `config/{docker,podman,singularity}-local.nf`.
+
+
 
 See the [Makefile](./Makefile) and also the explanation of the `DOCKER_EXECUTABLE` variable for more info.
 
 ## APPENDIX
+### Usage guidance on HPC 
+Extensive documentation on nextflow usage various grid schedulers or cloud computing environments (Executors in nextflow parlance), is available in the [nextflow documentation on Executors](https://www.nextflow.io/docs/latest/executor.html).
 
-### How to customize peptide search parameters of the spectral/pseudospectral library
+It might also be desirable to launch the head job through your scheduler, for example in the slurm case,
+```
+NXF_VER=21.04.3 sbatch [slurm specifc paramaters...] nextflow -c config/docker.nf gladiator.nf ... 
+```
+where you might substitute  `[slurm specific parameters]` with e.g. `--time=30h` to give the head job 30 hours.
+
+
+
+### How to customize peptide search parameters of the spectral/pseudo-spectral library
 
 The default parameters are for a nanoflow HPLC system (Easy-nLC1200, Thermo Fisher Scientific) coupled to a Q Exactive HF mass spectrometer (Thermo Fisher Scientific) equipped with a nano-electrospray ionization source. Below is the summary of the default settings of that machine:
 
@@ -123,7 +140,7 @@ The default parameters are for a nanoflow HPLC system (Easy-nLC1200, Thermo Fish
 * Fixed modification: Carbamidomethyl (C)
 * Variable modification: Oxidation (M)
 
-parameters that are not passed on the nextflow commandline, one can edit the templates files to adjust tool specific behaviour.
+parameters that are not passed on the nextflow command-line, one can edit the templates files to adjust tool specific behavior.
 See the files  [`comet_settings_template.xml`](https://uwpr.github.io/Comet/parameters/parameters_202201/) , [`xtandem_settings_template.xml`](https://www.thegpm.org/tandem/) and `diaumpireconfig.txt`,
 
 <!-- add links to tool specific documentation  -->
