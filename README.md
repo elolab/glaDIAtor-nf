@@ -64,7 +64,7 @@ done
 The DDA-assisted analysis is specified by passing `--dda_assisted=true` and then specifying the dda files with `--ddafiles`.
 For example, one would invoke the program like so:
 ```
-NXF_VER=21.04.3 nextflow -c  config/docker.config run  gladiator.nf --dda_assisted=true -- --fastafiles='fasta/*.fasta' --ddafiles='mzXML/*.mzXML'  --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
+NXF_VER=21.04.3 nextflow -c  config/docker.config run  gladiator.nf --dda_assisted=true --fastafiles='fasta/*.fasta' --ddafiles='mzXML/*.mzXML'  --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
 ```
 Once the analysis run is completed,
 results can be found in the `--outdir` folder. (See the section `Analysis Results`)
@@ -80,19 +80,32 @@ which have peptides and proteins and their intensities (abundances) per sample.
 All intermediate files (like with any other nextflow program) can be found in nextflow's working directory
 , which defaults to `./work` (See https://www.nextflow.io/docs/latest/cli.html)
 
+
 <a id="container-backends">
 ## Container Backends
 </a>
+
 Gladiator currently has support for three container backends:
 docker,podman and singularity.
 These can be used with both the registry provided images or local images
-The nextlflow config files `config/{docker,podman,singularity}.nf` are setup to 
+The nextflow config files `config/{docker,podman,singularity}.nf` are setup to 
 use the respective backend with images from the registry. 
+
+So in order to use singularity as the container backend, one would invoke nextflow as 
+```
+NXF_VER=21.04.3 nextflow -c config/singularity.nf run gladiator.nf ...
+```
+
+Whereas in order to use podman, one would invoke nextflow as
+```
+NXF_VER=21.04.3 nextflow -c config/podman.nf run gladiator.nf ... 
+```
+
 This is the most convenient way to use the pipeline.
 
 If you prefer to  build the images yourself, 
 run `make docker-containers` or `make singularity-containers`, 
-both of which require [GNU guix](https://guix.gnu.org) and one of `docker` or `singularity`.
+both of which require [GNU guix](https://guix.gnu.org) and one of `docker` or `podman`.
 The latter requires singularity (or Apptainer) to be installed in addition to the other tools.
 Then you can use the nextflow config files `config/{docker,podman,singularity}-local.nf`.
 
