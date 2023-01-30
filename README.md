@@ -5,6 +5,8 @@
 
 glaDIAtor-nf is a workflow for analyzing mass spectrometry data acquired using *data independent acquisition* (DIA) mode.
 
+This document describes usage of the workflow, for technical documentation see [this program's literate description](https://gitlab.utu.fi/elixirdianf/gladiator-notes/-/jobs/artifacts/ci-test/raw/notes.html?job=build-html), also available as [pdf](https://gitlab.utu.fi/elixirdianf/gladiator-notes/-/jobs/artifacts/ci-test/raw/notes.pdf?job=build-pdf) or as its source [org-file](./notes.org).
+
 glaDIAtor-nf is designed to run under the [NextFlow](https://nextflow.io) bioinformatics workflow manager. This workflow has been developed under nextflow version `21.04.3`
 
 The glaDIAtor-nf software uses container technology, so the run environment needs to support container technology such as Docker, Podman or Singularity.
