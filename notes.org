@@ -51,7 +51,7 @@ The following is a list of all files this document tangles into
 #+begin_src dot 
 digraph flow
 {
-  rankdir=LR
+  rankdir=UD
   compound=true
   subgraph processes
   {
@@ -148,6 +148,8 @@ digraph flow
 
 }
 #+end_src
+
+
 
 * Preprocessing Data
 We will not distribute the vendored msconvert,
