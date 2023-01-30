@@ -1,4 +1,4 @@
-(define-module (pyprophet)
+(define-module (pyprophet-past)
   #:use-module (guix packages)
   #:use-module (guix download)
   #:use-module (guix utils)
