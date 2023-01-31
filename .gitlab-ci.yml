@@ -93,7 +93,7 @@ build-pyprophet-container:
     - free 
     - timeout 47h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  col -b  | tee containers/log.txt
 build-main-container:
-  stage: build
+  stage: .pre
   timeout: 2h
   artifacts:
     when: always
@@ -107,5 +107,5 @@ build-main-container:
     # so here we just pretend notes.org is very old
     # so that its outputs are always newer than itself.
     - touch -t 197001010000 notes.org
-    - touch dockerd.pid && guix time-machine -C ci/guix/channels.scm -- shell docker containerd  -- docker & 
+    - $MAKECMD DOCKER_EXECUTABLE=docker dockerd.pid
     - $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  sed 's/.*\x1b\[[0-9;]*[MK]//g' | tee containers/log.txt
