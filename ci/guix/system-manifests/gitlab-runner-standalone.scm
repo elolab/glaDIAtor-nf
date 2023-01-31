@@ -30,6 +30,7 @@
 	      (srfi srfi-1)
 	      (srfi srfi-26)
 	      (gnu services base)
+	      (guix search-paths)
 	      (guix modules))
 
 (define (construct-users)
@@ -42,7 +43,11 @@
 	  cons*
 	  (user-account
 	   (name "root")
+	   ;; setting group to "users" rather than "root"  might fix
+	   ;; guix shell: error: corrupt input while restoring archive from #<closed: file 7ff3ed8db1c0>
 	   (group "root")
+	   (system? #t)
+	   (supplementary-groups (list group "kvm"))
 	   (uid 0)
 	   (home-directory "/var/empty")) <>)
 	 ;; turn it all into gexps so that the
@@ -123,6 +128,11 @@
 		 (unless (file-exists? target)
 		   (symlink (string-append source-dir f) target))))
 	     (scandir source-dir))))
+	(define (maybe-copy-recursively source-dir target-dir)
+	  (when (and (access? source-dir R_OK)
+		     (access? target-dir W_OK))
+	    (copy-recursively source-dir target-dir)))
+
 	
 	(symlink-dir-contents
 	 #$(file-append user+group-databases "/etc/")
@@ -132,9 +142,11 @@
 	;; otherwise you will get the error:
 	;; In prpocedure getaddrinfo: Servname not supported for ai_socktype
 	;; see: https://lists.gnu.org/archive/html/help-guix/2019-06/msg00122.html
-	(symlink-dir-contents
-	 #$(file-append net-base "/etc/")
-	 "/etc/")
+	;; symlinking does not work here
+	;; as in https://www.mail-archive.com/help-guix@gnu.org/msg05043.html 
+	(maybe-copy-recursively
+	 #$(file-append net-base "/etc")
+	 "/etc")
 
 	(define build-group "guixbuild")
 	;; we start the daemon first
@@ -182,6 +194,9 @@
     (manifest-entry
       (name "guix-daemon-helper")
       (version "0.0.1")
+      (search-paths
+       (list $SSL_CERT_DIR
+	     $SSL_CERT_FILE))
       (item
        (file-union
 	"guix-daemon-helper"
