@@ -90,6 +90,7 @@ containers/pyprophet-legacy.simg: PACKAGES=guix coreutils bash-minimal
 containers/pyprophet-legacy.simg: ci/guix/pyprophet-legacy-channels.scm ci/guix/manifests/pyprophet-legacy.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=squashfs $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
+
 containers/pyprophet-legacy.tar: MANIFESTS=
 containers/pyprophet-legacy.tar: PACKAGES=guix coreutils bash-minimal 
 containers/pyprophet-legacy.tar: ci/guix/pyprophet-legacy-channels.scm ci/guix/manifests/pyprophet-legacy.scm
@@ -168,6 +169,6 @@ TAGS: nextflow.tags $(wildcard *.org)
 dockerd.pid: MANIFESTS=
 dockerd.pid: PACKAGES=docker containerd coreutils
 dockerd.pid:
-	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd & echo $$! > dockerd.pid
+	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd --iptables=false -G `id -gn` & echo $$! > dockerd.pid
 	# waiting for docker to come live
 	while ! test -e /var/run/docker.pid; do sleep 1; done
