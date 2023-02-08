@@ -1347,7 +1347,6 @@ if (params.search_engines.size() > 1) {
 Inputs from [[*Creating Swath window files][Creating Swath window files]]
 http://www.openswath.org/en/latest/docs/openswath.html
 
-
 **** Mayu
 doi:10.5167/uzh-28712
 doi:10.1074/mcp.M900317-MCP200
@@ -1375,7 +1374,7 @@ and that is what we use as the filtering criterian in spectrast
 This is what we will than filter on with specrtrast
 
 Hmhf why can't mayu return deterministic filenames.
-(It incorporates the mayu version number in the filename grumbl,
+(It incorporates the mayu version number in the filename grumbl),
 it follows the pattern
 #+begin_src perl :eval no :exports code :tangle no
 my $psm_file_base = $out_base . '_psm_';
@@ -1418,6 +1417,10 @@ process  FindMinimumPeptideProbability {
 }
 #+end_src
 
+Note that sort requires =$TMPDIR= to actually exists and be writable,
+=$TMPDIR= (the envvar) is inherited from the parent env when run in a container,
+but not mounted (at least not in Singularity), so if =$TMPDIR= does not exist in the container, this will crash.
+
 #+begin_src  nextflow :noweb-ref nf-params :tangle no
 // sensible values = floats between 0 and 1 
 // target FDR for mayu
@@ -1425,9 +1428,9 @@ process  FindMinimumPeptideProbability {
 // which is labeld as "Spectral library building FDR" in the UI
 params.protFDR=0.01
 #+end_src
+
+**** Spectrast
 http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST
-
-
 
 Spectrast in =SpectraSTPepXMLLibImporter.cpp= =readFromFile= =processSearchHit= will read
 the mzxmls contained in the pepxml. It defaults to looking for the mzxml in the CWD
@@ -1451,7 +1454,7 @@ It also doesn't check if illegal flags are given, they will pass silently instea
 (._.)/~~~
 (_ _)     
 #+end_src
-**** Spectrast
+
 #+begin_src nextflow
 // spectrast will create *.splib, *.spidx, *.pepidx, 
 // note that where-ever a splib goes, so must its spidx and pepidx
