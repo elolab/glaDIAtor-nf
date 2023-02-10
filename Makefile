@@ -165,4 +165,4 @@ dockerd.pid: PACKAGES=docker containerd coreutils
 dockerd.pid:
 	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd --iptables=false -G `id -gn` & echo $$! > dockerd.pid
 	# waiting for docker to come live
-	while ! test -e /var/run/docker.pid; do sleep 1; done
+	for ((i=0;i<300;i++)); do sleep 1; test -e /var/run/docker.pid && break; done
