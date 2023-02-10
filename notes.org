@@ -2219,13 +2219,27 @@ sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.logo nextflow -log $
 * Guixy Containers for nextflow :noexport:
 
 ** For tracing
+
+#+NAME: nextflow-trace-deps
 #+begin_src scheme :noweb-ref deps :tangle no
 ("trace"
  "procps"
  "grep"
- "bash-minimal"
+ ;; core-utils are needed for touch, kill, test,head, tr ...
+ ;; see the nxf_trace_linux() function in a nextflow jobs .command.run file
+ "coreutils"
  "gawk"
  "sed")
+#+end_src
+
+Putting it into a file
+#+begin_src scheme :tangle ci/guix/manifests/nextflow-trace.scm :noweb yes
+;;; this defines the list of packages that are needed to
+;;; run with nextflow -trace options
+(specifications->manifest
+ (cdr
+  (quote 
+    <<nextflow-trace-deps>>)))
 #+end_src
 
 ** summmarize containers
