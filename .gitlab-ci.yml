@@ -39,7 +39,7 @@ stages:          # List of stages for jobs, and their order of executionn
   - tangle
   - build
 
-show-env:
+show-env::
   stage: .pre
   script:
     - ls -lta /var/run/docker.sock
