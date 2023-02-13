@@ -44,6 +44,14 @@
      python-seaborn
      (name "python2-seaborn")
      (version "0.9.0")
+     (arguments
+      (substitute-keyword-arguments
+	  (package-arguments python-seaborn)
+	;; launching the xserver will keep a hanging process in docker images
+	;; and thus the build-daemon will not terminate
+	((#:phases phases)
+	 `(modify-phases ,phases
+	    (delete 'start-xserver)))))
      (source (origin
                (method url-fetch)
                (uri (pypi-uri "seaborn" version))
