@@ -180,6 +180,6 @@ TAGS: nextflow.tags $(wildcard *.org)
 dockerd.pid: MANIFESTS=
 dockerd.pid: PACKAGES=docker containerd coreutils
 dockerd.pid:
-	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd --iptables=false -G `id -gn` & echo $$! > dockerd.pid
+	test -e /var/run/docker.sock && touch dockerd.pid || $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd --iptables=false -G `id -gn` & echo $$! > dockerd.pid
 	# waiting for docker to come live
-	for ((i=0;i<300;i++)); do sleep 1; test -e /var/run/docker.pid && break; done
+	for ((i=0;i<300;i++)); do sleep 1; test -e /var/run/docker.pid && break || test -e /var/run/docker.sock && break; done
