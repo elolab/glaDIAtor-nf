@@ -43,6 +43,7 @@ show-env:
   stage: .pre
   script:
     - ls -lta /var/run/
+    - guix shell docker-cli -- docker images
     - $MAKECMD environment
 tangle-files:
   stage: tangle
