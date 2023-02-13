@@ -33,7 +33,6 @@ default:
     - test -e archive/signing-key.pub && cat archive/signing-key.pub | guix archive --authorize  || true 
     - test -e archive/archive.nar && cat archive/archive.nar | guix archive --import  || true
     - set -o pipefail # make the exit code of a pipe be the first non-zero value
-    - rm /var/run/docker.sock
   # singularsyntax/guix-bootstrap
 stages:          # List of stages for jobs, and their order of executionn
   - setup-cache
