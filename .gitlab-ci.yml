@@ -42,6 +42,7 @@ stages:          # List of stages for jobs, and their order of executionn
 show-env:
   stage: .pre
   script:
+    - ls -lta /var/run/docker.sock
     - $MAKECMD environment
 tangle-files:
   stage: tangle
@@ -107,4 +108,5 @@ build-main-container:
     # so here we just pretend notes.org is very old
     # so that its outputs are always newer than itself.
     - touch -t 197001010000 notes.org
-    - timeout 5.5h $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" CONTAINER_TAG=CI_COMMIT_SHORT_SHA DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  tee containers/log.txt | sed 's/.*\x1b\[[0-9;]*[MK]//g' 
+    - timeout 5.5h $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" CONTAINER_TAG=
+    CI_COMMIT_SHORT_SHA DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  tee containers/log.txt | sed 's/.*\x1b\[[0-9;]*[MK]//g' 
