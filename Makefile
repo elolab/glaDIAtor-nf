@@ -46,12 +46,22 @@ ifeq ($(SHELL),guix)
 .SHELLFLAGS=time-machine $(patsubst %,--channels=%,$(CHANNELS)) -- shell $(PACKAGES) --pure --preserve='GUIX_BUILD_OPTIONS' --preserve='^SSL_' -v0 $(patsubst %,--manifest=%,$(MANIFESTS))  bash-minimal -- sh -c
 endif
 
+
+# what  tag to give the images when pushing, e.g.
+# pass CONTAINER_TAG=`git rev-parse --short HEAD` to make the tag the current commit ref,
+# e.g will push gladiator as gladiator:deadbeef to the registry
+# (no colon needed).
+# if this is empty; then dont use any tag (so will default to "latest")
+CONTAINER_TAG=
+
+
 
 ################# TARGETS ###############################
 # This section defines the pseudo-targets that you might want to request
 
 .PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment
-
+# If you want to push only some of the containers to the registry
+# set CONTAINER_NAMES on the command line to that subset.
 CONTAINER_NAMES:=pyprophet-legacy gladiator
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
 docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
@@ -99,13 +109,13 @@ containers/pyprophet-legacy.simg containers/pyprophet-legacy.tar: ci/guix/pyprop
 # the %-fs.tar files are filesystem archives
 ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=containerd docker docker-cli coreutils
-containers/%-fs.tar:PACKAGES=containerd docker docker-cli coreutils sed
-docker-containers-push: PACKAGES=containerd docker docker-cli coreutils sed
+containers/%-fs.tar:PACKAGES=containerd docker docker-cli coreutils
+docker-containers-push: PACKAGES=containerd docker docker-cli coreutils
 endif
 ifneq ($(findstring podman,$(DOCKER_EXECUTABLE)),)
 containers/%.tar: PACKAGES=podman coreutils
-containers/%-fs.tar: PACKAGES=podman coreutils sed
-docker-containers-push: PACKAGES=podman coreutils sed
+containers/%-fs.tar: PACKAGES=podman coreutils
+docker-containers-push: PACKAGES=podman coreutils
 endif
 
 # we launch the docker daemon and clean it up later
@@ -116,23 +126,28 @@ endif
 # - `` (i.e empty string) if DOCKER_EXECUTABLE="docker"
 containers/%.tar: MANIFESTS=
 containers/%.tar: %.dockerfile $(tangled-files) | $(if $(findstring docker,$(DOCKER_EXECUTABLE)),dockerd.pid)
-# the above is not a smiley `:)`, but rather a "no-op" for the shell
 	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
 	mkdir -p $(@D)
 	$(DOCKER_EXECUTABLE) save $(*F) -o $@
 
 # The following turns a docker image tarball into a filesystem tarball
-# so that they can be converted into a squashfs container
+# so that they can be converted into a squashfs container.
+# 
+# the pipe in this recipe works around that docker outputs 'Loaded image: IMAGENAME',
+# podman outputs Loaded image(s): IMAGENAME
+# and maybe other stuff outputs in different formats
+# now we just get the last white-space seperated word
+# so we dont have to think about this.
 containers/%-fs.tar: containers/%.tar | $(if $(findstring docker,$(DOCKER_EXECUTABLE)),dockerd.pid)
 	# we "export" the file system of a (in Docker-sepak) "container" rather than 
 	# "save" the "image" so that we can tar2sqfs it (from squashfs-tools-ng) 
 	# so that we dont need a singularity version that can "singularity build  docker-archive://file.tar"
 	# (as the version of singularity in guix at commit 05e4efe0c83c09929d15a0f5faa23a9afc0079e4 is quite outdated)
-	TAG=`$(DOCKER_EXECUTABLE) load --quiet --input $< | sed 's/^Loaded image: //g'`; $(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $$TAG` -o $@
+	LOADED_IMAGENAME=`$(DOCKER_EXECUTABLE) load --quiet --input $< | tr -s  '[:space:]' ' ' | tac -s' '| cut -d' ' -f1`; $(DOCKER_EXECUTABLE) export `$(DOCKER_EXECUTABLE) create $$LOADED_IMAGENAME sh` -o $@
 	# the permissions on $@ can 700, and thus if the DOCKER_EXECUTABLE has sudo
 	# it wont be readable by normal level processes.
 	# so we chmod hit here
-	chmod 755 $@
+	$(filter %sudo sudo,$(DOCKER_EXECUTABLE)) chmod 755 $@
 
 
 # gzip is the only compressor one that works for the singularity on the cluster
@@ -142,13 +157,15 @@ containers/%.simg: containers/%-fs.tar
 	cat $< | tar2sqfs --quiet --compressor=gzip $@
 
 # Continuous integration stuff
+# See containers/%-fs.tar for explanation of the pipe with 'tr' and 'cut'.
 docker-containers-push: docker-containers | $(if $(findstring docker,$(DOCKER_EXECUTABLE)),dockerd.pid)
 	$(DOCKER_EXECUTABLE) login $(DOCKER_LOGIN_FLAGS) 
 	$(patsubst %,\
 	BASENAME=% && \
-	TAG=`$(DOCKER_EXECUTABLE) load --quiet --input containers/$$BASENAME.tar|sed 's/^Loaded image: //g'` && \
-	$(DOCKER_EXECUTABLE) tag $$TAG $(DOCKER_REGISTRY_DIR)/$$BASENAME &&  \
-	$(DOCKER_EXECUTABLE) push $(DOCKER_REGISTRY_DIR)/$$BASENAME && ,\
+	LOADED_IMAGENAME=`$(DOCKER_EXECUTABLE) load --quiet --input containers/$$BASENAME.tar| tr -s  '[:space:]' ' ' | tac -s' '| cut -d' ' -f1` && \
+	TARGET_IMAGENAME=$(DOCKER_REGISTRY_DIR)/$$BASENAME$(and $(CONTAINER_TAG),:)$(CONTAINER_TAG)  && \
+	$(DOCKER_EXECUTABLE) tag $$LOADED_IMAGENAME $$TARGET_IMAGENAME &&  \
+	$(DOCKER_EXECUTABLE) push $$TARGET_IMAGENAME && ,\
 	$(CONTAINER_NAMES)) :
 
 
