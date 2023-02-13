@@ -46,6 +46,9 @@ Once the analysis run is completed,
 results can be found in the `--outdir` folder. (See the section `Analysis Results`)
 Here `-c config/docker.config` specifies to use docker with the images from the remote registry, see the section `Container Backends` for more info.
 
+If the dataset has Biognosys irt-peptides, pass `--use_irt=true` to the nextflow invocation.
+
+
 *Note*: When using asterisk or question marks in file parameters (such as `--fastafiles` and `--diafiles`), the quotes are needed like shown in the example. 
 
 ## Doing DDA-assisted analysis
