@@ -213,5 +213,5 @@
 		     
 ;; 
 ;; Local Variables:
-;; compile-command: "guix time-machine -C ../channels.scm -- pack -f docker -S/bin/sh=bin/sh  -m gitlab-runner-standalone.scm"
+;; compile-command: "guix time-machine -C ../channels.scm -- pack -f docker -S/bin/sh=bin/sh --localstatedir  -m gitlab-runner-standalone.scm"
 ;; End:
