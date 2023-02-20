@@ -1455,14 +1455,43 @@ It also doesn't check if illegal flags are given, they will pass silently instea
 (_ _)     
 #+end_src
 
+***** Converting traml into spectrast friendly format
+#+NAME: irttsv-to-spectrasttsv
+#+begin_src awk :eval no
+BEGIN {FS="	"}
+NR==1 {
+    for (i=1; i<=NF; i++) {
+        f[$i] = i
+    }
+}
+NR>1 { print $(f["PeptideSequence"]), $(f["NormalizedRetentionTime"]) }
+#+end_src
+
+TargetedFileConverter from =OpenMS=
+
+
+#+begin_src nextflow :noweb yes
+process CreateSpectrastIrtFile {
+    input:
+    file irt_traml from Channel.fromPath(params.irt_traml)
+    output:
+    file ("irt.txt") into irt_txt_ch
+    script:
+    """
+    TargetedFileConverter -in $irt_traml -out_type tsv -out /dev/stdout |"""
+    + '''  awk '
+    <<irttsv-to-spectrasttsv>>' > irt.txt
+    ''' 
+}
+#+end_src
+***** Running Spectrast
 #+begin_src nextflow
 // spectrast will create *.splib, *.spidx, *.pepidx, 
 // note that where-ever a splib goes, so must its spidx and pepidx
 ///and they must have the same part
-
 process SpectrastCreateSpecLib {
     input:
-    file irtfile from Channel.fromPath(params.irt_file)
+    file irtfile from irt_txt_ch
     file combined_search_results from combined_search_results_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     file spectra from maybespectra_ch.spectrast.toSortedList()
@@ -1500,9 +1529,9 @@ LFLQFGAQGSPFLK  98.0897
 
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // white-space-delimited file of peptide-sequences and internal retention times
-params.irt_file="irt.txt"
 // whether or not to use the retention-
 params.use_irt=true
+params.irt_traml_file = "iRTAssayLibrary.TraML"
  #+end_src
 **** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
@@ -1629,7 +1658,7 @@ process OpenSwathWorkflow {
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-params :tangle no
-params.irt_traml_file = "iRTAssayLibrary.TraML"
+
 #+end_src
 
 #+begin_quote
