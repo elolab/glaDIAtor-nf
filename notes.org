@@ -1473,7 +1473,7 @@ TargetedFileConverter from =OpenMS=
 #+begin_src nextflow :noweb yes
 process CreateSpectrastIrtFile {
     input:
-    file irt_traml from Channel.fromPath(params.irt_traml)
+    file irt_traml from Channel.fromPath(params.irt_traml_file)
     output:
     file ("irt.txt") into irt_txt_ch
     script:
