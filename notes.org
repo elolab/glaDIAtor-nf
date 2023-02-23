@@ -1500,8 +1500,7 @@ process CreateSpectrastIrtFile {
     intermediate_tsv="intermediate_irt.tsv"
     """
     TargetedFileConverter -in $irt_traml -out_type tsv -out $intermediate_tsv
-    """
-    + '''  awk
+    """ + '''  awk
     '
     <<irttsv-to-spectrasttsv>>' ''' + "$intermediate_tsv > irt.txt"
 }
