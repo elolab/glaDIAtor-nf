@@ -1653,7 +1653,7 @@ to use ~-out_osw~, ~-tr~ needs to be a pqp file,
 If we are using legacy pyprophet we will need to create a tsv
 #+NAME: nf-openswathworkflow-for-pyprophet-legacy
 #+begin_src nextflow :tangle no 
-process OpenSwathWorkflow {
+process OpenSwathWorkflow_legacy {
 	memory '16 GB'
 	input:
 	file dia_mzml_file from dia_mzml_files_ch.osw
@@ -1679,6 +1679,7 @@ process OpenSwathWorkflow {
             to_execute +=  "-tr_irt $irt_traml "
 	to_execute}
 #+end_src
+
 
 If we are using nonlegacy pyprophet we will need to create an osw
 
@@ -1720,11 +1721,12 @@ Then here we choose which one to use
 // we will need the osw to go to various processes
 if (params.pyprophet_use_legacy){
  <<nf-openswathworkflow-for-pyprophet-legacy>>
-}
-else {
+} else {
   <<nf-openswathworkflow-for-pyprophet-nonlegacy>>
 }
 #+end_src
+(Apparently these two cant have the same name, even if they are conditionally declared
+
 
 #+begin_quote
 Extraction windows have a gap. Will abort (override with -force)
@@ -2004,76 +2006,6 @@ process pyprophet_control_error {
 }
 #+end_src
 
-#+begin_src nextflow
-process pyprophet_learn_classifier {
-    input:
-    file subsampled_osws from subsampled_osw.toSortedList()
-    file openswath_transitions from openswath_transitions_ch.first()
-    output:
-    file osw_model
-    script:
-    pyprophet_seed_flag=(params.pyprophet_fixed_seed ? "--test" : "--no-test")
-    osw_model="model.osw"
-    """
-    pyprophet merge --template=$openswath_transitions $subsampled_osw --out=$osw_model $subsampled_osws
-    pyprophet_score --score $pyprophet_seed_flag --in=$osw_model --level=ms1ms2
-    """
-}
-#+end_src
-
-#+begin_src nextflow
-scored_osw_indirect_ch =Channel.create()
-scored_osw_indirect_ch.multiMap{it ->
-    reduce: backpropagate: it}.set{scored_osw_ch}
-
-process pyprophet_apply_classifier {
-    input:
-    file osw_model from osw_model.first()
-    file osw from openswath_osw_ch.pyprophet_score
-    output:
-    file scored_osw into scored_osw_indirect_ch
-    script:
-    pyprophet_seed_flag=(params.pyprophet_fixed_seed ? "--test" : "--no-test")
-    scored_osw="${osw.baseName}.scored.${osw.Extension}"
-    """
-    pyprophet score $pyprophet_seed_flag --in=$osw --out=$scored_osw --apply_weights=$osw_model --level=ms1ms2
-    """
-}
-#+end_src
-
-#+begin_src nextflow
-process pyprophet_reduce {
-    input:
-    file scored_osw from scored_osw_ch.reduce
-    output:
-    file reduced_scored_osw 
-    script:
-    reduced_scored_osw="${file(scored_osw.baseName).baseName}.${scored_osw.Extension}r"
-    """
-    pyprophet reduce --in=$scored_osw --out=$reduced_scored_osw
-    """
-}
-#+end_src
-
-
-#+begin_src nextflow
-process pyprophet_control_error {
-    input:
-    file reduced_scored_osws from reduce_scored_osw.toSortedList()
-    file osw_model from osw_model.first()
-    output:
-    file osw_global_model
-    script:
-    osw_global_model="model_global.osw"
-    """
-    pyprophet merge --template=$osw_model --out=$osw_global_model $reduced_scored_osws
-    pyprophet peptide --context=global --in=$osw_model
-    pyprophet protein --context=global --in=$osw_model
-    """
-}
-#+end_src
-
-
 
 *** feature-alignment
 of =msproteomicstools/analysis/alignment/feature_alignment.py=
@@ -2082,7 +2014,6 @@ Note: If things fail here,
 because the right fdr cannot be reached,
 you can try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
 earlier upstream.
-
 
 #+begin_src nextflow
 process feature_alignment
