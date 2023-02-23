@@ -1644,7 +1644,9 @@ Using a the cache will decrease memomry usage at the cost of writes & time
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // wheter to use -readOptions cacheWorkingInMemory in OSW
 // this actually crashes so disabled
-params.osw_use_cache = false 
+params.osw_use_cache = false
+// extra flags to pass to OSW
+params.osw_extra_flags =  ""
 #+end_src
 
 to use ~-out_osw~, ~-tr~ needs to be a pqp file,
@@ -1674,7 +1676,8 @@ process OpenSwathWorkflow_legacy {
             "-min_upper_edge_dist 1 " +
             "-sort_swath_maps " +
             "-out_tsv ${dia_tsv_file} " + 
-            "-swath_windows_file $swath_truncated_windows "
+            "-swath_windows_file $swath_truncated_windows " +
+            params.osw_extra_flags
 	if (params.use_irt)
             to_execute +=  "-tr_irt $irt_traml "
 	to_execute}
@@ -1710,7 +1713,9 @@ process OpenSwathWorkflow {
         "-min_upper_edge_dist 1 " +
         "-sort_swath_maps " +
         "-out_osw ${dia_osw_file} " + 
-        "-swath_windows_file $swath_truncated_windows "
+        "-swath_windows_file $swath_truncated_windows " +
+        params.osw_extra_flags
+    
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
     to_execute}
