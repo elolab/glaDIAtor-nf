@@ -1888,16 +1888,6 @@ If you get an error here as
       raise Exception("got empty input file")
 #+end_quote
 try running with ~params.use_irt=false~
-<<<<<<< HEAD
-*** nonlegacy prypophet
-http://www.openswath.org/en/latest/docs/pyprophet.html
-we calculate the subsample ratio from the number of runs 
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-subsample_ratio = 1 / Math.max(Chanb
-nel.fromPath(params.diafiles).toSortedList().length(), 1)
-#+end_src
-||||||| cf0f60c
-=======
 *** nonlegacy prypophet
 http://www.openswath.org/en/latest/docs/pyprophet.html
 we calculate the subsample ratio from the number of runs 
@@ -1906,24 +1896,6 @@ subsample_ratio = 1 / Math.max(Chanb
 nel.fromPath(params.diafiles).toSortedList().length(), 1)
 #+end_src
 
-
-In =pyprophet subsample= and =pyprophet score=,
-we will need to pass =--test= to not have random behaviour.
-This will make the sql behaviour behaviour non-random.
-However there is no actual seed paramater to set, its just a "use-random/ don't use random" flag.
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-params.pyprophet_fixed_seed=True
-params.pyprophet_use_legacy=False
-#+end_src
-
-Below we are following the steps of http://www.openswath.org/en/latest/docs/pyprophet.html#scaling-up
-
-Anything in pyprophet that is not invoked with an ~--out~ flag
-will overwrite the ~--in~ file,
-here we only do that when the ~--in~-file is created in the process 
->>>>>>> b3023b430eb681e7ab2d8116c5de3c7ff5774e16
-
-<<<<<<< HEAD
 
 In =pyprophet subsample= and =pyprophet score=,
 we will need to pass =--test= to not have random behaviour.
@@ -2030,24 +2002,6 @@ process pyprophet_control_error {
 
 
 #+begin_src nextflow
-||||||| cf0f60c
-#+begin_src nextflow :tangle no
-process pyprophet_new  {
-
-=======
-#+begin_src nextflow :tangle no
-process pyprophet_subsample {
-    input:
-    file dia_osw_file from openswath_osw_ch.pyprophet_subsample
-    output:
-    file subsampled_osw
-    script:
-    subsampled_osw="${dia_osw_file.baseName}.osws"
-    pyprophet_seed_flag=(params.pyprophet_fixed_seed ? "--test" : "--no-test")
-    """
-    pyprophet subsample $pyprophet_seed_flag --in=$dia_osw_file --out=$subsampled_osw --subsample_ratio=$subsample_ratio
-    """
->>>>>>> b3023b430eb681e7ab2d8116c5de3c7ff5774e16
 }
 #+end_src
 
