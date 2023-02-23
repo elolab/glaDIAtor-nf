@@ -1605,7 +1605,7 @@ process CreateOpenswathTransitions {
     MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
     spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a SpecLib_cons_openswath.tsv $sptxt
     TargetedFileConverter -in SpecLib_cons_openswath.tsv -out SpecLib_cons.TraML
-    OpenSwathDecoyGenerator -decoy_tag DECOY_-in SpecLib_cons.TraML -out $outputfile -method reverse
+    OpenSwathDecoyGenerator -decoy_tag DECOY_ -in SpecLib_cons.TraML -out $outputfile -method reverse
     """
 }
 #+end_src
@@ -2274,7 +2274,7 @@ And here we write the logic that fills the template
 : https://registry.gitlab.utu.fi/elixirdianf/gladiator-notes/gladiator
 ** Per backend config files
 :PROPERTIES:
-:HEADER-ARGS:nextflow: :mkdirp t :tangle (format  "config/%s.nf" (replace-regexp-in-string "^config-" "" (org-element-property :name (org-element-at-point)))) :noweb tangle
+:HEADER-ARGS:nextflow: :mkdirp t :tangle (format  "config/%s.nf" (replace-regexp-in-string "^config-" "" (or (org-element-property :name (org-element-at-point)) ""))) :noweb tangle
 :END:
 So here we fill the templates that we defined in the previous section.
 If you are reading this as an org-mode file,
