@@ -10,7 +10,15 @@ This is a literate programming (org-mode) document that describes the
 the nextflow implemantiation of gladiator (https://github.com/elolab/glaDIAtor)
 and all needed template files.
 This directory should already contain the tangled files.
-To learn more about org-mode, see https://orgmode.org/
+To learn more about org-mode, see https://orgmode.org/.
+
+** Writing Style 
+Sentences with the first person plural ("we") as subject
+or with implied third person (it reads as "[The program] ..."),
+are notes about the development process or an explanation of the program,
+whereas sentences with the  second person as object ("You" e.g. "You might try setting foo to 3")
+are instructions to the end user.
+
 
 ** Tangling
 in order to turn this file into the needed files run
@@ -1500,8 +1508,7 @@ process CreateSpectrastIrtFile {
     intermediate_tsv="intermediate_irt.tsv"
     """
     TargetedFileConverter -in $irt_traml -out_type tsv -out $intermediate_tsv
-    """ + '''  awk
-    '
+    """ + '''  awk '
     <<irttsv-to-spectrasttsv>>' ''' + "$intermediate_tsv > irt.txt"
 }
 #+end_src
@@ -1591,14 +1598,14 @@ process CreateOpenswathTransitions {
     file outputfile into openswath_transitions_ch
 
     script:
-    outputfile="SpecLib_cons_decoys.TraML"
+    outputfile="SpecLib_cons_decoys.pqp"
     
     """
     MINWINDOW=`head -n1 $swath_windows | cut -d'	' -f1`
     MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
     spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a SpecLib_cons_openswath.tsv $sptxt
     TargetedFileConverter -in SpecLib_cons_openswath.tsv -out SpecLib_cons.TraML
-    OpenSwathDecoyGenerator -in SpecLib_cons.TraML -out SpecLib_cons_decoys.TraML -method reverse
+    OpenSwathDecoyGenerator -decoy_tag DECOY_-in SpecLib_cons.TraML -out $outputfile -method reverse
     """
 }
 #+end_src
@@ -1640,7 +1647,47 @@ Using a the cache will decrease memomry usage at the cost of writes & time
 params.osw_use_cache = false 
 #+end_src
 
-#+begin_src nextflow
+to use ~-out_osw~, ~-tr~ needs to be a pqp file,
+
+
+If we are using legacy pyprophet we will need to create a tsv
+#+NAME: nf-openswathworkflow-for-pyprophet-legacy
+#+begin_src nextflow :tangle no 
+process OpenSwathWorkflow {
+	memory '16 GB'
+	input:
+	file dia_mzml_file from dia_mzml_files_ch.osw
+	// file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
+	file openswath_transitions from openswath_transitions_ch.first()
+	file swath_truncated_windows from truncated_swath_windows_ch.first()
+	file irt_traml from Channel.fromPath(params.irt_traml_file).first()
+	output:
+	file dia_tsv_file  into openswath_tsv_ch
+	script:
+	dia_tsv_file = "${dia_mzml_file.baseName}-DIA.tsv"
+	to_execute =
+            "OpenSwathWorkflow " +
+            "-force " +
+            "-in $dia_mzml_file " +
+            "-tr $openswath_transitions " +
+            "-threads ${task.cpus} " +
+            "-min_upper_edge_dist 1 " +
+            "-sort_swath_maps " +
+            "-out_tsv ${dia_tsv_file} " + 
+            "-swath_windows_file $swath_truncated_windows "
+	if (params.use_irt)
+            to_execute +=  "-tr_irt $irt_traml "
+	to_execute}
+#+end_src
+
+If we are using nonlegacy pyprophet we will need to create an osw
+
+#+NAME: nf-openswathworkflow-for-pyprophet-nonlegacy
+#+begin_src nextflow :tangle no
+openswath_osw_indirect_ch = Channel.create()
+openswath_osw_indirect_ch.multiMap{ it ->
+    pyprophet_subsample: pyprophet_score  : it}.set{openswath_osw_ch}
+
 process OpenSwathWorkflow {
     memory '16 GB'
     input:
@@ -1650,11 +1697,9 @@ process OpenSwathWorkflow {
     file swath_truncated_windows from truncated_swath_windows_ch.first()
     file irt_traml from Channel.fromPath(params.irt_traml_file).first()
     output:
-    file dia_tsv_file into openswath_tsv_ch
-    // file dia_osw_file into openswath_osw_ch
+    file dia_osw_file  into openswath_osw_indirect_ch
     script:
-    dia_tsv_file = "${dia_mzml_file.baseName}-DIA.tsv"
-    // dia_osw_file = "${dia_mzml_file.baseName}-DIA.osw"
+    dia_osw_file = "${dia_mzml_file.baseName}-DIA.osw"
     to_execute =
         "OpenSwathWorkflow " +
         "-force " +
@@ -1663,23 +1708,22 @@ process OpenSwathWorkflow {
         "-threads ${task.cpus} " +
         "-min_upper_edge_dist 1 " +
         "-sort_swath_maps " +
-        "-out_tsv ${dia_tsv_file} " +
-        // "-out_osw ${dia_osw_file} " + 
+        "-out_osw ${dia_osw_file} " + 
         "-swath_windows_file $swath_truncated_windows "
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
-    // the single ticks so $TMPDIR doesnt expand in groovy but to the shell variable
-    //  slash at the end because OSW expects it
-    // this crashes with errors that the cached mzml file is incorrectly formed.
-    // if (params.osw_use_cache)
-    // 	to_execute += '-readOptions cache -batchSize 1000'
-    // to_execute += '-readOptions cacheWorkingInMemory -tempDirectory "$TMPDIR/" -batchSize 1000'
-    to_execute
-}
+    to_execute}
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-
+Then here we choose which one to use
+#+begin_src nextflow :noweb no-export
+// we will need the osw to go to various processes
+if (params.pyprophet_use_legacy){
+ <<nf-openswathworkflow-for-pyprophet-legacy>>
+}
+else {
+  <<nf-openswathworkflow-for-pyprophet-nonlegacy>>
+}
 #+end_src
 
 #+begin_quote
@@ -1757,8 +1801,9 @@ License: 3-clause BSD
 Pyprophet aggregates various quality scores into one score
 =d_score= (discriminant_score)
 
-#+begin_src nextflow 
-process pyprophet_legacy {
+#+begin_src nextflow
+if (params.pyprophet_use_legacy)
+    process pyprophet_legacy {
     publishDir "${params.outdir}/pyprophet/", pattern: "*.csv"
     publishDir "${params.outdir}/reports/pyprophet/", pattern: "*.pdf"
     input:
@@ -1843,18 +1888,122 @@ If you get an error here as
       raise Exception("got empty input file")
 #+end_quote
 try running with ~params.use_irt=false~
+*** nonlegacy prypophet
+http://www.openswath.org/en/latest/docs/pyprophet.html
+we calculate the subsample ratio from the number of runs 
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+subsample_ratio = 1 / Math.max(Chanb
+nel.fromPath(params.diafiles).toSortedList().length(), 1)
+#+end_src
+
+
+In =pyprophet subsample= and =pyprophet score=,
+we will need to pass =--test= to not have random behaviour.
+This will make the sql behaviour behaviour non-random.
+However there is no actual seed paramater to set, its just a "use-random/ don't use random" flag.
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.pyprophet_fixed_seed=True
+params.pyprophet_use_legacy=False
+#+end_src
+
+Below we are following the steps of http://www.openswath.org/en/latest/docs/pyprophet.html#scaling-up
+
+Anything in pyprophet that is not invoked with an ~--out~ flag
+will overwrite the ~--in~ file,
+here we only do that when the ~--in~-file is created in the process 
 
 #+begin_src nextflow :tangle no
-process pyprophet_new  {
-
+process pyprophet_subsample {
+    input:
+    file dia_osw_file from openswath_osw_ch.pyprophet_subsample
+    output:
+    file subsampled_osw
+    script:
+    subsampled_osw="${dia_osw_file.baseName}.osws"
+    pyprophet_seed_flag=(params.pyprophet_fixed_seed ? "--test" : "--no-test")
+    """
+    pyprophet subsample $pyprophet_seed_flag --in=$dia_osw_file --out=$subsampled_osw --subsample_ratio=$subsample_ratio
+    """
 }
 #+end_src
+
+#+begin_src nextflow
+process pyprophet_learn_classifier {
+    input:
+    file subsampled_osws from subsampled_osw.toSortedList()
+    file openswath_transitions from openswath_transitions_ch.first()
+    output:
+    file osw_model
+    script:
+    pyprophet_seed_flag=(params.pyprophet_fixed_seed ? "--test" : "--no-test")
+    osw_model="model.osw"
+    """
+    pyprophet merge --template=$openswath_transitions $subsampled_osw --out=$osw_model $subsampled_osws
+    pyprophet_score --score $pyprophet_seed_flag --in=$osw_model --level=ms1ms2
+    """
+}
+#+end_src
+
+#+begin_src nextflow
+scored_osw_indirect_ch =Channel.create()
+scored_osw_indirect_ch.multiMap{it ->
+    reduce: backpropagate: it}.set{scored_osw_ch}
+
+process pyprophet_apply_classifier {
+    input:
+    file osw_model from osw_model.first()
+    file osw from openswath_osw_ch.pyprophet_score
+    output:
+    file scored_osw into scored_osw_indirect_ch
+    script:
+    pyprophet_seed_flag=(params.pyprophet_fixed_seed ? "--test" : "--no-test")
+    scored_osw="${osw.baseName}.scored.${osw.Extension}"
+    """
+    pyprophet score $pyprophet_seed_flag --in=$osw --out=$scored_osw --apply_weights=$osw_model --level=ms1ms2
+    """
+}
+#+end_src
+
+#+begin_src nextflow
+process pyprophet_reduce {
+    input:
+    file scored_osw from scored_osw_ch.reduce
+    output:
+    file reduced_scored_osw 
+    script:
+    reduced_scored_osw="${file(scored_osw.baseName).baseName}.${scored_osw.Extension}r"
+    """
+    pyprophet reduce --in=$scored_osw --out=$reduced_scored_osw
+    """
+}
+#+end_src
+
+
+#+begin_src nextflow
+process pyprophet_control_error {
+    input:
+    file reduced_scored_osws from reduce_scored_osw.toSortedList()
+    file osw_model from osw_model.first()
+    output:
+    file osw_global_model
+    script:
+    osw_global_model="model_global.osw"
+    """
+    pyprophet merge --template=$osw_model --out=$osw_global_model $reduced_scored_osws
+    pyprophet peptide --context=global --in=$osw_model
+    pyprophet protein --context=global --in=$osw_model
+    """
+}
+#+end_src
+
+
+
 *** feature-alignment
 of =msproteomicstools/analysis/alignment/feature_alignment.py=
 
 Note: If things fail here,
 because the right fdr cannot be reached,
-try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
+you can try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
 earlier upstream.
 
 
@@ -1948,7 +2097,8 @@ main <- function(diafile,
 }
 #+end_src
 
-
+Where the field "Decoy" is 1, thats a decoy generated by ~OpenSwathDecoyGenerator~,
+rather than from the fastadataasee of ~DecoyDatabase~
 
 #+begin_src nextflow :noweb no-export
 process swath2stats {
