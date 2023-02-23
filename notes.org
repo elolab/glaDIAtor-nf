@@ -1456,9 +1456,10 @@ It also doesn't check if illegal flags are given, they will pass silently instea
 #+end_src
 
 ***** Converting traml into spectrast friendly format
+
 #+NAME: irttsv-to-spectrasttsv
 #+begin_src awk :eval no
-BEGIN {FS="	"}
+BEGIN {FS="	"; OFS="	"}
 NR==1 {
     for (i=1; i<=NF; i++) {
         f[$i] = i
@@ -1467,8 +1468,27 @@ NR==1 {
 NR>1 { print $(f["PeptideSequence"]), $(f["NormalizedRetentionTime"]) }
 #+end_src
 
-TargetedFileConverter from =OpenMS=
+#+NAME: irttsv-to-spectrasttsv-without-duplicates
+#+begin_src awk :eval no
+BEGIN {FS="	"; OFS="	"}
+# we set the column names so that we can look them up later
+NR==1 {
+    for (i=1; i<=NF; i++) {
+        f[$i] = i
+    }
+}
+# use only the last entry in the table per peptide sequence
+NR>1 {
+    irt_by_sequence[$(f["PeptideSequence"])] = $(f["NormalizedRetentionTime"])
+    peptide_sequences[$(f["PeptideSequence"])]=$(f["PeptideSequence"])
+}
+END {
+    for (sequence in peptide_sequences)
+	print(sequence,irt_by_sequence[sequence])
+}
+#+end_src
 
+TargetedFileConverter from =OpenMS=
 
 #+begin_src nextflow :noweb yes
 process CreateSpectrastIrtFile {
@@ -1477,11 +1497,13 @@ process CreateSpectrastIrtFile {
     output:
     file ("irt.txt") into irt_txt_ch
     script:
+    intermediate_tsv="intermediate_irt.tsv"
     """
-    TargetedFileConverter -in $irt_traml -out_type tsv -out /dev/stdout |"""
-    + '''  awk '
-    <<irttsv-to-spectrasttsv>>' > irt.txt
-    ''' 
+    TargetedFileConverter -in $irt_traml -out_type tsv -out $intermediate_tsv
+    """
+    + '''  awk
+    '
+    <<irttsv-to-spectrasttsv>>' ''' + "$intermediate_tsv > irt.txt"
 }
 #+end_src
 ***** Running Spectrast
