@@ -1677,7 +1677,7 @@ process OpenSwathWorkflow_legacy {
             "-sort_swath_maps " +
             "-out_tsv ${dia_tsv_file} " + 
             "-swath_windows_file $swath_truncated_windows " +
-            params.osw_extra_flags
+            params.osw_extra_flags + " "
 	if (params.use_irt)
             to_execute +=  "-tr_irt $irt_traml "
 	to_execute}
