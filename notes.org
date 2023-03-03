@@ -1592,8 +1592,8 @@ process CreateOpenswathTransitions {
      -a    outfile       Output file name (default: appends _peakview.txt)
      ,*/
     input:
-    file swath_windows from swath_windows_ch
-    file sptxt from consensus_lib_sptxt_ch
+    file swath_windows from swath_windows_ch.first()
+    file sptxt from consensus_lib_sptxt_ch.first()
     output:
     file outputfile into openswath_transitions_ch
 
@@ -1957,7 +1957,7 @@ process pyprophet_subsample {
 process pyprophet_learn_classifier {
     input:
     file subsampled_osws from subsampled_osw.toSortedList()
-    file openswath_transitions from openswath_transitions_ch.first()
+    file openswath_transitions from openswath_transitions_ch_for_nonlegacy.first()
     output:
     file osw_model
     script:
