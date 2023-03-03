@@ -1681,7 +1681,7 @@ process OpenSwathWorkflow_legacy {
             params.osw_extra_flags + " "
 	if (params.use_irt)
             to_execute +=  "-tr_irt $irt_traml "
-	to_execute}
+	to_execute
 }
 #+end_src
 
@@ -1720,7 +1720,7 @@ process OpenSwathWorkflow {
     
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
-    to_execute}
+    to_execute
 }
 #+end_src
 
