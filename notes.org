@@ -1655,6 +1655,7 @@ to use ~-out_osw~, ~-tr~ needs to be a pqp file,
 If we are using legacy pyprophet we will need to create a tsv
 #+NAME: nf-openswathworkflow-for-pyprophet-legacy
 #+begin_src nextflow :tangle no 
+openswath_transitions_ch_for_legacy = openswath_transitions_ch
 process OpenSwathWorkflow_legacy {
 	memory '16 GB'
 	input:
@@ -1681,6 +1682,7 @@ process OpenSwathWorkflow_legacy {
 	if (params.use_irt)
             to_execute +=  "-tr_irt $irt_traml "
 	to_execute}
+}
 #+end_src
 
 
@@ -1691,13 +1693,13 @@ If we are using nonlegacy pyprophet we will need to create an osw
 openswath_osw_indirect_ch = Channel.create()
 openswath_osw_indirect_ch.multiMap{ it ->
     pyprophet_subsample: pyprophet_score  : it}.set{openswath_osw_ch}
-
+openswath_transitions_ch_for_nonlegacy = openswath_transitions_ch
 process OpenSwathWorkflow {
     memory '16 GB'
     input:
     file dia_mzml_file from dia_mzml_files_ch.osw
     // file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
-    file openswath_transitions from openswath_transitions_ch.first()
+    file openswath_transitions from openswath_transitions_ch_for_nonlegacy.first()
     file swath_truncated_windows from truncated_swath_windows_ch.first()
     file irt_traml from Channel.fromPath(params.irt_traml_file).first()
     output:
@@ -1719,6 +1721,7 @@ process OpenSwathWorkflow {
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
     to_execute}
+}
 #+end_src
 
 Then here we choose which one to use
