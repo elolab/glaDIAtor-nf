@@ -1726,7 +1726,7 @@ Then here we choose which one to use
 #+begin_src nextflow :noweb no-export
 // we will need the osw to go to various processes
 if (params.pyprophet_use_legacy){
-    openswath_transitions_ch_for_nonlegacy = openswath_transitions_ch.into(1)
+    openswath_transitions_ch_for_legacy = openswath_transitions_ch.into(1)
  <<nf-openswathworkflow-for-pyprophet-legacy>>
 } else {
     openswath_transitions_ch_for_nonlegacy  = openswath_transitions_ch.into(1)
