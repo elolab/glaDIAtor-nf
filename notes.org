@@ -1729,7 +1729,7 @@ if (params.pyprophet_use_legacy){
     openswath_transitions_ch_for_legacy = openswath_transitions_ch.into(1)
  <<nf-openswathworkflow-for-pyprophet-legacy>>
 } else {
-    openswath_transitions_ch_for_nonlegacy  = openswath_transitions_ch.into(1)
+    (openswath_transitions_ch_for_nonlegacy,openswath_transitions_ch_for_pyprophet)  = openswath_transitions_ch.into(2)
   <<nf-openswathworkflow-for-pyprophet-nonlegacy>>
 }
 #+end_src
@@ -1957,7 +1957,7 @@ process pyprophet_subsample {
 process pyprophet_learn_classifier {
     input:
     file subsampled_osws from subsampled_osw.toSortedList()
-    file openswath_transitions from openswath_transitions_ch_for_nonlegacy.first()
+    file openswath_transitions from openswath_transitions_ch_for_pyprophet.first()
     output:
     file osw_model
     script:
