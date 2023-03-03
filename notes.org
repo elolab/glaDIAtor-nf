@@ -3,7 +3,7 @@
 #+PROPERTY: header-args:nextflow :tangle "gladiator.nf" :comments link
 #+PROPERTY: header-args:dot :output-dir img :file-ext (pcase org-export-current-backend ('latex "png") (_ "svg")) :eval yes :exports results
 #+TODO: TODO(t) | DONE(d)
-#+OPTIONS: ^:{} todo:nil
+#+OPTIONS: ^:{} todo:nil H:20
 #+LINK: gladiator file:../glaDIAtor/%s
 * About this document
 This is a literate programming (org-mode) document that describes the
@@ -1799,7 +1799,19 @@ an automated alignment strategy for reproducible protein quantification in targe
 doi:10.1038/nmeth.3954
 file:/ftp:PASS00788@ftp.peptideatlas.org:/
 
-also not from here 
+also not from here
+
+It seems the traml is based on
+file:/ftp:PASS00289@ftp.peptideatlas.org:/SGS/assays/OpenSWATH_SM4_iRT_AssayLibrary.TraML
+which has also has the same irt times as iRT.txt,
+except its still missign =LFLQFGAQGSPFLK=,
+The same irt.txt can be found in https://github.com/CaronLab/Allele-specific-library-scripts/blob/main/iRT.txt,
+published before gladiator, with the retention times
+also hardcoded in https://github.com/msproteomicstools/msproteomicstools/raw/master/analysis/spectral_libs/spectrast_updateiRTs.py
+
+ =OpenMs/src/tests/class_tests/openms/data/MRMDecoyGenerator_input.TraML= has the same irts and also contains
+=LFLQFGAQGSPFLK= so that might also be a good target.
+
 
 *** Pyprophet
 https://github.com/PyProphet/pyprophet
@@ -1808,6 +1820,7 @@ License: 3-clause BSD
 Pyprophet aggregates various quality scores into one score
 =d_score= (discriminant_score)
 
+**** Legacy Pyprophet
 #+begin_src nextflow
 if (params.pyprophet_use_legacy)
     process pyprophet_legacy {
