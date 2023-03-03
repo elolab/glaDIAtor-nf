@@ -1908,7 +1908,7 @@ If you get an error here as
       raise Exception("got empty input file")
 #+end_quote
 try running with ~params.use_irt=false~
-*** nonlegacy prypophet
+**** nonlegacy prypophet
 http://www.openswath.org/en/latest/docs/pyprophet.html
 we calculate the subsample ratio from the number of runs 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
@@ -2018,12 +2018,37 @@ process pyprophet_control_error {
     """
 }
 #+end_src
+#+begin_src nextflow
+process pyprophet_backpropagate {
+    input:
+    file osw_scored from scored_osw_ch.backpropagate
+    file osw_global_model from osw_global_model.first()
+    output:
+    file dscore_csv into pyprophet_nonlegacy_ch
+    script:
+    base="${file(osw_scored.baseName).baseName}"
+    backproposw="${base}.backprop.osw"
+    dscore_csv="${base}.csv"
+    """
+    pyprophet score --in="$osw" --apply_scores="$osw_global_model" --level=ms1ms2 --out=$backproposw
+    pyprophet export --in=$backrproposwk --out=$dscore_csv
+    """
+}
 
+#+end_src
 
 #+begin_src nextflow
 }
 #+end_src
 
+**** Choosing between legacy and nonlegacy pyprophet
+Here we choose between legacy or nonlegacy pyprophet
+#+begin_src nextflow
+if (params.pyprophet_use_legacy)
+    pyprophet_ch = pyprophet_legacy_ch
+else
+    pyprophet_ch = pyprophet_nonlegacy_ch
+#+end_src
 
 *** feature-alignment
 of =msproteomicstools/analysis/alignment/feature_alignment.py=
@@ -2038,7 +2063,7 @@ process feature_alignment
 {
     publishDir "${params.outdir}/dia/"
     input:
-    file dscore_csvs from pyprophet_legacy_ch.toSortedList()
+    file dscore_csvs from pyprophet_ch.toSortedList()
     output:
     file outfile into feature_alignment_ch
     script:
