@@ -2008,7 +2008,7 @@ process pyprophet_reduce {
 #+begin_src nextflow
 process pyprophet_control_error {
     input:
-    file reduced_scored_osws from reduce_scored_osw.toSortedList()
+    file reduced_scored_osws from reduced_scored_osw.toSortedList()
     file osw_model from osw_model.first()
     output:
     file osw_global_model
