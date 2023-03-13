@@ -2240,9 +2240,16 @@ and the pyprophet legacy container to be used (~%P~).
 %p.enabled=true
 process {
    container='%G'
+   // for nonlegacy pyprophet processes
+   withName: 'pyprophet_.*' {
+      container='%N'
+   }
+   // because this is the more specific rule
+   // we apply it last, so that it overrides the 'pyprophet_.*' rule if
+   // this rule also applies
     withName: pyprophet_legacy {
 	container='%P'
-    }
+   }
 }
 #+end_example
 
@@ -2299,11 +2306,16 @@ And here we write the logic that fills the template
 		     ,(construct-container-uri "gladiator"
 					       program-name-key
 					       locality))
-	       (?P .
-		   ,(construct-container-uri
-		     "pyprophet-legacy"
-		     program-name-key
-		     locality))))))
+		 (?N .
+		     ,(construct-container-uri "pyprophet"
+					       program-name-key
+					       locality))
+		 
+		 (?P .
+		     ,(construct-container-uri
+		       "pyprophet-legacy"
+		       program-name-key
+		       locality))))))
 
 (construct-container-config template program-name locality)
 

@@ -62,7 +62,7 @@ CONTAINER_TAG=
 .PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment
 # If you want to push only some of the containers to the registry
 # set CONTAINER_NAMES on the command line to that subset.
-CONTAINER_NAMES:=pyprophet-legacy gladiator
+CONTAINER_NAMES:=pyprophet-legacy gladiator pyprophet
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
 docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
 
@@ -98,6 +98,12 @@ $(tangled-files) &: notes.org
 containers/pyprophet-legacy.simg containers/pyprophet-legacy.tar: MANIFESTS=
 containers/pyprophet-legacy.simg containers/pyprophet-legacy.tar: PACKAGES=guix coreutils bash-minimal
 containers/pyprophet-legacy.simg containers/pyprophet-legacy.tar: ci/guix/pyprophet-legacy-channels.scm ci/guix/manifests/pyprophet-legacy.scm ci/guix/manifests/nextflow-trace.scm
+	mkdir -p $(@D)
+	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
+
+containers/pyprophet.simg containers/pyprophet.tar: MANIFESTS=
+containers/pyprophet.simg containers/pyprophet.tar: PACKAGES=guix coreutils bash-minimal
+containers/pyprophet.simg containers/pyprophet.tar: ci/guix/channels.scm ci/guix/manifests/pyprophet.scm ci/guix/manifests/nextflow-trace.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 

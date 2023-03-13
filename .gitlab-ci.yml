@@ -81,6 +81,19 @@ build-pdf:
   script:
     - $MAKECMD notes.pdf     
 
+build-pyprophet-nonlegacy-container:
+  stage: build
+  timeout: 48h
+  artifacts:
+    when: always
+    paths:
+      - containers/log.txt
+  script:
+    - mkdir -p containers
+    - echo $CI_JOB_TIMEOUT
+    - free 
+    - timeout 47h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE CONTAINER_TAG=$CI_COMMIT_SHORT_SHA docker-containers-push 2>&1 |   tee containers/log.txt | col -b 
+
 build-pyprophet-container:
   stage: build
   timeout: 48h
