@@ -74,7 +74,7 @@ build-html:       # This job runs in the build stage, which runs first.
 
 build-pdf:
   stage: build
-  timeout: 2h
+  timeout: 4h
   artifacts:
     paths:
       - notes.pdf
