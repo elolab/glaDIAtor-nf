@@ -46,7 +46,11 @@
     (description
      "PyProphet: Semi-supervised learning and scoring of OpenSWATH results.")
     (license license:bsd-3)))
-python-pyprophet
+
+(packages->manifest
+ (list
+  (specification->package "bash")
+  python-pyprophet))
 
 ;; Local Variables:
 ;; compile-command: "guix time-machine -C ../channels.scm -- build -f pyprophet.scm"
