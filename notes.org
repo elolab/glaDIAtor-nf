@@ -2022,6 +2022,9 @@ process pyprophet_subsample {
 ~pyprophet score~ requires significantly more memory than ~pyprophet merge~
 should we split this?
 
+If =pyprophet merge= complains about no decoys being found,
+you can try without passing ==--pyprophet_fixed_seed= to gladiator.
+
 #+begin_src nextflow
 process pyprophet_learn_classifier {
     input:
@@ -2103,7 +2106,7 @@ process pyprophet_backpropagate {
     dscore_csv="${base}.csv"
     """
     pyprophet score --in="$osw" --apply_scores="$osw_global_model" --level=ms1ms2 --out=$backproposw
-    pyprophet export --in=$backrproposwk --out=$dscore_csv
+    pyprophet export --in=$backproposw --out=$dscore_csv
     """
 }
 
