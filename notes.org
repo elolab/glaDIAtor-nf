@@ -1981,7 +1981,7 @@ try running with ~params.use_irt=false~
 http://www.openswath.org/en/latest/docs/pyprophet.html
 we calculate the subsample ratio from the number of runs 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
-subsample_ratio = 1 / Math.max(Channel.fromPath(params.diafiles).toSortedList().length(), 1)
+subsample_ratio = 1 / Math.max(Channel.fromPath(params.diafiles).toSortedList().size().getVal(), 1)
 #+end_src
 
 
@@ -2019,6 +2019,9 @@ process pyprophet_subsample {
 }
 #+end_src
 
+~pyprophet score~ requires significantly more memory than ~pyprophet merge~
+should we split this?
+
 #+begin_src nextflow
 process pyprophet_learn_classifier {
     input:
@@ -2031,7 +2034,7 @@ process pyprophet_learn_classifier {
     osw_model="model.osw"
     """
     pyprophet merge --template=$openswath_transitions --out=$osw_model $subsampled_osws
-    pyprophet score --score $pyprophet_seed_flag --in=$osw_model --level=ms1ms2
+    pyprophet score  $pyprophet_seed_flag --in=$osw_model --level=ms1ms2
     """
 }
 #+end_src
