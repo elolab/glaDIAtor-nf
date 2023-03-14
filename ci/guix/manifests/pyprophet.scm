@@ -19,13 +19,13 @@
 (define-public python-pyprophet
   (package
     (name "python-pyprophet")
-    (version "2.2.3")
+    (version "2.2.5")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "pyprophet" version))
               (sha256
                (base32
-                "1cbw25zdmlagnir21p7yd0fqcdcvy9w8qs9sdcbvwk3y0qqrlh3k"))))
+		"1cyspbj5czv9580v6sdccp5hl9pi63c8m4z646n0q36c7sjjpm7i"))))
     (build-system python-build-system)
     (propagated-inputs (list python-click
                              python-cython
@@ -53,5 +53,5 @@
   python-pyprophet))
 
 ;; Local Variables:
-;; compile-command: "guix time-machine -C ../channels.scm -- build -f pyprophet.scm"
+;; compile-command: "guix time-machine -C ../channels.scm -- build -m pyprophet.scm"
 ;; End:
