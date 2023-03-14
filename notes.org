@@ -643,7 +643,7 @@ NR==1 {
 
 
 #+NAME: nf-regularize-user-swath-windows
-#+begin_src nextflow :noweb no-export
+#+begin_src nextflow :noweb no-export :tangle no
 process RegularizeUserSwathWindow {
     input:
     path user_swath_windows, stageAs: 'userSwathWindow.txt' from Channel.fromPath(params.swath_windows_file).first()
