@@ -2031,7 +2031,7 @@ process pyprophet_learn_classifier {
     osw_model="model.osw"
     """
     pyprophet merge --template=$openswath_transitions --out=$osw_model $subsampled_osws
-    pyprophet_score --score $pyprophet_seed_flag --in=$osw_model --level=ms1ms2
+    pyprophet score --score $pyprophet_seed_flag --in=$osw_model --level=ms1ms2
     """
 }
 #+end_src
