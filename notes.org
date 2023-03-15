@@ -614,11 +614,9 @@ params.swath_windows_file=''
 if (params.swath_windows_file) {    
   <<nf-regularize-user-swath-windows>>  
 } else  {
-    <<nf-make-swath-windows>>
+    <<nf-infer-swath-windows>>
 }
-    
 #+end_src
-
 
 
 *** Making truncated-swath-windows and swath-windows from user-supplied swath-windows
@@ -627,20 +625,6 @@ Here we do some mangling so that the user inputed swathwindows is in the same fo
 We keeep =FS= to the default so that awk will happily accept whitespace as field separator,
 (be it normal spaces or tabs),
 but we output with tab as separators.
-We add the column names ~"LowerOffset", "HigherOffset"~  if they are not yet being used.
-(Alternatively, we could drop rows while the rowtype is not a strnum type?)
-
-#+NAME: awk-regularize-user-swath-windows
-#+begin_src awk :eval no
-BEGIN {OFS="	"}
-NR==1 {
-    if($1!="LowerOffset")
-	print "LowerOffset", "HigherOffset"
-}
-{ print $1,$2 }
-#+end_src
-
-
 
 #+NAME: nf-regularize-user-swath-windows
 #+begin_src nextflow :noweb no-export :tangle no
@@ -649,16 +633,18 @@ process RegularizeUserSwathWindow {
     path user_swath_windows, stageAs: 'userSwathWindow.txt' from Channel.fromPath(params.swath_windows_file).first()
     output:
     file swath_windows into swath_windows_ch
-    file truncated_swath_windows into truncated_swath_windows_ch
     script:
     swath_windows="swath-windows.txt"
-    truncated_swath_windows="truncated-swath-windows.txt"
-    ''' awk '
-    <<awk-regularize-user-swath-windows>>' ''' + "$user_swath_windows > $swath_windows;" +
-	"awk 'NR>1 {print}' $swath_windows > $truncated_swath_windows" 
+    """
+    sort -n $user_swath_windows | awk 'BEGIN {OFS="	"} {print \$1,\$2}' >  $swath_windows
+    """
 }
 #+end_src
-*** Generating Windows
+
+
+*** Inferring Windows from mzml files
+If the user didnt supply a swath windows file, we infer it from the mzml file
+
 #+NAME: py-makeswathwindows
 #+begin_src python :tangle no
 import xml.etree.ElementTree as ET
@@ -717,9 +703,7 @@ def read_swath_windows(dia_mzML):
     return windows
 
 def create_swath_window_files(cwd, dia_mzML):
-
     windows = read_swath_windows(dia_mzML)
-
     swaths = []
     for x in windows:
         target_str = x
@@ -730,57 +714,78 @@ def create_swath_window_files(cwd, dia_mzML):
         assert (lower > 0)
         assert (upper > 0)
         swaths.append((target - lower, target + upper))
-        
     swaths.sort(key=lambda tup: tup[0])
-
-    tswaths = []
-    tswaths.append(swaths[0])
-    for i in range(1, len(swaths)):
-        if swaths[i-1][1] > swaths[i][0]:
-            lower_prev, upper_prev = swaths[i-1]
-            lower, upper = swaths[i]
-            assert (upper_prev < upper)
-            tswaths.append((upper_prev, upper))
-        else:
-            tswaths.append(swaths[i])
-
-    assert (len(swaths) == len(tswaths))
     # here we use chr(10) (equivalent to slash n), and chr(9) (equivalent to slash t)  because i dont wanna deal with nextflow headaches
     newline_character = chr(10)
     tab_character = chr(9)
-    with open(os.path.join(cwd, "swath-windows.txt"), "w") as fh_swaths, open(os.path.join(cwd, "truncated-swath-windows.txt"), "w") as fh_tswaths:
-
-        fh_tswaths.write("LowerOffset"+tab_character+"HigherOffset"+newline_character)
-
-        for i in range(len(swaths)): 
-            fh_swaths.write(str(swaths[i][0]) + tab_character + str(swaths[i][1])  + newline_character)
-            fh_tswaths.write(str(tswaths[i][0]) + tab_character + str(tswaths[i][1])  + newline_character)
-
-    return swaths, tswaths
+    with open(os.path.join(cwd, "swath-windows.txt"), "w") as fh_swath:
+        for lower,upper in swaths
+            fh_swaths.write(str(lower) + tab_character + str(upper)  + newline_character)
+    return swaths
 
 #+end_src
 
-#+NAME: nf-make-swath-windows
-#+begin_src nextflow  :noweb no-export :tangle no
-process MakeSwathWindows {
+#+NAME: nf-infer-swath-windows
+ #+begin_src nextflow  :noweb no-export :tangle no
+process InferSwathWindows {
     input:
     file diafile from dia_mzml_files_ch.swath_windows.first()
     output: 
     file "swath-windows.txt" into  swath_windows_ch
-    file "truncated-swath-windows.txt" into truncated_swath_windows_ch
-    
     shell:
     '''
     #!/usr/bin/env python3
     <<py-makeswathwindows>>
-    swaths, _  = create_swath_window_files(".","!{diafile}")
+    swaths = create_swath_window_files(".","!{diafile}")
     '''
-    
 }
-
 #+end_src
 
 we'll have to get minswath and maxswath by reading ~"swath-windows.txt"~
+*** Making the non-overlapping swath-windows
+=Openswath= requires non-overlapping windows,
+so we create them here.
+
+#+NAME: awk-infer-non-overlapping-swath-windows
+#+begin_src awk
+BEGIN {OFS="	"}
+function max(a,b){
+    if(a > b)
+	return a
+    return b
+}
+NR==1 {
+    # we start with the special case that the boundary for the first entry
+    # should be unchanged
+    prev_upper=$1
+    # and we add the column names
+    print "LowerOffset","HigherOffset"
+}
+{
+    if (prev_upper > $2)
+    {
+	print "There is a a window thats a subwindow of the previous window"
+	exit 1
+    }
+    print(max($1,prev_upper),$2)
+    upper_prev=$2
+}
+#+end_src
+
+
+#+begin_src nextflow :noweb no-export
+process InferNonOverlappingSwathWindows {
+    inputs:
+    file swath_windows from swath_windows_ch.first()
+    outputs:
+    file truncated_swath_windows into truncated_swath_windows_ch
+    script:
+    truncated_swath_windows="truncated_swath_windows.txt"
+    ''' awk '
+    <<awk-infer-non-overlapping-swath-windows>>' ''' + "$swath_windows > $truncated_swath_windows"
+}
+#+end_src
+
 
 ** DONE Building {Pseudo-,}Spectral library  [4/4]
 *** Choosing Comet/Xtandem
@@ -2100,19 +2105,20 @@ process pyprophet_backpropagate {
     file osw_scored from scored_osw_ch.backpropagate
     file osw_global_model from osw_global_model.first()
     output:
-    file dscore_csv into pyprophet_nonlegacy_ch
+    file dscore_tsv into pyprophet_nonlegacy_ch
     script:
     base="${file(osw_scored.baseName).baseName}"
     backproposw="${base}.backprop.osw"
-    dscore_csv="${base}.csv"
+    dscore_tsv="${base}.tsv"
     """
     pyprophet backpropagate --in="$osw_scored" --apply_scores="$osw_global_model" --out=$backproposw
-    pyprophet export --in=$backproposw --out=$dscore_csv
+    # we supply --format=legacy_merged so that pyprophet export respect the --out parameter
+    pyprophet export --in=$backproposw --format=legacy_merged --out=$dscore_tsv
     """
 }
 
 #+end_src
-
+https://github.com/PyProphet/pyprophet/issues/49
 #+begin_src nextflow
 }
 #+end_src
