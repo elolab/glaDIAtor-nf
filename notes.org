@@ -2088,11 +2088,12 @@ process pyprophet_control_error {
     osw_global_model="model_global.osw"
     """
     pyprophet merge --template=$osw_model --out=$osw_global_model $reduced_scored_osws
-    pyprophet peptide --context=global --in=$osw_model
-    pyprophet protein --context=global --in=$osw_model
+    pyprophet peptide --context=global --in=$osw_global_model
+    pyprophet protein --context=global --in=$osw_global_model
     """
 }
 #+end_src
+
 #+begin_src nextflow
 process pyprophet_backpropagate {
     input:
