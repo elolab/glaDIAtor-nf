@@ -2105,7 +2105,7 @@ process pyprophet_backpropagate {
     backproposw="${base}.backprop.osw"
     dscore_csv="${base}.csv"
     """
-    pyprophet backpropagate --in="$osw_scored" --apply_scores="$osw_global_model" --level=ms1ms2 --out=$backproposw
+    pyprophet backpropagate --in="$osw_scored" --apply_scores="$osw_global_model" --out=$backproposw
     pyprophet export --in=$backproposw --out=$dscore_csv
     """
 }
