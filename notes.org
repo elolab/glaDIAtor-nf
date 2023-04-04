@@ -719,7 +719,7 @@ def create_swath_window_files(cwd, dia_mzML):
     newline_character = chr(10)
     tab_character = chr(9)
     with open(os.path.join(cwd, "swath-windows.txt"), "w") as fh_swath:
-        for lower,upper in swaths
+        for lower,upper in swaths:
             fh_swaths.write(str(lower) + tab_character + str(upper)  + newline_character)
     return swaths
 
