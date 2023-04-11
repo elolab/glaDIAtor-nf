@@ -1803,10 +1803,10 @@ Then here we choose which one to use
 #+begin_src nextflow :noweb no-export
 // we will need the osw to go to various processes
 if (params.pyprophet_use_legacy){
-    openswath_transitions_ch_for_legacy = openswath_transitions_ch.into(1)
+    openswath_transitions_ch.into{openswath_transitions_ch_for_legacy}
  <<nf-openswathworkflow-for-pyprophet-legacy>>
 } else {
-    (openswath_transitions_ch_for_nonlegacy,openswath_transitions_ch_for_pyprophet)  = openswath_transitions_ch.into(2)
+    openswath_transitions_ch.into{openswath_transitions_ch_for_nonlegacy;openswath_transitions_ch_for_pyprophet}
   <<nf-openswathworkflow-for-pyprophet-nonlegacy>>
 }
 #+end_src
@@ -2133,9 +2133,9 @@ https://github.com/PyProphet/pyprophet/issues/49
 Here we choose between legacy or nonlegacy pyprophet
 #+begin_src nextflow
 if (params.pyprophet_use_legacy)
-    pyprophet_ch = pyprophet_legacy_ch
+    pyprophet_legacy_ch.set{pyprophet_ch}
 else
-    pyprophet_ch = pyprophet_nonlegacy_ch
+    pyprophet_nonlegacy_ch.set{pyprophet_ch}
 #+end_src
 
 *** feature-alignment
