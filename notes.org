@@ -521,7 +521,9 @@ process MgfToMzxml {
     file mgf from pseudospectra_mgf_ch
     output:
     file "*.mzXML" into pseudospectra_ch
-    
+    when:
+    // excluding empty files   
+    mgf.size()  > 0
     """
     msconvert $mgf --mzXML 
     """
