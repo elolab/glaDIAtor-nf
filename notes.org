@@ -718,10 +718,10 @@ def create_swath_window_files(cwd, dia_mzML):
     # here we use chr(10) (equivalent to slash n), and chr(9) (equivalent to slash t)  because i dont wanna deal with nextflow headaches
     newline_character = chr(10)
     tab_character = chr(9)
-    with open(os.path.join(cwd, "swath-windows.txt"), "w") as fh_swath:
+    with open(os.path.join(cwd, "swath-windows.txt"), "w") as fh_swaths:
         for lower,upper in swaths:
             fh_swaths.write(str(lower) + tab_character + str(upper)  + newline_character)
-    return swaths
+    return fh_swaths
 
 #+end_src
 
