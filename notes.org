@@ -1047,7 +1047,9 @@ process XinteractComet {
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     file mzxmls from  xinteract_comet_mzxml_ch.toSortedList()
     output: 
-    file "interact_comet.pep.xml" into comet_search_results_ch 
+    file "interact_comet.pep.xml" into comet_search_results_ch
+    when:
+    pepxmls.size() > 0
     """
     /opt/tpp/bin/xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_comet.pep.xml $pepxmls
     """
@@ -1345,7 +1347,9 @@ process XinteractXTandem {
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     file mzxmls from  xinteract_xtandem_mzxml_ch.toSortedList()
     output: 
-    file "interact_xtandem.pep.xml" into xtandem_search_results_ch 
+    file "interact_xtandem.pep.xml" into xtandem_search_results_ch
+    when:
+    pepxmls.size() > 0 
     """
     /opt/tpp/bin/xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_xtandem.pep.xml $pepxmls
     """
