@@ -157,6 +157,9 @@ digraph flow
 }
 #+end_src
 
+#+RESULTS: flow
+[[file:img/flow.svg]]
+
 
 
 * Preprocessing Data
@@ -208,6 +211,7 @@ diatools: doi:10.1021/acs.jproteome.9b00606
 
 #+NAME: nf-header-block
 #+begin_src nextflow :noweb no-export 
+<<nf-sdrf-handling>>
 <<nf-vars>>
 #+end_src
 ** DONE building database
@@ -532,6 +536,7 @@ process MgfToMzxml {
 
 
 #+begin_src scheme :noweb-ref deps :tangle no 
+
 ("generate-pseudo-spectra"
  "dia-umpire" 
  "pwiz") ;; the free one 
@@ -543,17 +548,24 @@ https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/rele
 mstools
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 params.diaumpireconfig='diaumpireconfig.txt'
-params.diafiles = "DIA/*.mzML"
-params.ddafiles = "DDA/*.mzXML"
-params.dda_assisted = false
+// glob to DIA mzmML files, e.g. "DIA/*.mzML"
+// MANDATORY to be set if not set by SDRF file
+params.diafiles = null
+// OPTIONAL glob to mzXML dda files
+// e.g. "DDA/*.mzXML"
+// if left unset, then pseudospectra will be used.
+params.ddafiles = null 
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 // so that this is a singleton channel
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
-Channel.fromPath(params.ddafiles).into{dda_files_ch ; dda_files_empty_check}
 // dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
-dda_assisted_p = params.dda_assisted
+dda_assisted_p = !!params.ddafiles
+if (dda_assisted_p) {
+    Channel.fromPath(params.ddafiles).set{dda_files_ch}
+}
+
 
 (initial_dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
   (dda_assisted_p ?
@@ -1059,11 +1071,12 @@ process XinteractComet {
 Some scientific papers use =mmu= which is equal to 1 milidalton
 0.001 Dalton
 #+begin_src nextflow :noweb-ref nf-params :tangle no
-params.precursor_mass_tolerance=10 // ppm 
-params.fragment_mass_tolerance=0.02  // Dalton
+// Float or Int; in ppm ; eg. params.precursor_mass_tolerance=10
+params.precursor_mass_tolerance=null  
+// Float or Int; in Dalton; e.g. parames.fragment_mass_tolerance=0.2
+params.fragment_mass_tolerance=null
 params.comet_template="comet_template.txt"
 #+end_src
-
 Notably, a more stringent (lower) tolerance increases memorary usage by comet.
 
 *** DONE Xtandem
@@ -2451,6 +2464,171 @@ based on the name of the
 #+NAME: config-podman-local
 #+begin_src nextflow
 <<construct-container-config("podman","local")>>
+#+end_src
+* SDRF support
+:PROPERTIES:
+:HEADER-ARGS:nextflow: :noweb-ref nf-sdrf-handling :tangle no
+:END:
+
+You can supply a path to an sdrf file with =--sdrf=filename=
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// path to a sdrf file 
+params.sdrf = null
+#+end_src
+
+The standard is defined here https:://github.com/bigbio/proteomics-metadata-standard
+See the =annoted-projects= directory for examples,
+Good examples is =PXD003977=
+
+#+begin_src nextflow :noweb yes
+import nextflow.splitter.CsvSplitter
+
+def readSDRF(filename,params)
+{
+    def sdrf_file=file(filename)
+    def options=[:]
+    def errors=[]
+    def warnings=[]
+    def handlers =[
+	<<nf-sdrf-handlers>>
+    ]
+    def sdrf_fields = new CsvSplitter().target(sdrf_file.text).options(header:true,sep:'	').list()
+    sdrf_fields = sdrf_fields.collect(
+	{entry ->
+	    entry.collectEntries(
+		{key, row ->
+		    [key,
+		     (row =="not available" ||
+		      row == "not applicable") ? 
+		     null :
+		     row]})})
+    
+
+    for(handler in handlers) {
+	def val = handler(sdrf_fields, params);
+	errors += val.errors
+	warnings+= val.warnings
+	options+=val.values
+    }
+    for(warning in warnings)
+	print("WARNING: " + warnings)
+    for(error in errors)
+	print("ERROR: " + error)
+    if(errors)
+	throw new Exception("Errors in SDRF file, see above messages")
+    return options
+}
+#+end_src
+
+Fields we handle:
+** ~comment[file uri]~
+We can handle remote and local files in ~comment[associated file uri]~
+as long as they are in mzML format.
+This can be used i.l.o ~params.diafiles~
+(though other libre formats would also be possible if we add an msconvert step first)
+#+begin_src nextflow :noweb-ref nf-sdrf-handlers :tangle no
+this.&parseSDRFFileUri,
+#+end_src
+
+#+begin_src nextflow
+def parseSDRFFileUri(sdrf_fields, params){
+    def raise_error_on_non_mzml=true
+    def retval= [values:[:],warnings:[],errors:[]]
+    def field_name = 'comment[file uri]'
+    def flag_name = '--diafiles'
+    def files = sdrf_fields*.get(field_name)
+    // here we intentionally don't break the switch statement so that we can accumulate retval.errors,
+    // so that the user can know all at once.
+    switch (true) {
+	case (params.diafiles):
+	    retval.values+=[diafiles:params.diafiles]
+	    break;
+    case(files == null):
+	    retval.errors += ["No column named '$field_name' in sdrf. Add one or supply files with  $flag_name"];
+	    break;
+	case (isallnull(files) || !files):
+	    retval.errors += ["All retval.values are missing in  supplied in sdrf '$field_name'. Enter these or supply CLI $flag_name];"]
+	case (!isallnull(files) && issomenull(files)):
+	    retval.errors += ["Some entries in sdrf '$field_name'  are not given, fill in or supply $flag_name"];
+	case (!isallnull(files) && raise_error_on_non_mzml && files.any({x -> x  && file(x).getExtension() != "mzML"})):
+	    retval.errors += ["Some entries in sdrf  '$field_name' are not mzML files"];
+	    // if there were no retval.errors
+	    // then the files field in the sdrf is correct
+	case(!retval.errors):
+	    retval.values+=[diafiles:files]
+	    break;
+	case(retval.errors):
+	    retval.values+=[diafiles:null]
+	    break;
+    }
+    return retval
+}
+#+end_src
+
+** ~comment[precursor mass tolerance]~, ~comment[fragment mass tolerance]~
+We require (for now)
+precursor mass tolerance to be ppm, and to be the same for all the samples.
+
+#+begin_src nextflow :noweb-ref nf-sdrf-handlers
+{_sdrf_fields,_params ->
+    parseSDRFTolerance(_sdrf_fields, _params,
+					    field_name = "comment[fragment mass tolerance]",  flag_name="fragment_mass_tolerance",supported_units=["Da"])},
+{_sdrf_fields,_params ->
+    parseSDRFTolerance(_sdrf_fields, _params,
+					    field_name = "comment[precursor mass tolerance]",  flag_name="precursor_mass_tolerance",supported_units=["ppm"])},
+#+end_src
+
+#+begin_src nextflow
+def parseSDRFTolerance(sdrf_fields, params,  field_name = "comment[precursor mass tolerance]",  flag_name="precursor_mass_tolerance",supported_units=["ppm"]){
+    def retval = [values:[:], warnings:[], errors:[]]
+    def tolerances = sdrf_fields*.get(field_name)
+    switch(true){
+	case(params.get(flag_name) != null):
+	    retval.values[flag_name] = params.get(field_name);
+	    break
+	case(tolerances == null):
+	    retval.errors += ["No column named '$field_name' in sdrf. Add one or supply  --$flag_name"];
+	    break;
+	case (isallnull(tolerances) || !tolerances):
+	    retval.errors += ["All values are missing in  supplied in sdrf '$field_name'. Enter these or supply CLI --$flag_name];"]
+	case (!isallnull(tolerances) && !tolerances.every()):
+	    retval.errors += ["Some entries in sdrf '$field_name'  are not given, fill in or supply $flag_name"];
+	case(tolerances.any({it && it.split().size() > 1 && !(supported_units.contains(it.split()[1]))})):
+	    retval.errors += ["Some entries in sdrf '$field_name' have an unsupported unit(supported units for $field_name: $supported_units)"];
+	case(tolerances.any({it && it.split().size() < 2})):
+	    retval.warnings += ["Some entries in sdrd '$field_name' do not have a unit, assuming " + supported_units[0]]
+	case(tolerances.unique().size() != 1):
+	    retval.errors += ["Gladiator currently requires the $field_name to be the same for all the samples, change it or supply --$flag_name"];
+    case(!retval.errors):
+	    retval.values[flag_name] = tolerances.unique()[0].split()[0]
+    }
+    return retval
+}
+#+end_src
+
+
+
+** Utility functions
+#+begin_src nextflow
+def isallnull(value)
+{
+    value == null || value.every({x-> x==null})
+}
+def issomenull(value)
+{
+    value == null || value.any({x -> x == null})
+}
+#+end_src
+
+** Testing
+#+begin_src nextflow :noweb-ref nf-testing 
+print(readSDRF("annotated-projects/PXD003977/PXD003977.sdrf.tsv",params))
+#+end_src
+** Updating params
+#+begin_src nextflow
+if (params.sdrf){
+    params = readSDRF(params.sdrf, params) + params
+}
 #+end_src
 
 * Putting it together
