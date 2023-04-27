@@ -1587,7 +1587,7 @@ END {
 #+end_src
 
 TargetedFileConverter from =OpenMS=
-
+#+VINDEX: params.irt_traml_file
 #+begin_src nextflow :noweb yes
 process CreateSpectrastIrtFile {
     input:
@@ -1645,6 +1645,10 @@ GTFIIDPAAVIR    86.7152
 LFLQFGAQGSPFLK  98.0897
 #+end_src
 
+<<nf-param-use_irt>>
+#+VINDEX: params.use_irt
+<<nf-param-irt_traml-file>>
+#+VINDEX: params.irt_traml_file
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // white-space-delimited file of peptide-sequences and internal retention times
 // whether or not to use the retention-
@@ -1654,6 +1658,7 @@ params.irt_traml_file = "iRTAssayLibrary.TraML"
 **** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
+#+VINDEX: params.openswath_transitions
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // optional 
 params.openswath_transitions = ""
@@ -1741,7 +1746,7 @@ params.osw_extra_flags =  ""
 
 to use ~-out_osw~, ~-tr~ needs to be a pqp file,
 
-
+#+VINDEX: params.irt_traml_file
 If we are using legacy pyprophet we will need to create a tsv
 #+NAME: nf-openswathworkflow-for-pyprophet-legacy
 #+begin_src nextflow :tangle no 
@@ -1775,8 +1780,9 @@ process OpenSwathWorkflow_legacy {
 #+end_src
 
 
-If we are using nonlegacy pyprophet we will need to create an osw
 
+If we are using nonlegacy pyprophet we will need to create an osw
+#+VINDEX: params.irt_traml_file
 #+NAME: nf-openswathworkflow-for-pyprophet-nonlegacy
 #+begin_src nextflow :tangle no
 openswath_osw_indirect_ch = Channel.create()
@@ -2013,6 +2019,8 @@ In =pyprophet subsample= and =pyprophet score=,
 we will need to pass =--test= to not have random behaviour.
 This will make the sql behaviour behaviour non-random.
 However there is no actual seed paramater to set, its just a "use-random/ don't use random" flag.
+#+VINDEX: params.pyprophet_fixed_seed
+#+VINDEX: params.pyprophet_use_legacy
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 params.pyprophet_fixed_seed=true
 params.pyprophet_use_legacy=false
@@ -2418,8 +2426,6 @@ And here we write the logic that fills the template
 (construct-container-config template program-name locality)
 
 #+end_src
-
-
 
 
 
@@ -2930,3 +2936,7 @@ especially so that ~org-html-head~ can be inferred from the
 
 
 
+* Index
+:PROPERTIES:
+:INDEX:    vr
+:END:
