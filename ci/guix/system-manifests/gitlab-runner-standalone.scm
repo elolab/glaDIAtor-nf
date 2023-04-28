@@ -106,6 +106,14 @@
 		     (ice-9 rdelim)
 		     (ice-9 ports)
 		     (ice-9 ftw))
+	
+	(with-exception-handler (const #f)
+	  (lambda () 
+	    (unless (file-exists? "/tmp")
+	      (mkdir "/tmp"))
+	    (unless (file-exists? "/etc")
+	      (mkdir "/etc")))
+	  #:unwind? #t)
 
 	;; `docker run` seems to overwrite /etc/ to write resolv.conf
 	;; https://docs.docker.com/engine/reference/run/
@@ -118,6 +126,7 @@
 	;; and #$net-base, because those are the only ones we need.
 	;; then we dont need the ugle /guix-etc/ hack
 	;; and we dont even need to pass any symlink flags.
+
 	
 	(define (symlink-dir-contents  source-dir target-dir)
 	  (when (and (access? source-dir R_OK)
