@@ -2208,8 +2208,6 @@ params.trig_max_fdr=0.05
 
 #+NAME: r-swath2stats
 #+begin_src R :tangle no :eval no :var diafile="" :var strict_checking=0 :var peptideoutputfile="" :var proteinoutputfile="" :var decoyprefix="DECOY_"
-.libPaths("/opt/Rlibs/") 
-
 suppressPackageStartupMessages(library(SWATH2stats))
 suppressPackageStartupMessages(library(data.table))
 
@@ -2306,11 +2304,7 @@ params.swath2stats_strict_checking=true
 #+begin_src scheme :noweb-ref deps :tangle no
 ("swath2stats"
  "r-minimal"
- "r-swath2stats"
- "r-peca"
- "r-tidyr"
- "r-argparse"
- "r-corrplot")
+ "r-swath2stats")
 #+end_src
 
 
@@ -2324,12 +2318,8 @@ The above as an R-script
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install(version = "3.15",ask=FALSE,update=FALSE)
-
 BiocManager::install("SWATH2stats", ask=FALSE,update=FALSE)
-BiocManager::install("PECA", ask=FALSE,update=FALSE)
-install.packages("tidyr",repos = "http://cran.us.r-project.org")
-install.packages("argparse",repos = "http://cran.us.r-project.org")
-install.packages("corrplot",repos = "http://cran.us.r-project.org")
+
 #+end_src
 * Configuration for backends
 ** Defining the config template
