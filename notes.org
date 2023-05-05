@@ -1776,7 +1776,106 @@ and pass result tsv to OpenSwathWorkflow as =-tr=.
 #+end_src
 
 
+**** End of {Pseudo-,}Spectral section :noexport:
+This section should be the last so that we can tangle this close paren.
+#+begin_src nextflow  :noweb-ref nf-vars
+openswath_transitions_from_pseudo_spectra
+    .set{openswath_transitions_ch}
+} // end of dda convolution / pseudo spectra convolution guard.
+#+end_src
+# Here we intententionally do not set tangle to "no"
+# so we leave it to be tangled to the default tangle destinitation
+# in addition to having noweb ref
+# so that this statement goes to both 
+*** Building Spectral library from Machine learning
 
+[[https://github.com/lmsac/DeepDIA][DeepDIA]] can predict the spectral library from peptide lists
+See also its documentation https://github.com/lmsac/DeepDIA/raw/master/README.md
+
+#+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
+<<nf-pagebreak>>
+if(deconvolution_method_is_enabled("deepdia",params))  { 
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params._deepdia_url = "https://github.com/lmsac/DeepDIA/blob/c5ad2aa50218fcdfd1d441714702e605fdb00bb3"
+// list tuples in the form of
+// [charge, model, peptidelist]
+params.deepdia_ms2_entries = [
+    ["2",
+     "${params._deepdia_url}/data/charge2/epoch_035.hdf5",
+     "${params._deepdia_url}/data/peptides/Pan_human_charge2.peptide.csv"],
+    ["3",
+     "${params._deepdia_url}/data/charge3/epoch_034.hdf5",
+     "${params._deepdia_url}/data/peptides/Pan_human_charge3.peptide.csv"]]
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+Channel
+    .from(params.deepdia_ms2_entries)
+    .map( {
+	    charge, model, peptides ->
+	    tuple(charge, file(model), file(peptides))}
+    .set(deepdia_ms2_inputs_ch)
+#+end_src
+
+
+
+#+begin_src nextflow
+process DeepDIAPredictCharge {
+    input:
+    set charge,file(model), file(peptides) from deepdia_ms2_inputs_ch
+    output:
+    file deepdia_ions
+    script:
+    deepdia_ions="predictions.charge.${charge}.ions.json"
+    """
+    predict_ms2.py --charge $charge --in $peptides --model $model --out $deepdia_ions
+    """
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.deepdia_irt_model =
+    "${params._deepdia_url}/data/models/irt/epoch_082.hdf5"
+params.deepdia_peptides =
+    "${params._deepdia_url}/data/peptides/Pan_human.peptide.csv"
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+deepdia_irt_model = Channel.fromPath(params.deepdia_irt_model)
+deepdia_peptides = Channel.fromPath(params.deepdia_peptides)
+#+end_src
+#+begin_src nextflow
+process DeepDIAPredictRetention {
+    input:
+    file deepdia_irt_model
+    file deepdia_peptides
+    output:
+    file predicted_rt
+    script:
+    predicted_rt="prediction.irt.csv"
+    """
+    predict_rt --in $deepdia_peptides --model $deepdia_irt_model --out $predicted_rt
+    """
+}
+#+end_src
+
+
+#+begin_src nextflow
+process DeepDIAPredictionsToLibrary {
+    input:
+    file predicted_rt
+    file ions from deepdia_ions.toSortedList()
+    output:
+    file:
+}
+#+end_src
+
+
+#+begin_src nextflow :noweb-ref nf-vars
+}  // end of deepdia guard
+#+end_src
 
 ** DONE Building Dia Matrix
 https://openswath.org/_/downloads/en/latest/pdf/
@@ -3000,9 +3099,3 @@ especially so that ~org-html-head~ can be inferred from the
 :PROPERTIES:
 :INDEX:    vr
 :END:
-**** End of {Pseudo-,}Spectral section :noexport:
-This section should be the last so that we can tangle this close paren.
-#+begin_src nextflow  :noweb-ref nf-vars
-openswath_transitions_from_pseudo_spectra
-    .set{openswath_transitions_ch}
-} // end of dda convolution / pseudo spectra convolution guard.
