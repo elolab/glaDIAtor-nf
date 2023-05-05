@@ -99,6 +99,7 @@ RUN cat /root/tpp-5.2-fix.diff |patch -p1
 RUN make libgd
 RUN make all
 RUN make install
+ENV PATH /opt/tpp/bin:$PATH
 
 # INSTALL msproteomicstools.git
 WORKDIR /src/
@@ -116,6 +117,7 @@ RUN wget https://sourceforge.net/projects/comet-ms/files/comet_2019015.zip
 RUN unzip comet_2019015.zip
 RUN ln -s comet.2019015.linux.exe comet-ms
 RUN chmod ugo+x comet.2019015.linux.exe
+ENV PATH /opt/comet:$PATH
 
 # Install tandem
 WORKDIR /opt
@@ -124,23 +126,13 @@ RUN unzip tandem-linux-17-02-01-4.zip
 RUN mv tandem-linux-17-02-01-4 tandem
 RUN ln -s /opt/tandem/bin/static_link_ubuntu/tandem.exe /opt/tandem/tandem
 RUN chmod ugo+x /opt/tandem/bin/static_link_ubuntu/tandem.exe
-
-# INSTALL msgfplus
-#RUN mkdir /opt/msgfplus
-#WORKDIR /opt/msgfplus
-#RUN wget https://github.com/MSGFPlus/msgfplus/releases/download/v2018.10.15/MSGFPlus_v20181015.zip
-#RUN unzip MSGFPlus_v20181015.zip
+ENV PATH /opt/tandem:$PATH
 
 # INSTALL Percolator
 WORKDIR /opt
 RUN wget https://github.com/percolator/percolator/releases/download/rel-3-01/ubuntu64_release.tar.gz
 RUN tar xfv ubuntu64_release.tar.gz
 RUN dpkg -i percolator-converters-v3-01-linux-amd64.deb percolator-v3-01-linux-amd64.deb
-
-# INSTALL luciphor2
-RUN mkdir /opt/luciphor2
-WORKDIR /opt/luciphor2
-RUN wget https://sourceforge.net/projects/luciphor2/files/luciphor2.jar
 
 # INSTALL dia-umpire
 RUN mkdir /opt/dia-umpire
@@ -155,20 +147,9 @@ RUN mkdir /.Rcache
 RUN mkdir /opt/Rlibs/
 RUN chmod u+x /opt/gladiator/install-R-packages.R
 RUN /opt/gladiator/install-R-packages.R
+ENV R_LIBS_SITE /opt/Rlibs/
 
 WORKDIR /
-
-# Install thermo raw library (disabled)
-# COPY wineprefix64.tar.gz /
-# RUN tar xfv wineprefix64.tar.gz
-# RUN dpkg --add-architecture i386
-# RUN wget -nc https://dl.winehq.org/wine-builds/winehq.key
-# RUN sudo apt-key add winehq.key
-# RUN apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ focal main'
-# RUN apt -y install --install-recommends winehq-stable
-# RUN ln -s /wineprefix64/ /root/.wine
-# RUN apt -y install xvfb
-# RUN apt -y install winetricks
 
 # libqt5 (used by openms's DecoyDatabase) uses renameat2
 # This will result in ImportError: libQt5Core.so.5: cannot open shared object file: No such file or directory
