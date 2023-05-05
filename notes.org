@@ -2336,10 +2336,15 @@ and the pyprophet legacy container to be used (~%P~).
 %p.enabled=true
 process {
    container='%G'
+   withName: 'DeepDia.*' {
+      container='%D'
+   }
+   
    // for nonlegacy pyprophet processes
    withName: 'pyprophet_.*' {
       container='%N'
    }
+
    // because this is the more specific rule
    // we apply it last, so that it overrides the 'pyprophet_.*' rule if
    // this rule also applies
@@ -2400,6 +2405,10 @@ And here we write the logic that fills the template
 	       `((?p . ,program-name)
 		 (?G . 
 		     ,(construct-container-uri "gladiator"
+					       program-name-key
+					       locality))
+		 (?D .
+		     ,(construct-container-uri "deepdia"
 					       program-name-key
 					       locality))
 		 (?N .
