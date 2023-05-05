@@ -182,7 +182,7 @@ find . -iname '*.wiff' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'tit
 #+end_src
 
 
-* Analysis [5/5]
+* Analysis [4/4]
 Gladiator paper: doi:10.1038/s43705-022-00137-0
 diatools: doi:10.1021/acs.jproteome.9b00606
 ** Headers
@@ -209,11 +209,16 @@ diatools: doi:10.1021/acs.jproteome.9b00606
 <<gwl-vars>>
 #+end_src
 
+
+
 #+NAME: nf-header-block
 #+begin_src nextflow :noweb no-export 
 <<nf-sdrf-handling>>
+<<nf-function-definitions>>
 <<nf-vars>>
 #+end_src
+
+
 ** DONE building database
 *Overview*
 [[file:glaDIAtor/workflow.py::def build_database(\\][build_database definition]]
@@ -358,249 +363,16 @@ should be relatively easy to define)
 #+begin_src scheme :noweb-ref gwl-proc :tangle no
 create-database-with-decoys
 #+end_src
-** DONE Creating Pseudospectra
-:LOGBOOK:
-CLOCK: [2022-06-07 Tue 10:33]--[2022-06-07 Tue 19:38] =>  9:05
-:END:
-[[file:glaDIAtor/workflow.py::def runDiaumpire]]
-#+NAME: dot-create-pseudospectra
-#+begin_src dot :file-ext svg
-digraph {
-    DIA[label="DIA_1.mzXML"]
-    diaumpire[shape="box",label="java -jar DiaUmpire.jar"]
-    pseudo_spectra[label="libfree/DIA_1.mgs"]
-    diaumpire_cfg[label="diaumpirecfg.txt (singleton)"]
-    pseudo_spectra_mzxml[label="libfree-pseudospectra/DIA_1.mzXML"]
-		   
-    DIA -> diaumpire
-    diaumpire_cfg -> diaumpire
-    diaumpire -> pseudo_spectra -> { msconvert[shape="box"] } -> pseudo_spectra_mzxml
-}
+
+** Input DIA files
+Here we redirect the dia files to the
+#+begin_src  nextflow :noweb-ref nf-vars :tangle no
+Channel
+    .fromPath(params.diafiles)
+    .multiMap{
+	it -> swath_windows: osw: it}
+    .set{dia_mzml_files_ch}
 #+end_src
-
-#+RESULTS: dot-create-pseudospectra
-[[file:img/dot-create-pseudospectra.svg]]
-https://github.com/Nesvilab/DIA-Umpire/tree/master
-*** Problems you might encounter during this step
-**** Out of Memory in Dia-umpire
-Dia-umpire, which we use here for pseudo-spectra creation,
-has pretty extreme memory requirements,
-in  your config file you can set the process specific memory (required to be in Gigabyes) e.g. 
-#+begin_src nextflow :tangle no :eval no 
-process { 
-  withName: 'GeneratePseudoSpectra'
-  {
-	time='96h'
-	memory='400 GB'
-  }
-}
-#+end_src
-see also [[https://www.nextflow.io/docs/latest/process.html#memory][The Nextflow documentation about process memory]]
-**** =MzmlToMzxml= processigng error.
-If you get an error of
-#+begin_src fundamental :tangle no
-  processing file: RD139_Narrow_UPS1_50fmol_inj3.mzML
-  [SpectrumList_mzML::create()] Bad istream.
-  Error processing file RD139_Narrow_UPS1_50fmol_inj3.mzML
-#+end_src
-in =MzmltoMzxml=, that can mean that something went wrong
-when you used =msconvert= to convert from the propriatary format to mzml
-*** Steps that are run 
-DIAumpire is =Apache 2= licensed.
-#+NAME: diaumpireconfig
-#+begin_src conf :eval no :tangle diaumpireconfig.txt 
-#Number of threads
-# set to the number of cores available
-# In the original gladiator, this was set by replicing this all caps 
-Thread = 4
-
-#Precursor-fragments grouping parameters
-RPmax = 25
-RFmax = 300
-CorrThreshold = 0.2
-DeltaApex = 0.6
-RTOverlap = 0.3
-
-#Fragment intensity adjustments
-# change BoostComplementaryIon if later using database search results to build libraries for Skyline/OpenSWATH
-AdjustFragIntensity = true
-BoostComplementaryIon = true
-
-#Export detected MS1 features (output feature file can be loaded and mapped to RAW data in BatMass)
-ExportPrecursorPeak = false
-
-#Signal extraction: mass accuracy and resolution
-# resolution parameter matters only for data generated in profile mode
-SE.MS1PPM = 15
-SE.MS2PPM = 25
-SE.Resolution = 60000
-
-#Signal extraction: signal to noise filter
-SE.SN = 1.1
-SE.MS2SN = 1.1
-
-#Signal extraction: minimum signal intensity filter
-# for Thermo data, filtering is usually not necessary. Set SE.EstimateBG to false and SE.MinMSIntensity and SE.MinMSMSIntensity to a low value, e.g. 1
-# for older Q Exactive data, or when too many MS1 features are extracted, set SE.EstimateBG to yes (or apply SE.MinMSIntensity and SE.MinMSMSIntensity values based on BatMass visualization)
-SE.EstimateBG = false
-SE.MinMSIntensity = 1
-SE.MinMSMSIntensity = 1
-
-#Signal extraction: peak curve detection and isotope grouping
-# for older Q Exactive data, or when too many MS1 features are extracted, set SE.NoMissedScan to 1
-SE.NoMissedScan = 2
-SE.MaxCurveRTRange = 2
-SE.RemoveGroupedPeaks = true
-SE.RemoveGroupedPeaksRTOverlap = 0.3
-SE.RemoveGroupedPeaksCorr = 0.3
-SE.MinNoPeakCluster = 2
-SE.MaxNoPeakCluster = 4
-
-#Signal extraction: filtering of MS1 features 
-# if interested in modified peptides, increase MassDefectOffset parameter, or set SE.MassDefectFilter to false
-SE.IsoPattern = 0.3
-SE.MassDefectFilter = true
-SE.MassDefectOffset = 0.1
-
-#Signal extraction: other 
-SE.StartCharge = 1
-SE.EndCharge = 5
-SE.MS2StartCharge = 2
-SE.MS2EndCharge = 5
-SE.MinFrag=10
-SE.StartRT = 0
-SE.EndRT = 9999
-SE.MinMZ = 200
-SE.MinPrecursorMass = 600
-SE.MaxPrecursorMass = 5000
-
-
-#Isolation window setting
-#The current version supports the following window type: SWATH (fixed window size), V_SWATH (variable SWATH window), MSX, MSE, pSMART
-WindowType=SWATH
-
-#Fix window size (For SWATH)
-# for Thermo data, this will be determined from raw data automatically
-#WindowSize=15
-
-#Variable SWATH window setting (start m/z, end m/z, separated by Tab)
-# for Thermo data, this will be determined from raw data automatically
-
-#==window setting begin
-#==window setting end
-#+end_src
-MGF = Mascot Generic Format
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518119/
-#+begin_src nextflow
-// create mzxml
-process MzmlToMzxml {
-    input:
-    file diafile from dia_mzml_files_for_pseudospectra_ch
-    output:
-    file "*.mzXML" into dia_mzxml_files_for_pseudospectra_ch
-    """
-    msconvert $diafile --32 --zlib --filter "peakPicking false 1-" --mzXML
-    """
-        
-}
-
-process GeneratePseudoSpectra  {
-    memory '16 GB' 
-    input:
-    file diafile from dia_mzxml_files_for_pseudospectra_ch
-    path diaumpireconfig from diaumpireconfig_ch.first()
-    output:
-    // we flatten here becuase a single mzxml might result in multiple mgf files
-    file "*.mgf" into pseudospectra_mgf_ch mode flatten 
-
-    """
-    # we set \$1 to the number of gigs of memory
-    set -- $task.memory
-    java -Xmx\$1g -Xms\$1g -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
-    """
-}
-
-process MgfToMzxml {
-    input:
-    file mgf from pseudospectra_mgf_ch
-    output:
-    file "*.mzXML" into pseudospectra_ch
-    when:
-    // excluding empty files   
-    mgf.size()  > 0
-    """
-    msconvert $mgf --mzXML 
-    """
-}
-#+end_src
-
-
-#+begin_src scheme :noweb-ref deps :tangle no 
-
-("generate-pseudo-spectra"
- "dia-umpire" 
- "pwiz") ;; the free one 
-#+end_src
-
-
-though this  might also be done with openms's =FileConverter= ? which is more conventionally build 
-https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/release/latest/html/TOPP_FileConverter.html
-mstools
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-params.diaumpireconfig='diaumpireconfig.txt'
-// glob to DIA mzmML files, e.g. "DIA/*.mzML"
-// MANDATORY to be set if not set by SDRF file
-params.diafiles = null
-// OPTIONAL glob to mzXML dda files
-// e.g. "DDA/*.mzXML"
-// if left unset, then pseudospectra will be used.
-params.ddafiles = null 
-#+end_src
-
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-// so that this is a singleton channel
-diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
-// dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
-dda_assisted_p = !!params.ddafiles
-if (dda_assisted_p) {
-    Channel.fromPath(params.ddafiles).set{dda_files_ch}
-}
-
-
-(initial_dia_mzml_files_ch, dia_mzml_files_for_pseudospectra_ch) =
-  (dda_assisted_p ?
-    [ Channel.fromPath(params.diafiles), Channel.empty() ] :
-   // take(2) for development short cycle
-  Channel.fromPath(params.diafiles).into(2)
-  // Channel.fromPath(params.diafiles).into(2)
-)
-
-initial_dia_mzml_files_ch.multiMap{
-    it -> swath_windows: osw: it
-    }.set{dia_mzml_files_ch}
-    
-#+end_src
-As dia will be listened to by two in the case of not dda-assisted,
-we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
-
-
-The channel-juggling below  makes the path for pseudo-spectra and "real" input spectra
-follow the same path after =MgfToMzxml= / from comet&xtandem onwards,
-by putting the ones to act on in the =maybespectra_ch.{comet,xtandem}= channels.
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-// we forward-declare pseudospectra_ch here (output of the MgfToMzxml process)
-// so that we can define a multiMap rule for it.
-pseudospectra_ch = Channel.create()
-// maybe-spectra can be either real spectra or pseudo-spectra
-if (dda_assisted_p){
-    dda_files_ch.multiMap { it ->
-	spectrast: comet: xtandem: it }.set{maybespectra_ch}
-} else {
-    pseudospectra_ch.multiMap { it ->
-	spectrast: comet: xtandem: it }.set{maybespectra_ch}
-}
-#+end_src 
-
 
 ** DONE Creating Swath window files
 :PROPERTIES:
@@ -800,9 +572,285 @@ process InferNonOverlappingSwathWindows {
 }
 #+end_src
 
+** Deconvolution of DIA 
+There are various way to deconvolute DIA data 
+for generating the spectral library for downstream analysis.
+Here we choose between them.
 
-** DONE Building {Pseudo-,}Spectral library  [4/4]
-*** Choosing Comet/Xtandem
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// one of "dda","deepdia","pseudospectra"
+// will default to "dda" if ddafiles are supplied
+// othewise to "deepdia"
+params.deconvolution_method = null
+#+end_src
+
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no 
+// TODO: raise an error if params.deconvolution_method  is not a supported method
+#+end_src
+
+
+#+begin_src nextflow :noweb-ref nf-function-definitions :tangle no 
+def deconvolution_method_is_enabled(method, params){
+    if (params.deconvolution_method){
+	return method == params.deconvolution_method
+    }
+    if (param.ddafiles){
+	return method == "dda"
+    }
+    return method == "deepdia"
+}
+#+end_src
+
+# In certain nextflow source blocks i might set :noweb-ref  to "nf-vars"
+# and leave the :tangle to the default value
+# so that the logic is wrapped both in the main file and in the nf-vars section
+# and in the main file.
+*** DONE Building {Pseudo-,}Spectral library from (Pseudo)-Spectra  [5/5]
+This section covers both Diaumpire pseudo
+
+#+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
+<<nf-pagebreak>> 
+if(deconvolution_method_is_enabled("dda",params) || deconvolution_method_is_enabled("pseudospectra",params))
+    {
+#+end_src
+
+**** DONE Creating Pseudospectra
+:LOGBOOK:
+CLOCK: [2022-06-07 Tue 10:33]--[2022-06-07 Tue 19:38] =>  9:05
+:END:
+[[file:glaDIAtor/workflow.py::def runDiaumpire]]
+#+NAME: dot-create-pseudospectra
+#+begin_src dot :file-ext svg
+digraph {
+    DIA[label="DIA_1.mzXML"]
+    diaumpire[shape="box",label="java -jar DiaUmpire.jar"]
+    pseudo_spectra[label="libfree/DIA_1.mgs"]
+    diaumpire_cfg[label="diaumpirecfg.txt (singleton)"]
+    pseudo_spectra_mzxml[label="libfree-pseudospectra/DIA_1.mzXML"]
+		   
+    DIA -> diaumpire
+    diaumpire_cfg -> diaumpire
+    diaumpire -> pseudo_spectra -> { msconvert[shape="box"] } -> pseudo_spectra_mzxml
+}
+#+end_src
+
+#+RESULTS: dot-create-pseudospectra
+[[file:img/dot-create-pseudospectra.svg]]
+https://github.com/Nesvilab/DIA-Umpire/tree/master
+***** Problems you might encounter during this step
+****** Out of Memory in Dia-umpire
+Dia-umpire, which we use here for pseudo-spectra creation,
+has pretty extreme memory requirements,
+in  your config file you can set the process specific memory (required to be in Gigabyes) e.g. 
+#+begin_src nextflow :tangle no :eval no 
+process { 
+  withName: 'GeneratePseudoSpectra'
+  {
+	time='96h'
+	memory='400 GB'
+  }
+}
+#+end_src
+see also [[https://www.nextflow.io/docs/latest/process.html#memory][The Nextflow documentation about process memory]]
+****** =MzmlToMzxml= processigng error.
+If you get an error of
+#+begin_src fundamental :tangle no
+  processing file: RD139_Narrow_UPS1_50fmol_inj3.mzML
+  [SpectrumList_mzML::create()] Bad istream.
+  Error processing file RD139_Narrow_UPS1_50fmol_inj3.mzML
+#+end_src
+in =MzmltoMzxml=, that can mean that something went wrong
+when you used =msconvert= to convert from the propriatary format to mzml
+***** Steps that are run 
+DIAumpire is =Apache 2= licensed.
+#+NAME: diaumpireconfig
+#+begin_src conf :eval no :tangle diaumpireconfig.txt 
+#Number of threads
+# set to the number of cores available
+# In the original gladiator, this was set by replicing this all caps 
+Thread = 4
+
+#Precursor-fragments grouping parameters
+RPmax = 25
+RFmax = 300
+CorrThreshold = 0.2
+DeltaApex = 0.6
+RTOverlap = 0.3
+
+#Fragment intensity adjustments
+# change BoostComplementaryIon if later using database search results to build libraries for Skyline/OpenSWATH
+AdjustFragIntensity = true
+BoostComplementaryIon = true
+
+#Export detected MS1 features (output feature file can be loaded and mapped to RAW data in BatMass)
+ExportPrecursorPeak = false
+
+#Signal extraction: mass accuracy and resolution
+# resolution parameter matters only for data generated in profile mode
+SE.MS1PPM = 15
+SE.MS2PPM = 25
+SE.Resolution = 60000
+
+#Signal extraction: signal to noise filter
+SE.SN = 1.1
+SE.MS2SN = 1.1
+
+#Signal extraction: minimum signal intensity filter
+# for Thermo data, filtering is usually not necessary. Set SE.EstimateBG to false and SE.MinMSIntensity and SE.MinMSMSIntensity to a low value, e.g. 1
+# for older Q Exactive data, or when too many MS1 features are extracted, set SE.EstimateBG to yes (or apply SE.MinMSIntensity and SE.MinMSMSIntensity values based on BatMass visualization)
+SE.EstimateBG = false
+SE.MinMSIntensity = 1
+SE.MinMSMSIntensity = 1
+
+#Signal extraction: peak curve detection and isotope grouping
+# for older Q Exactive data, or when too many MS1 features are extracted, set SE.NoMissedScan to 1
+SE.NoMissedScan = 2
+SE.MaxCurveRTRange = 2
+SE.RemoveGroupedPeaks = true
+SE.RemoveGroupedPeaksRTOverlap = 0.3
+SE.RemoveGroupedPeaksCorr = 0.3
+SE.MinNoPeakCluster = 2
+SE.MaxNoPeakCluster = 4
+
+#Signal extraction: filtering of MS1 features 
+# if interested in modified peptides, increase MassDefectOffset parameter, or set SE.MassDefectFilter to false
+SE.IsoPattern = 0.3
+SE.MassDefectFilter = true
+SE.MassDefectOffset = 0.1
+
+#Signal extraction: other 
+SE.StartCharge = 1
+SE.EndCharge = 5
+SE.MS2StartCharge = 2
+SE.MS2EndCharge = 5
+SE.MinFrag=10
+SE.StartRT = 0
+SE.EndRT = 9999
+SE.MinMZ = 200
+SE.MinPrecursorMass = 600
+SE.MaxPrecursorMass = 5000
+
+
+#Isolation window setting
+#The current version supports the following window type: SWATH (fixed window size), V_SWATH (variable SWATH window), MSX, MSE, pSMART
+WindowType=SWATH
+
+#Fix window size (For SWATH)
+# for Thermo data, this will be determined from raw data automatically
+#WindowSize=15
+
+#Variable SWATH window setting (start m/z, end m/z, separated by Tab)
+# for Thermo data, this will be determined from raw data automatically
+
+#==window setting begin
+#==window setting end
+#+end_src
+MGF = Mascot Generic Format
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518119/
+#+begin_src nextflow
+// create mzxml
+process MzmlToMzxml {
+    input:
+    file diafile from dia_mzml_files_for_pseudospectra_ch
+    output:
+    file "*.mzXML" into dia_mzxml_files_for_pseudospectra_ch
+    """
+    msconvert $diafile --32 --zlib --filter "peakPicking false 1-" --mzXML
+    """
+        
+}
+
+process GeneratePseudoSpectra  {
+    memory '16 GB' 
+    input:
+    file diafile from dia_mzxml_files_for_pseudospectra_ch
+    path diaumpireconfig from diaumpireconfig_ch.first()
+    output:
+    // we flatten here becuase a single mzxml might result in multiple mgf files
+    file "*.mgf" into pseudospectra_mgf_ch mode flatten 
+
+    """
+    # we set \$1 to the number of gigs of memory
+    set -- $task.memory
+    java -Xmx\$1g -Xms\$1g -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
+    """
+}
+
+process MgfToMzxml {
+    input:
+    file mgf from pseudospectra_mgf_ch
+    output:
+    file "*.mzXML" into pseudospectra_ch
+    when:
+    // excluding empty files   
+    mgf.size()  > 0
+    """
+    msconvert $mgf --mzXML 
+    """
+}
+#+end_src
+
+
+#+begin_src scheme :noweb-ref deps :tangle no 
+
+("generate-pseudo-spectra"
+ "dia-umpire" 
+ "pwiz") ;; the free one 
+#+end_src
+
+
+though this  might also be done with openms's =FileConverter= ? which is more conventionally build 
+https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/release/latest/html/TOPP_FileConverter.html
+mstools
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.diaumpireconfig='diaumpireconfig.txt'
+// glob to DIA mzmML files, e.g. "DIA/*.mzML"
+// MANDATORY to be set if not set by SDRF file
+params.diafiles = null
+// OPTIONAL glob to mzXML dda files
+// e.g. "DDA/*.mzXML"
+// if left unset, then pseudospectra will be used.
+params.ddafiles = null 
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+// so that this is a singleton channel
+diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
+// dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
+dda_assisted_p = !!params.ddafiles
+if (dda_assisted_p) {
+    Channel.fromPath(params.ddafiles).set{dda_files_ch}
+    Channel.empty().set{dia_mzml_files_for_pseudospectra_ch}
+} else {
+    Channel.fromPath(params.diafiles).set{dia_mzml_files_for_pseudospectra_ch}
+}
+
+#+end_src
+As dia will be listened to by two in the case of not dda-assisted,
+we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
+
+
+The channel-juggling below  makes the path for pseudo-spectra and "real" input spectra
+follow the same path after =MgfToMzxml= / from comet&xtandem onwards,
+by putting the ones to act on in the =maybespectra_ch.{comet,xtandem}= channels.
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+// we forward-declare pseudospectra_ch here (output of the MgfToMzxml process)
+// so that we can define a multiMap rule for it.
+pseudospectra_ch = Channel.create()
+// maybe-spectra can be either real spectra or pseudo-spectra
+if(deconvolution_method_is_enabled("dda",params)){
+    dda_files_ch.multiMap { it ->
+	spectrast: comet: xtandem: it }.set{maybespectra_ch}
+} else if (deconvolution_method_is_enabled("pseudospectra",params)){
+    pseudospectra_ch
+	.multiMap{ it -> spectrast: comet: xtandem: it }
+	.set{maybespectra_ch}
+}
+#+end_src 
+
+**** Choosing Comet/Xtandem
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
 :END:
@@ -810,7 +858,7 @@ CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
 params.search_engines = ["comet","xtandem"]
 
 #+end_src
-*** DONE Comet 
+**** DONE Comet 
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 13:56]--[2022-06-10 Fri 16:09] =>  2:13
 CLOCK: [2022-06-10 Fri 11:00]--[2022-06-10 Fri 13:31] =>  2:31
@@ -1079,7 +1127,7 @@ params.comet_template="comet_template.txt"
 #+end_src
 Notably, a more stringent (lower) tolerance increases memorary usage by comet.
 
-*** DONE Xtandem
+**** DONE Xtandem
 :LOGBOOK:
 
 CLOCK: [2022-06-22 Wed 10:24]--[2022-06-22 Wed 16:28] =>  6:04
@@ -1397,7 +1445,7 @@ diff -Naur release_5-2-0/extern/Makefile release_5-2-0_mod/extern/Makefile
  .PHONY: comet comet-source comet-clean
 #+end_src
 
-*** DONE Joining Comet & Xtandem
+**** DONE Joining Comet & Xtandem
 [[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
 [[file:glaDIAtor/workflow.py::def combine_search_engine_results]]
 #+begin_src nextflow
@@ -1439,13 +1487,13 @@ if (params.search_engines.size() > 1) {
     combined_search_results_ch = Channel.create()
 }
 #+end_src
-*** DONE Building Specral Library
+**** DONE Building Specral Library
 [[file:glaDIAtor/UI/ui/__init__.py::workflow.buildlib(]]
 [[file:glaDIAtor/workflow.py::def buildlib(event, \\]]
 Inputs from [[*Creating Swath window files][Creating Swath window files]]
 http://www.openswath.org/en/latest/docs/openswath.html
 
-**** Mayu
+***** Mayu
 doi:10.5167/uzh-28712
 doi:10.1074/mcp.M900317-MCP200
 #+begin_quote
@@ -1527,7 +1575,7 @@ but not mounted (at least not in Singularity), so if =$TMPDIR= does not exist in
 params.protFDR=0.01
 #+end_src
 
-**** Spectrast
+***** Spectrast
 http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST
 
 Spectrast in =SpectraSTPepXMLLibImporter.cpp= =readFromFile= =processSearchHit= will read
@@ -1553,7 +1601,7 @@ It also doesn't check if illegal flags are given, they will pass silently instea
 (_ _)     
 #+end_src
 
-***** Converting traml into spectrast friendly format
+****** Converting traml into spectrast friendly format
 
 #+NAME: irttsv-to-spectrasttsv
 #+begin_src awk :eval no
@@ -1602,7 +1650,7 @@ process CreateSpectrastIrtFile {
     <<irttsv-to-spectrasttsv>>' ''' + "$intermediate_tsv > irt.txt"
 }
 #+end_src
-***** Running Spectrast
+****** Running Spectrast
 #+begin_src nextflow
 // spectrast will create *.splib, *.spidx, *.pepidx, 
 // note that where-ever a splib goes, so must its spidx and pepidx
@@ -1655,7 +1703,7 @@ LFLQFGAQGSPFLK  98.0897
 params.use_irt=true
 params.irt_traml_file = "iRTAssayLibrary.TraML"
  #+end_src
-**** OpenSwathDecoys
+***** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
 #+VINDEX: params.openswath_transitions
@@ -1690,7 +1738,7 @@ process CreateOpenswathTransitions {
     file swath_windows from swath_windows_ch.first()
     file sptxt from consensus_lib_sptxt_ch.first()
     output:
-    file outputfile into openswath_transitions_ch
+    file outputfile into openswath_transitions_from_pseudo_spectra
 
     script:
     outputfile="SpecLib_cons_decoys.pqp"
@@ -1703,6 +1751,8 @@ process CreateOpenswathTransitions {
     OpenSwathDecoyGenerator -decoy_tag DECOY_ -in SpecLib_cons.TraML -out $outputfile -method reverse
     """
 }
+
+
 #+end_src
 
 
@@ -1715,7 +1765,7 @@ Here we might actually not need TargetedFileConverter,
 can give tsv directly to OpenSwathDecoyGenerator.
 and pass result tsv to OpenSwathWorkflow as =-tr=.
 
-*** OpenSwathDecoyGenerator
+**** OpenSwathDecoyGenerator
 
 
 #+begin_src nextflow
@@ -2858,6 +2908,17 @@ same `major-mode'."
 #+RESULTS:
 : gladiator-tangle-and-compile
 
+This is a "template" to have pagebreaks in nextflow source code.
+nextflow doesnt allow == just in the source, grumbl,
+so we have to wrap it in a block comment.
+
+#+NAME: nf-pagebreak
+#+begin_src nextflow :tangle no
+/*
+ */
+#+end_src
+
+
 ** Exporting to pdf :noexport:
 #+begin_src emacs-lisp
 (require 'ox-latex)
@@ -2939,3 +3000,9 @@ especially so that ~org-html-head~ can be inferred from the
 :PROPERTIES:
 :INDEX:    vr
 :END:
+**** End of {Pseudo-,}Spectral section :noexport:
+This section should be the last so that we can tangle this close paren.
+#+begin_src nextflow  :noweb-ref nf-vars
+openswath_transitions_from_pseudo_spectra
+    .set{openswath_transitions_ch}
+} // end of dda convolution / pseudo spectra convolution guard.
