@@ -1790,7 +1790,9 @@ openswath_transitions_from_pseudo_spectra
 *** Building Spectral library from Machine learning
 
 [[https://github.com/lmsac/DeepDIA][DeepDIA]] can predict the spectral library from peptide lists
-See also its documentation https://github.com/lmsac/DeepDIA/raw/master/README.md
+See also its documentation
+https://github.com/lmsac/DeepDIA/raw/master/README.md
+https://github.com/lmsac/DeepDIA/raw/master/docs/predict_detectability.md
 
 #+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
 <<nf-pagebreak>>
@@ -1799,32 +1801,103 @@ if(deconvolution_method_is_enabled("deepdia",params))  {
 
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 params._deepdia_url = "https://github.com/lmsac/DeepDIA/blob/c5ad2aa50218fcdfd1d441714702e605fdb00bb3"
+// float or null
+// if null, do not use minimum detectability filtering
+// if a float, filter
+params.deepdia_min_detectability = null
+params.deepdia_detectability_model = "${params._deepdia_url}/data/detectability/epoch_004.hdf5"
+#+end_src
+
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
 // list tuples in the form of
 // [charge, model, peptidelist]
 params.deepdia_ms2_entries = [
     ["2",
      "${params._deepdia_url}/data/charge2/epoch_035.hdf5",
-     "${params._deepdia_url}/data/peptides/Pan_human_charge2.peptide.csv"],
+     ],
     ["3",
      "${params._deepdia_url}/data/charge3/epoch_034.hdf5",
-     "${params._deepdia_url}/data/peptides/Pan_human_charge3.peptide.csv"]]
+     ]]
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 Channel
     .from(params.deepdia_ms2_entries)
     .map( {
-	    charge, model, peptides ->
-	    tuple(charge, file(model), file(peptides))}
-    .set(deepdia_ms2_inputs_ch)
+	    charge, mode ->
+	    tuple(charge, file(model))}
+    .set(deepdia_ms2_models)
 #+end_src
 
 
+#+begin_src nextflow
+process DeepDIADigestProtein
+{
+    input:
+    file joined_fasta from joined_fasta_database_ch
+    output:
+    file deepdia_peptide_list
+    script:
+    deepdia_peptide_list="deepdia_peptide_list.csv"
+    """
+    digest_proteins.py --in $joined_fasta --out $deepdia_peptide_list --no-group_duplicated
+    """
+}
+#+end_src
+
+If we do detectability filtering we mix the filtered peptides with the models,
+otherwise the unfiltered.
+
+#+begin_src nextflow  :noweb-ref nf-vars :tangle no 
+deepdia_peptide_list = Channel.create()
+if(params.deepdia_min_detectability != null){
+    deepdia_peptide_list.set{deepdia_prefilt_peptide_list}
+    deepdia_filtered_peptide_list = Channel.create()
+    deepdia_filtered_peptide_list
+	.cross(deepdia_ms2_models)
+	.map(peptides,chargeandmodel ->
+	    tuple(chargeandmodel[0],chargeandmodel[1],
+		  peptides))
+	.set{deepdia_ms2_inputs_ch}
+} else {
+    deepdia_peptide_list
+    	.cross(deepdia_ms2_models)
+	.map(peptides,chargeandmodel ->
+	    tuple(chargeandmodel[0],chargeandmodel[1],
+		  peptides))
+	.set{deepdia_ms2_inputs_ch}
+}
+#+end_src
+
+So here we predict detectability of peptides and filter by them, if requested
+#+begin_src nextflow
+if (params.deepdia_min_detectability != null){
+    process DeepDIAMinimumDetectabilityFiltering
+    {
+	input:
+	file model from Channel.fromPath(params.deepdia_detectability_model)
+	file deepdia_prefilt_peptide_list
+	output:
+	file deepdia_filtered_peptide_list
+	script:
+	deepdia_filtered_peptide_list="deepdia_filtered_peptide_list.csv"
+	detect="{deepdia_prefilt_peptide_list.baseName}.detectability.csv"
+	"""
+	predict_detectability --in $deepdia_prefilt_peptide_list --model $model --out $detect
+	filter_peptide_by_detectability --peptide $deepdia_prefilt_peptide_list --detect $detect --min_detectability ${params.deepdia_min_detectability} --out ${deepdia_filtered_peptide_list}
+	"""
+    }
+}
+
+#+end_src
+
+Then we predict the ms2 
 
 #+begin_src nextflow
 process DeepDIAPredictCharge {
     input:
-    set charge,file(model), file(peptides) from deepdia_ms2_inputs_ch
+    set charge,file(model),file(peptides) from deepdia_ms2_inputs_ch
     output:
     file deepdia_ions
     script:
@@ -1846,6 +1919,8 @@ params.deepdia_peptides =
 deepdia_irt_model = Channel.fromPath(params.deepdia_irt_model)
 deepdia_peptides = Channel.fromPath(params.deepdia_peptides)
 #+end_src
+
+
 #+begin_src nextflow
 process DeepDIAPredictRetention {
     input:
@@ -1867,13 +1942,20 @@ process DeepDIAPredictionsToLibrary {
     input:
     file predicted_rt
     file ions from deepdia_ions.toSortedList()
+    file deepdia_peptides 
     output:
-    file:
+    file deepdia_speclib
+    script:
+    deepdia_speclib="speclib.tsv"
+    """
+    build_assays_from_prediction --peptides ${deepdia_peptides} --rt ${predicted_rt} --ions ${ions} --out prediction.assay.pickle
+    convert_assays_to_Spectronaut_library.py --in prediction.assay.pickle --out ${deepdia_speclib}
+    """
 }
 #+end_src
 
-
 #+begin_src nextflow :noweb-ref nf-vars
+   deepdia_speclib.set{openswath_transitions_ch}
 }  // end of deepdia guard
 #+end_src
 
