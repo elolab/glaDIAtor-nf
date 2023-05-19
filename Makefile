@@ -108,7 +108,7 @@ containers/pyprophet.simg containers/pyprophet.tar: ci/guix/channels.scm ci/guix
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 containers/deepdia.simg containers/deepdia.tar: MANIFESTS=
 containers/deepdia.simg containers/deepdia.tar: PACKAGES=guix coreutils bash-minimal
-containers/deepdia.simg containers/deepdia.tar: ci/guix/deepdia-channels.scm ci/guix/manifests/nextflow-trace.scm
+containers/deepdia.simg containers/deepdia.tar: ci/guix/deepdia-channels.scm ci/guix/manifests/deepdia.scm ci/guix/manifests/nextflow-trace.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
