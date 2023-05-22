@@ -43,7 +43,7 @@ CHANNELS=ci/guix/channels.scm
 PACKAGES=
 
 ifeq ($(SHELL),guix)
-.SHELLFLAGS=time-machine $(patsubst %,--channels=%,$(CHANNELS)) -- shell $(PACKAGES) --pure --preserve='GUIX_BUILD_OPTIONS' --preserve='^SSL_' -v0 $(patsubst %,--manifest=%,$(MANIFESTS))  bash-minimal -- sh -c
+.SHELLFLAGS=time-machine $(patsubst %,--channels=%,$(CHANNELS)) -- shell $(PACKAGES) --pure --preserve='^SSH_' --preserve='GUIX_BUILD_OPTIONS' --preserve='^SSL_' -v0 $(patsubst %,--manifest=%,$(MANIFESTS))  bash-minimal -- sh -c
 endif
 
 
