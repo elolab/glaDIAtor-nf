@@ -774,7 +774,12 @@ process GeneratePseudoSpectra  {
     """
     # we set \$1 to the number of gigs of memory
     set -- $task.memory
-    java -Xmx\$1g -Xms\$1g -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
+    if command -v diaumpire-se; 
+    then
+    	diaumpire-se  -Xmx\$1g -Xms\$1g $diafile $diaumpireconfig
+    else 
+	java -Xmx\$1g -Xms\$1g -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
+    fi
     """
 }
 
@@ -1082,7 +1087,7 @@ process Comet {
     params.search_engines.contains("comet")
 
     """
-    /opt/comet/comet-ms -P$comet_config $mzxml 
+    comet-ms -P$comet_config $mzxml 
     """
 }
 #+end_src
@@ -1111,7 +1116,7 @@ process XinteractComet {
     when:
     pepxmls.size() > 0
     """
-    /opt/tpp/bin/xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_comet.pep.xml $pepxmls
+    xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_comet.pep.xml $pepxmls
     """
 }
 #+end_src
@@ -1390,8 +1395,8 @@ process XTandem {
     
     printf '
     <<xtandem-input-template>>' $tandem_config xtandem_taxonomy.xml $mzxml ${mzxml.baseName}.TANDEM.OUTPUT.xml | tail -n+2 > input.xml
-    /opt/tandem/tandem input.xml
-    /opt/tpp/bin/Tandem2XML ${mzxml.baseName}.TANDEM.OUTPUT.xml ${mzxml.baseName}.tandem.pep.xml 
+    tandem input.xml
+    Tandem2XML ${mzxml.baseName}.TANDEM.OUTPUT.xml ${mzxml.baseName}.tandem.pep.xml 
     """
 }
 
@@ -1412,7 +1417,7 @@ process XinteractXTandem {
     when:
     pepxmls.size() > 0 
     """
-    /opt/tpp/bin/xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_xtandem.pep.xml $pepxmls
+    xinteract -a\$PWD -OARPd -dDECOY_ -Ninteract_xtandem.pep.xml $pepxmls
     """
 }
 
@@ -1476,7 +1481,7 @@ if (params.search_engines.size() > 1) {
 	output:
 	file "lib_iprophet.peps.xml" into combined_search_results_ch
 	"""
-	/opt/tpp/bin/InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet.peps.xml
+	InterProphetParser DECOY=DECOY_ THREADS=${task.cpus} $xtandem_search_results $comet_search_results lib_iprophet.peps.xml
 	"""
     }
 } else if (params.search_engines.contains("comet")) {
@@ -1553,7 +1558,7 @@ process  FindMinimumPeptideProbability {
     mayu_version="1.07"
     psm_csv="${prefix}_psm_protFDR${params.protFDR}_t_${mayu_version}.csv"
     """
-    /opt/tpp/bin/Mayu.pl -verbose -A $combined_search_results -C $fastadb_with_decoy -E DECOY_ -G $params.protFDR -P protFDR=${params.protFDR}:t -H 51 -I 2 -M $prefix
+    Mayu.pl -verbose -A $combined_search_results -C $fastadb_with_decoy -E DECOY_ -G $params.protFDR -P protFDR=${params.protFDR}:t -H 51 -I 2 -M $prefix
     # test if psm_csv was made
     test -e $psm_csv || exit 1
     # test if the results arent empty
@@ -1667,11 +1672,11 @@ process SpectrastCreateSpecLib {
     file("${prefix}_cons.sptxt") into consensus_lib_sptxt_ch
     script:
     prefix = "SpecLib"
-    to_run = "/opt/tpp/bin/spectrast -cN${prefix} -cIHCD -cf\"Protein! ~ DECOY_\" -cP$cutoff -c_IRR "
+    to_run = "spectrast -cN${prefix} -cIHCD -cf\"Protein! ~ DECOY_\" -cP$cutoff -c_IRR "
     if (params.use_irt)
 	to_run += "-c_IRT$irtfile "
     to_run +=  "$combined_search_results" // spectrast really wants its input-files last.
-    to_run += "\n /opt/tpp/bin/spectrast -cN${prefix}_cons -cD$fastadb_with_decoy -cIHCD -cAC ${prefix}.splib"
+    to_run += "\n spectrast -cN${prefix}_cons -cD$fastadb_with_decoy -cIHCD -cAC ${prefix}.splib"
 }
  #+end_src
 
