@@ -1765,7 +1765,10 @@ consensus_pseudospectra_openswath_library_tsv
 # in addition to having noweb ref
 # so that this statement goes to both 
 *** Building Spectral library from Machine learning
-
+:PROPERTIES:
+:ID:       0052ce0b-566c-4a13-9a72-a4e19e7eece0
+:CUSTOM_ID: section-deepdia
+:END:
 [[https://github.com/lmsac/DeepDIA][DeepDIA]] can predict the spectral library from peptide lists
 See also its documentation
 https://github.com/lmsac/DeepDIA/raw/master/README.md
@@ -1949,12 +1952,13 @@ OpenSwathDecoyGenerator from =OpenMS= =topp=
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // optional 
 params.openswath_transitions = ""
-
 #+end_src
 
+#+VINDEX: deepdia
+With [[#section-deepdia][deepDIA]] method used there  seems to be some problems with generating decoys,
+so we set =-min_decoy_fraction= to  =0.0= in this case.
 #+begin_src nextflow
 process AddDecoysToOpenSwathTransitions {
-
     input:
     file speclib_tsv from speclib_tsv_for_decoys.first()
     output:
@@ -1962,14 +1966,12 @@ process AddDecoysToOpenSwathTransitions {
 
     script:
     outputfile="SpecLib_cons_decoys.pqp"
-    
+    oswdg_args= deconvolution_method_is_enabled("deepdia",params) ? "-min_decoy_fraction 0.0" : ""
     """
     TargetedFileConverter -in $speclib_tsv -out SpecLib_cons.TraML
-    OpenSwathDecoyGenerator -decoy_tag DECOY_ -in SpecLib_cons.TraML -out $outputfile -method reverse
+    OpenSwathDecoyGenerator -decoy_tag DECOY_ -in SpecLib_cons.TraML -out $outputfile -method reverse $oswdg_args
     """
 }
-
-
 #+end_src
 
 
@@ -1998,14 +2000,17 @@ params.osw_use_cache = false
 params.osw_extra_flags =  ""
 #+end_src
 
-to use ~-out_osw~, ~-tr~ needs to be a pqp file,
+#+VINDEX: deepdia
+The transitions size is larger if the deconvolution method is [[#section-deepdia][deepDIA]],
+which will consume more memory.
 
+to use ~-out_osw~, ~-tr~ needs to be a pqp file,
 #+VINDEX: params.irt_traml_file
 If we are using legacy pyprophet we will need to create a tsv
 #+NAME: nf-openswathworkflow-for-pyprophet-legacy
 #+begin_src nextflow :tangle no 
 process OpenSwathWorkflow_legacy {
-	memory '16 GB'
+	memory { 16.GB * (deconvolution_method_is_enabled("deepdia",params) ? 2 : 1 )}
 	input:
 	file dia_mzml_file from dia_mzml_files_ch.osw
 	// file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
@@ -2043,7 +2048,7 @@ openswath_osw_indirect_ch = Channel.create()
 openswath_osw_indirect_ch.multiMap{ it ->
     pyprophet_subsample: pyprophet_score  : it}.set{openswath_osw_ch}
 process OpenSwathWorkflow {
-    memory '16 GB'
+    memory { 16.GB * (deconvolution_method_is_enabled("deepdia",params) ? 2 : 1 )}
     input:
     file dia_mzml_file from dia_mzml_files_ch.osw
     // file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
