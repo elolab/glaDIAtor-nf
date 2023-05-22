@@ -191,6 +191,8 @@
      "util-linux"
      ;; this has free
      "procps"
+     ;; this provides ssh-agent
+     "openssh" 
      ;;;; end of optional stuff
      ))
   (manifest 
