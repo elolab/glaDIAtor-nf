@@ -1703,19 +1703,16 @@ LFLQFGAQGSPFLK  98.0897
 params.use_irt=true
 params.irt_traml_file = "iRTAssayLibrary.TraML"
  #+end_src
-***** OpenSwathDecoys
-specrast2tsv.py is from =msproteomicstools=
-OpenSwathDecoyGenerator from =OpenMS= =topp=
-#+VINDEX: params.openswath_transitions
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-// optional 
-params.openswath_transitions = ""
-
+ 
+Here we forward declary  =consensus_pseudospectra_openswath_library_tsv=
+so that we can later redirect it.
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+consensus_pseudospectra_openswath_library_tsv = Channel.create()
 #+end_src
-
+ 
 #+begin_src nextflow
-process CreateOpenswathTransitions {
-    /*
+process Spectrast2OpenSwathTsv {
+ /*
      Choice parts of sprectrast2.tsv --help
      
      spectrast2tsv.py
@@ -1738,49 +1735,29 @@ process CreateOpenswathTransitions {
     file swath_windows from swath_windows_ch.first()
     file sptxt from consensus_lib_sptxt_ch.first()
     output:
-    file outputfile into openswath_transitions_from_pseudo_spectra
-
+    file consensus_pseudospectra_openswath_library_tsv
     script:
-    outputfile="SpecLib_cons_decoys.pqp"
-    
+    consensus_pseudospectra_openswath_library_tsv="SpecLib_cons_openswath.tsv"
     """
     MINWINDOW=`head -n1 $swath_windows | cut -d'	' -f1`
     MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
-    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a SpecLib_cons_openswath.tsv $sptxt
-    TargetedFileConverter -in SpecLib_cons_openswath.tsv -out SpecLib_cons.TraML
-    OpenSwathDecoyGenerator -decoy_tag DECOY_ -in SpecLib_cons.TraML -out $outputfile -method reverse
+    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a $consensus_pseudospectra_openswath_library_tsv $sptxt"
     """
 }
-
-
-#+end_src
-
-
-=TargetedFileConverter= from msproteomics.
-#+begin_quote
-/usr/bin/TargetedFileConverter: error while loading shared libraries: libQt5Core.so.5: cannot open shared object file: No such file or directory
-#+end_quote
-
-Here we might actually not need TargetedFileConverter,
-can give tsv directly to OpenSwathDecoyGenerator.
-and pass result tsv to OpenSwathWorkflow as =-tr=.
-
-**** OpenSwathDecoyGenerator
-
-
-#+begin_src nextflow
-
-// process OpenSwathDecoys{
-//     "e
-// }
 #+end_src
 
 
 **** End of {Pseudo-,}Spectral section :noexport:
 This section should be the last so that we can tangle this close paren.
-#+begin_src nextflow  :noweb-ref nf-vars
-openswath_transitions_from_pseudo_spectra
-    .set{openswath_transitions_ch}
+
+and we pipe the spectral library for decoys to be generated
+
+#+begin_src nextflow  :noweb-ref nf-vars :tangle no
+consensus_pseudospectra_openswath_library_tsv
+    .set{speclib_tsv_for_decoys}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars
 } // end of dda convolution / pseudo spectra convolution guard.
 #+end_src
 # Here we intententionally do not set tangle to "no"
@@ -1805,7 +1782,7 @@ params._deepdia_url = "https://github.com/lmsac/DeepDIA/raw/c5ad2aa50218fcdfd1d4
 // if null, do not use minimum detectability filtering
 // if a float, filter
 params.deepdia_min_detectability = null
-params.deepdia_detectability_model = "${params._deepdia_url}/data/detectability/epoch_004.hdf5"
+params.deepdia_detectability_model = "${params._deepdia_url}/data/models/detectability/epoch_004.hdf5"
 #+end_src
 
 
@@ -1873,6 +1850,7 @@ So here we predict detectability of peptides and filter by them, if requested
 if (params.deepdia_min_detectability != null){
     process DeepDIAMinimumDetectabilityFiltering
     {
+	memory '64 GB'
 	input:
 	file model from Channel.fromPath(params.deepdia_detectability_model)
 	file deepdia_prefilt_peptide_list
@@ -1894,7 +1872,7 @@ Then we predict the ms2
 
 #+begin_src nextflow
 process DeepDIAPredictCharge {
-    memory '32 GB'
+    memory '64 GB'
     input:
     set file(peptides),charge,file(model)  from deepdia_ms2_inputs_ch
     output:
@@ -1939,6 +1917,7 @@ process DeepDIAPredictRetention {
 
 #+begin_src nextflow
 process DeepDIAPredictionsToLibrary {
+    memory '32 GB'
     input:
     file predicted_rt
     file ions from deepdia_ions.toSortedList()
@@ -1955,11 +1934,53 @@ process DeepDIAPredictionsToLibrary {
 #+end_src
 
 
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+   deepdia_speclib.set{speclib_tsv_for_decoys}
+#+end_src
 
 #+begin_src nextflow :noweb-ref nf-vars
-   deepdia_speclib.set{openswath_transitions_ch}
 }  // end of deepdia guard
 #+end_src
+
+** OpenSwathDecoys
+specrast2tsv.py is from =msproteomicstools=
+OpenSwathDecoyGenerator from =OpenMS= =topp=
+#+VINDEX: params.openswath_transitions
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// optional 
+params.openswath_transitions = ""
+
+#+end_src
+
+#+begin_src nextflow
+process AddDecoysToOpenSwathTransitions {
+
+    input:
+    file speclib_tsv from speclib_tsv_for_decoys.first()
+    output:
+    file outputfile into openswath_transitions_ch
+
+    script:
+    outputfile="SpecLib_cons_decoys.pqp"
+    
+    """
+    TargetedFileConverter -in $speclib_tsv -out SpecLib_cons.TraML
+    OpenSwathDecoyGenerator -decoy_tag DECOY_ -in SpecLib_cons.TraML -out $outputfile -method reverse
+    """
+}
+
+
+#+end_src
+
+
+=TargetedFileConverter= from msproteomics.
+#+begin_quote
+/usr/bin/TargetedFileConverter: error while loading shared libraries: libQt5Core.so.5: cannot open shared object file: No such file or directory
+#+end_quote
+
+Here we might actually not need TargetedFileConverter,
+can give tsv directly to OpenSwathDecoyGenerator.
+and pass result tsv to OpenSwathWorkflow as =-tr=.
 
 ** DONE Building Dia Matrix
 https://openswath.org/_/downloads/en/latest/pdf/
