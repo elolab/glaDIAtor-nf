@@ -63,7 +63,7 @@
 
 (packages->manifest
  (list
-  (specification->package "bash")
+  (specification->package "bash")  ;; because nextflow requires bash to be present
   python-pyprophet))
 
 ;; Local Variables:

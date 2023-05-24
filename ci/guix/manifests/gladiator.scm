@@ -5,4 +5,7 @@
    "openms"
    "python-msproteomicstools"
    "diaumpire-se"
+   "gawk"
+   ;; because nextflow requires bash to be present
+   "bash"
    ))
