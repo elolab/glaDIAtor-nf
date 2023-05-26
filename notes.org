@@ -1851,20 +1851,29 @@ if (params.deepdia_min_detectability != null){
 So here we predict detectability of peptides and filter by them, if requested
 #+begin_src nextflow
 if (params.deepdia_min_detectability != null){
-    process DeepDIAMinimumDetectabilityFiltering
-    {
+    // we seperate these two so that --resume allows for easy tweaking of --minimum-detectability
+    process DeepDIATrainDetectibility {
 	memory '64 GB'
 	input:
 	file model from Channel.fromPath(params.deepdia_detectability_model)
 	file deepdia_prefilt_peptide_list
 	output:
+	set file(deepdia_detectability_prediction), file(deepdia_prefilt_peptide_list) into deepdia_detectability
+	script:
+	deepdia_detectability_prediction="${deepdia_prefilt_peptide_list.baseName}.detectability.csv"
+	"predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $detect"
+    }
+    process DeepDIAMinimumDetectabilityFiltering
+    {
+	input:
+	set file(detectability_prediction), file(prefilt_peptide_list) from deepdia_detectability
+	value min_detectability from Channel.value(params.deepdia_min_detectability)
+	output:
 	file deepdia_filtered_peptide_list
 	script:
 	deepdia_filtered_peptide_list="deepdia_filtered_peptide_list.csv"
-	detect="${deepdia_prefilt_peptide_list.baseName}.detectability.csv"
 	"""
-	predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $detect
-	filter_peptide_by_detectability.py --peptide $deepdia_prefilt_peptide_list --detect $detect --min_detectability ${params.deepdia_min_detectability} --out ${deepdia_filtered_peptide_list}
+	filter_peptide_by_detectability.py --peptide $prefilt_peptide_list --detect $detectability_prediction --min_detectability min_detectability --out ${deepdia_filtered_peptide_list}
 	"""
     }
 }
