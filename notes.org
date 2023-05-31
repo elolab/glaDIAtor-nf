@@ -3163,7 +3163,9 @@ we can ~xref-find-definitions~ (~M-.~) nextflow variables.
   -- this matches a process definition
 / *process +\([^{ ]+\)/\1/
   -- this matches outputting into a channel
-/ *\(file\|env\|path\) +.*into *\([^ ]+\)/\2/
+/ *\(file\|env\|path\|value\) +.*into *\([^ ]+\)/\2/
+  -- this matches an input or output that uses the same name as the variable in the process body
+/ *\(file\|env\|path\|value\) +\([A-Za-z0-9_.-]+\)$/\2/
   -- this matches assignment with = 
 / *\([A-Za-z0-9_.-]+\) *=[^=]/\1/
   -- this matches assignment with set({channel_name})
