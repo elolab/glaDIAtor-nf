@@ -115,7 +115,7 @@ containers/deepdia.simg containers/deepdia.tar: ci/guix/deepdia-channels.scm ci/
 containers/gladiator-guix.simg containers/gladiator-guix.tar: PACKAGES=guix coreutils bash-minimal
 containers/gladiator-guix.simg containers/gladiator-guix.tar: ci/guix/gladiator-guix-channels.scm ci/guix/manifests/gladiator.scm ci/guix/manifests/nextflow-trace.scm
 	mkdir -p $(@D)
-	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
+	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash -S/usr/bin/env=bin/env --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
 # If we are using docker as the docker execatuble,
 # set the pacakges for docker tars to docker packages
