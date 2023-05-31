@@ -639,6 +639,7 @@ digraph {
 #+RESULTS: dot-create-pseudospectra
 [[file:img/dot-create-pseudospectra.svg]]
 https://github.com/Nesvilab/DIA-Umpire/tree/master
+https://github.com/Nesvilab/DIA-Umpire/raw/gh-pages/DIA_Umpire_Manual_v2.0.pdf
 ***** Problems you might encounter during this step
 ****** Out of Memory in Dia-umpire
 Dia-umpire, which we use here for pseudo-spectra creation,
@@ -654,7 +655,7 @@ process {
 }
 #+end_src
 see also [[https://www.nextflow.io/docs/latest/process.html#memory][The Nextflow documentation about process memory]]
-****** =MzmlToMzxml= processigng error.
+****** =MzmlToMzxml= processing error.
 If you get an error of
 #+begin_src fundamental :tangle no
   processing file: RD139_Narrow_UPS1_50fmol_inj3.mzML
@@ -681,6 +682,10 @@ RTOverlap = 0.3
 
 #Fragment intensity adjustments
 # change BoostComplementaryIon if later using database search results to build libraries for Skyline/OpenSWATH
+## [2023-05-30 Tue]
+## what did the original gladiator author mean by this?
+## he forgot.
+## in dia-umpire repo example BoostComplementaryIon is True.
 AdjustFragIntensity = true
 BoostComplementaryIon = true
 
@@ -855,14 +860,40 @@ if(deconvolution_method_is_enabled("dda",params)){
 }
 #+end_src 
 
-**** Choosing Comet/Xtandem
+**** Choosing the MS Sequence database search engine: Comet/Xtandem
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
 :END:
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 params.search_engines = ["comet","xtandem"]
-
 #+end_src
+
+
+Depending on your experimental machine, the precursor and fragment tolerances are different.
+These are parameters to all search engines unsed.
+
+Some scientific papers use =mmu= which is equal to 1 milidalton
+0.001 Dalton
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// Float or Int; in ppm ; eg. params.precursor_mass_tolerance=10
+params.precursor_mass_tolerance=null  
+// Float or Int; in Dalton; e.g. parames.fragment_mass_tolerance=0.2
+params.fragment_mass_tolerance=null
+#+end_src
+Notably, a more stringent (lower) tolerance increases memorary usage by comet.
+
+
+the maximum number of allowed missed cleavages is also passed to all search engines
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// Int, if you are using the comet, this can by at maximum 5,
+params.max_missed_cleavages=null
+#+end_src
+
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+max_missed_cleavages = Channel.value(params.max_missed_cleavages)
+#+end_src
+
 **** DONE Comet 
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 13:56]--[2022-06-10 Fri 16:09] =>  2:13
@@ -875,6 +906,12 @@ CLOCK: [2022-06-08 Wed 08:48]--[2022-06-08 Wed 09:32] =>  0:44
 :END:
 file:glaDIAtor/UI/ui/__init__.py::workflow.runComet
 [[file:glaDIAtor/workflow.py::def runComet]]
+https://github.com/UWPR/Comet
+
+The following  is the template file for the parameters passed to comet.
+you can change fields for things that we don't give parameters for (so where the value is not "@...@"),
+in order to change behaviour of comet specific to your use case.
+
 #+begin_src conf :tangle comet_template.txt
 # comet_version 2019.01 rev. 5
 # Comet MS/MS search engine parameters file.
@@ -903,7 +940,7 @@ isotope_error = 3                      # 0=off, 1=0/1 (C13 error), 2=0/1/2, 3=0/
 search_enzyme_number = 1               # choose from list at end of this params file
 search_enzyme2_number = 0              # second enzyme; set to 0 if no second enzyme
 num_enzyme_termini = 2                 # 1 (semi-digested), 2 (fully digested, default), 8 C-term unspecific , 9 N-term unspecific
-allowed_missed_cleavage = 1            # maximum value is 5; for enzyme search
+allowed_missed_cleavage = @MAX_MISSED_CLEAVAGES@            # maximum value is 5; for enzyme search
 
 #
 # Up to 9 variable modifications are supported
@@ -1044,6 +1081,11 @@ add_Z_user_amino_acid = 0.0000         # added to Z - avg.   0.0000, mono.   0.0
 10. Chymotrypsin           1      FWYL        P
 #+end_src
 
+Here we set the above as the default parameter template 
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+params.comet_template="comet_template.txt"
+#+end_src
+
 
 #+begin_src nextflow
 
@@ -1051,12 +1093,13 @@ process MakeCometConfig {
     // should we instead return a tuple here of fastadb and config
     // because the config.txt refers to it?
     input:
+    val max_missed_cleavages
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     path template from Channel.fromPath(params.comet_template)
     output:
     file "comet_config.txt" into comet_config_ch
     """
-    sed 's/@DDA_DB_FILE@/$fastadb_with_decoy/g;s/@FRAGMENT_MASS_TOLERANCE@/$params.fragment_mass_tolerance/g;s/@PRECURSOR_MASS_TOLERANCE@/$params.precursor_mass_tolerance/g' $template > comet_config.txt 
+    sed 's/@DDA_DB_FILE@/$fastadb_with_decoy/g;s/@FRAGMENT_MASS_TOLERANCE@/$params.fragment_mass_tolerance/g;s/@PRECURSOR_MASS_TOLERANCE@/$params.precursor_mass_tolerance/g;s/@MAX_MISSED_CLEAVAGES@/$max_missed_cleavages/g' $template > comet_config.txt 
     """
     
 }
@@ -1121,16 +1164,7 @@ process XinteractComet {
 }
 #+end_src
 
-Some scientific papers use =mmu= which is equal to 1 milidalton
-0.001 Dalton
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-// Float or Int; in ppm ; eg. params.precursor_mass_tolerance=10
-params.precursor_mass_tolerance=null  
-// Float or Int; in Dalton; e.g. parames.fragment_mass_tolerance=0.2
-params.fragment_mass_tolerance=null
-params.comet_template="comet_template.txt"
-#+end_src
-Notably, a more stringent (lower) tolerance increases memorary usage by comet.
+
 
 **** DONE Xtandem
 :LOGBOOK:
@@ -1264,7 +1298,7 @@ CLOCK: [2022-06-09 Thu 09:31]--[2022-06-09 Thu 18:58] =>  9:27
 
 <note>scoring parameters</note>
 	<note type="input" label="scoring, minimum ion count">4</note>
-	<note type="input" label="scoring, maximum missed cleavage sites">1</note>
+	<note type="input" label="scoring, maximum missed cleavage sites">@MAX_MISSED_CLEAVAGES@</note>
 	<note type="input" label="scoring, x ions">no</note>
 	<note type="input" label="scoring, y ions">yes</note>
 	<note type="input" label="scoring, z ions">no</note>
@@ -1370,10 +1404,11 @@ process MakeXtandemConfig {
     input:
     file template from Channel.fromPath(params.xtandem_template)
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    val max_missed_cleavages
     output:
     file "xtandem_config.xml" into xtandem_config_ch
     """
-    sed 's/@DDA_DB_FILE@/$fastadb_with_decoy/g;s/@FRAGMENT_MASS_TOLERANCE@/$params.fragment_mass_tolerance/g;s/@PRECURSOR_MASS_TOLERANCE@/$params.precursor_mass_tolerance/g' $template > xtandem_config.xml
+    sed 's/@DDA_DB_FILE@/$fastadb_with_decoy/g;s/@FRAGMENT_MASS_TOLERANCE@/$params.fragment_mass_tolerance/g;s/@PRECURSOR_MASS_TOLERANCE@/$params.precursor_mass_tolerance/g;s/@MAX_MISSED_CLEAVAGES@/$max_missed_cleavages/g' $template > xtandem_config.xml
     """
 }
 
@@ -1542,6 +1577,7 @@ process  FindMinimumPeptideProbability {
     input: 
     file combined_search_results from combined_search_results_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
+    val max_missed_cleavages
     output:
     env PEPTIDEPROBABILITY into  minimum_peptide_probability
     /* explanation of paramaters
@@ -1558,7 +1594,7 @@ process  FindMinimumPeptideProbability {
     mayu_version="1.07"
     psm_csv="${prefix}_psm_protFDR${params.protFDR}_t_${mayu_version}.csv"
     """
-    Mayu.pl -verbose -A $combined_search_results -C $fastadb_with_decoy -E DECOY_ -G $params.protFDR -P protFDR=${params.protFDR}:t -H 51 -I 2 -M $prefix
+    Mayu.pl -verbose -A $combined_search_results -C $fastadb_with_decoy -E DECOY_ -G $params.protFDR -P protFDR=${params.protFDR}:t -H 51 -I $max_missed_cleavages -M $prefix
     # test if psm_csv was made
     test -e $psm_csv || exit 1
     # test if the results arent empty
@@ -1856,20 +1892,29 @@ if (params.deepdia_min_detectability != null){
 So here we predict detectability of peptides and filter by them, if requested
 #+begin_src nextflow
 if (params.deepdia_min_detectability != null){
-    process DeepDIAMinimumDetectabilityFiltering
-    {
+    // we seperate these two so that --resume allows for easy tweaking of --minimum-detectability
+    process DeepDIATrainDetectibility {
 	memory '64 GB'
 	input:
 	file model from Channel.fromPath(params.deepdia_detectability_model)
 	file deepdia_prefilt_peptide_list
 	output:
+	set file(deepdia_detectability_prediction), file(deepdia_prefilt_peptide_list) into deepdia_detectability
+	script:
+	deepdia_detectability_prediction="${deepdia_prefilt_peptide_list.baseName}.detectability.csv"
+	"predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $detect"
+    }
+    process DeepDIAMinimumDetectabilityFiltering
+    {
+	input:
+	set file(detectability_prediction), file(prefilt_peptide_list) from deepdia_detectability
+	value min_detectability from Channel.value(params.deepdia_min_detectability)
+	output:
 	file deepdia_filtered_peptide_list
 	script:
 	deepdia_filtered_peptide_list="deepdia_filtered_peptide_list.csv"
-	detect="${deepdia_prefilt_peptide_list.baseName}.detectability.csv"
 	"""
-	predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $detect
-	filter_peptide_by_detectability.py --peptide $deepdia_prefilt_peptide_list --detect $detect --min_detectability ${params.deepdia_min_detectability} --out ${deepdia_filtered_peptide_list}
+	filter_peptide_by_detectability.py --peptide $prefilt_peptide_list --detect $detectability_prediction --min_detectability min_detectability --out ${deepdia_filtered_peptide_list}
 	"""
     }
 }
@@ -3159,11 +3204,15 @@ we can ~xref-find-definitions~ (~M-.~) nextflow variables.
   -- this matches a process definition
 / *process +\([^{ ]+\)/\1/
   -- this matches outputting into a channel
-/ *\(file\|env\|path\) +.*into *\([^ ]+\)/\2/
+/ *\(file\|env\|path\|val\) +.*into *\([^ ]+\)/\2/
+  -- this matches an input or output that uses the same name as the variable in the process body
+/ *\(file\|env\|path\|val\) +\([A-Za-z0-9_.-]+\)$/\2/
   -- this matches assignment with = 
 / *\([A-Za-z0-9_.-]+\) *=[^=]/\1/
   -- this matches assignment with set({channel_name})
 /.*set{\([^}\]+\)}/\1/
+  -- this matches def function
+/ *def *\([A-Za-z0-9_.-]+\)/\1/
 #+end_src
 ** COMMENT dir-locals
 Here we set the dir-locals,
