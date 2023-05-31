@@ -1088,7 +1088,7 @@ process MakeCometConfig {
     // should we instead return a tuple here of fastadb and config
     // because the config.txt refers to it?
     input:
-    value max_missed_cleavages
+    val max_missed_cleavages
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
     path template from Channel.fromPath(params.comet_template)
     output:
@@ -1399,7 +1399,7 @@ process MakeXtandemConfig {
     input:
     file template from Channel.fromPath(params.xtandem_template)
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    value max_missed_cleavages
+    val max_missed_cleavages
     output:
     file "xtandem_config.xml" into xtandem_config_ch
     """
@@ -1572,7 +1572,7 @@ process  FindMinimumPeptideProbability {
     input: 
     file combined_search_results from combined_search_results_ch.first()
     file fastadb_with_decoy from joined_fasta_with_decoys_ch.first()
-    value max_missed_cleavages
+    val max_missed_cleavages
     output:
     env PEPTIDEPROBABILITY into  minimum_peptide_probability
     /* explanation of paramaters
@@ -3199,13 +3199,15 @@ we can ~xref-find-definitions~ (~M-.~) nextflow variables.
   -- this matches a process definition
 / *process +\([^{ ]+\)/\1/
   -- this matches outputting into a channel
-/ *\(file\|env\|path\|value\) +.*into *\([^ ]+\)/\2/
+/ *\(file\|env\|path\|val\) +.*into *\([^ ]+\)/\2/
   -- this matches an input or output that uses the same name as the variable in the process body
-/ *\(file\|env\|path\|value\) +\([A-Za-z0-9_.-]+\)$/\2/
+/ *\(file\|env\|path\|val\) +\([A-Za-z0-9_.-]+\)$/\2/
   -- this matches assignment with = 
 / *\([A-Za-z0-9_.-]+\) *=[^=]/\1/
   -- this matches assignment with set({channel_name})
 /.*set{\([^}\]+\)}/\1/
+  -- this matches def function
+/ *def *\([A-Za-z0-9_.-]+\)/\1/
 #+end_src
 ** COMMENT dir-locals
 Here we set the dir-locals,
