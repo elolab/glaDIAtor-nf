@@ -1130,7 +1130,12 @@ process Comet {
     params.search_engines.contains("comet")
 
     """
-    comet-ms -P$comet_config $mzxml 
+    if command -v command-ms;
+    then
+      comet-ms -P$comet_config $mzxml
+    else
+      comet -P$comet_config $mzxml
+    fi
     """
 }
 #+end_src
