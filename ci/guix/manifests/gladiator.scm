@@ -3,6 +3,7 @@
    "r-swath2stats"
    "tpp"
    "openms"
+   "coreutils"
    "python-msproteomicstools"
    "python"
    "python-biopython"
