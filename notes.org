@@ -889,9 +889,15 @@ the maximum number of allowed missed cleavages is also passed to all search engi
 params.max_missed_cleavages=null
 #+end_src
 
-
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 max_missed_cleavages = Channel.value(params.max_missed_cleavages)
+#+end_src
+
+However, in this developers experience, =xtandem= will crash when using another =max-missed-cleavages= then one so you would
+put e.g. the following in your config file.
+#+begin_src nextflow :tangle no 
+params.search_engines = ["comet"]
+params.max_missed_cleavages= 2
 #+end_src
 
 **** DONE Comet 
@@ -1787,7 +1793,7 @@ process Spectrast2OpenSwathTsv {
     """
     MINWINDOW=`head -n1 $swath_windows | cut -d'	' -f1`
     MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
-    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a $consensus_pseudospectra_openswath_library_tsv $sptxt"
+    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a $consensus_pseudospectra_openswath_library_tsv $sptxt
     """
 }
 #+end_src
