@@ -1777,7 +1777,7 @@ process Spectrast2OpenSwathTsv {
     """
     MINWINDOW=`head -n1 $swath_windows | cut -d'	' -f1`
     MAXWINDOW=`tail -n1 $swath_windows | cut -d'	' -f2`
-    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a $consensus_pseudospectra_openswath_library_tsv $sptxt"
+    spectrast2tsv.py -l \$MINWINDOW,\$MAXWINDOW -s y,b -d -e -o 6 -n 6 -w $swath_windows -k openswath -a $consensus_pseudospectra_openswath_library_tsv $sptxt
     """
 }
 #+end_src
