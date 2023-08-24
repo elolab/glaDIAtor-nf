@@ -1992,7 +1992,7 @@ process DeepDIAPredictionsToLibrary {
     deepdia_speclib="speclib.tsv"
     """
     build_assays_from_prediction.py --peptide ${deepdia_peptides_for_library} --rt ${predicted_rt} --ions ${ions} --out prediction.assay.pickle
-    convert_assays_to_Spectronaut_library.py --in prediction.assay.pickle --out ${deepdia_speclib}
+    convert_assays_to_openswath.py --in prediction.assay.pickle --out ${deepdia_speclib}
     """
 }
 #+end_src

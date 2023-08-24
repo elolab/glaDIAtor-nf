@@ -16,5 +16,5 @@
  (channel
   (name 'deepdia-packages)
   (url "git@gitlab.utu.fi:elixirdianf/deepdia.git")
-  (branch "guix-channel")
-  (commit "dd3a726b03be9b4838c50fa745e2aa937b02ca37")))
+  (branch "guix")
+  (commit "7c91a645b4f9f4c71dbf7b351505f242e1b7d539")))
