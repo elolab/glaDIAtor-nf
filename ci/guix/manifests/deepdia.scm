@@ -9,7 +9,10 @@
    ;; we're not gonna do graphviz things here, so it might be okay to have a broken python-pydot here?
    (options->transformation
     `((with-input . "python-pyparsing@2.4.7=python-pyparsing")
-      (without-tests . "python-pydot")))
+      (without-tests . "python-pydot")
+      ;; tests require threads
+      (without-tests . "python-keras")
+      ))
    specification->package)
  
  '("python-deepdia"
