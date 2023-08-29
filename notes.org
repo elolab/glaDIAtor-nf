@@ -1913,8 +1913,9 @@ if (params.deepdia_min_detectability != null){
 	set file(deepdia_detectability_prediction), file(deepdia_prefilt_peptide_list) into deepdia_detectability
 	script:
 	deepdia_detectability_prediction="${deepdia_prefilt_peptide_list.baseName}.detectability.csv"
-	"predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $detect"
+	"predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $deepdia_detectability_prediction"
     }
+    
     process DeepDIAMinimumDetectabilityFiltering
     {
 	input:
