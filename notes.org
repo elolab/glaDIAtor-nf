@@ -1919,13 +1919,13 @@ if (params.deepdia_min_detectability != null){
     {
 	input:
 	set file(detectability_prediction), file(prefilt_peptide_list) from deepdia_detectability
-	value min_detectability from Channel.value(params.deepdia_min_detectability)
+	val min_detectability from Channel.value(params.deepdia_min_detectability)
 	output:
 	file deepdia_filtered_peptide_list
 	script:
 	deepdia_filtered_peptide_list="deepdia_filtered_peptide_list.csv"
 	"""
-	filter_peptide_by_detectability.py --peptide $prefilt_peptide_list --detect $detectability_prediction --min_detectability min_detectability --out ${deepdia_filtered_peptide_list}
+	filter_peptide_by_detectability.py --peptide $prefilt_peptide_list --detect $detectability_prediction --min_detectability $min_detectability --out ${deepdia_filtered_peptide_list}
 	"""
     }
 }
