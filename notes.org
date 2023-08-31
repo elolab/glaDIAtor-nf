@@ -2016,6 +2016,14 @@ OpenSwathDecoyGenerator from =OpenMS= =topp=
 params.openswath_transitions = ""
 #+end_src
 
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no
+if (deconvolution_method_is_enabled("deepdia",params)){
+ Channel.value("-min_decoy_fraction 0.0").set{oswdg_args}
+} else {
+  Channel.value("").set{oswdg_args}
+}
+#+end_src
 #+VINDEX: deepdia
 With [[#section-deepdia][deepDIA]] method used there  seems to be some problems with generating decoys,
 so we set =-min_decoy_fraction= to  =0.0= in this case.
@@ -2330,10 +2338,23 @@ If you get an error here as
 try running with ~params.use_irt=false~
 **** nonlegacy prypophet
 http://www.openswath.org/en/latest/docs/pyprophet.html
-we calculate the subsample ratio from the number of runs 
+In order to make the pyrophet step less intensive,
+by default we subsample to =1 / nr_samples=, as suggested in the pyprophet guide.
+However you can supply your own here
+
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// The ratio (0,1] to subsample by in pyprophet.
+// leave to null to use 1 / nr_samples
+params.pyprophet_subsample_ratio = null 
+#+end_src
+we calculate the subsample ratio from the number of runs
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
-Channel.value(1 / Math.max(Channel.fromPath(params.diafiles).toSortedList().size().getVal(), 1))
-    .set{subsample_ratio}
+if(params.pyprophet_subsample_ratio == null){
+    Channel.value(1 / Math.max(Channel.fromPath(params.diafiles).toSortedList().size().getVal(), 1))
+	.set{subsample_ratio}
+} else {
+    Channel.value(params.pyprophet_subsample_ratio).set{subsample_ratio}
+}
 #+end_src
 # this will show as the nextflow dotviz graph as two edges. 
 
@@ -2489,6 +2510,8 @@ Note: If things fail here,
 because the right fdr cannot be reached,
 you can try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
 earlier upstream.
+
+Additionally you can try setting ==--use-irt= to false, if you are getting a zero-division errors because the input tsvs are empty.
 
 #+begin_src nextflow
 process feature_alignment
