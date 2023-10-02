@@ -16,7 +16,7 @@ To learn more about org-mode, see https://orgmode.org/.
 Sentences with the first person plural ("we") as subject
 or with implied third person (it reads as "[The program] ..."),
 are notes about the development process or an explanation of the program,
-whereas sentences with the  second person as object ("You" e.g. "You might try setting foo to 3")
+whereas sentences with the  second person as subject ("You" e.g. "You might try setting foo to 3")
 are instructions to the end user.
 
 
@@ -1825,6 +1825,7 @@ consensus_pseudospectra_openswath_library_tsv
 See also its documentation
 https://github.com/lmsac/DeepDIA/raw/master/README.md
 https://github.com/lmsac/DeepDIA/raw/master/docs/predict_detectability.md
+doi:10.1038/s41467-019-13866-z
 
 #+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
 <<nf-pagebreak>>
@@ -2245,8 +2246,12 @@ also hardcoded in https://github.com/msproteomicstools/msproteomicstools/raw/mas
 https://github.com/PyProphet/pyprophet
 =pyprophet=
 License: 3-clause BSD
+doi:10.1093/bioinformatics/btu686
+doi:10.1038/s42003-023-04977-x
 Pyprophet aggregates various quality scores into one score
 =d_score= (discriminant_score)
+
+is based on mprophet doi:10.1038/nmeth.1584
 
 **** Legacy Pyprophet
 #+begin_src nextflow
@@ -2358,10 +2363,22 @@ if(params.pyprophet_subsample_ratio == null){
 #+end_src
 # this will show as the nextflow dotviz graph as two edges. 
 
-In =pyprophet subsample= and =pyprophet score=,
+In =pyprophet subsample= and =pyprophet score= (of nonlegacy pypropet),
 we will need to pass =--test= to not have random behaviour.
 This will make the sql behaviour behaviour non-random.
-However there is no actual seed paramater to set, its just a "use-random/ don't use random" flag.
+Because sql doesn't allow for settign a seed, pyprophet will just select the first =subsample_ratio= of transitions,
+This can result in no decoy peptides being in the subsampled osw's.
+This is indicated by the error of pyprophet:
+#+begin_example
+  Error: At least 10 decoy groups and 10 target groups are required.
+#+end_example
+
+This leaves you with one of three choices:
+
+1) passing ==--pyprophet_subsample_ratio=1.0=, sacrificing runtime.
+2) passing ==--pyprophet_fixed_seed=false=, sacrificing reproducibility.
+3) passing ==--pyprophet_use_legacy=true=, sacrificing "up-to-dateness".
+
 #+VINDEX: params.pyprophet_fixed_seed
 #+VINDEX: params.pyprophet_use_legacy
 #+begin_src nextflow :noweb-ref nf-params :tangle no
@@ -2398,7 +2415,7 @@ process pyprophet_subsample {
 ~pyprophet score~ requires significantly more memory than ~pyprophet merge~
 should we split this?
 
-If =pyprophet merge= complains about no decoys being found,
+If =pyprophet merge= or =pyprophet score= complains about no decoys being found,
 you can try without passing ==--pyprophet_fixed_seed= to gladiator.
 
 #+begin_src nextflow
@@ -2511,7 +2528,7 @@ because the right fdr cannot be reached,
 you can try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
 earlier upstream.
 
-Additionally you can try setting ==--use-irt= to false, if you are getting a zero-division errors because the input tsvs are empty.
+Additionally you can try setting ==--use_irt= to false, if you are getting a zero-division errors because the input tsvs are empty.
 
 #+begin_src nextflow
 process feature_alignment
