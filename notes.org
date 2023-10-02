@@ -2032,12 +2032,12 @@ so we set =-min_decoy_fraction= to  =0.0= in this case.
 process AddDecoysToOpenSwathTransitions {
     input:
     file speclib_tsv from speclib_tsv_for_decoys.first()
+    val oswdg_args
     output:
     file outputfile into openswath_transitions_ch
-
     script:
     outputfile="SpecLib_cons_decoys.pqp"
-    oswdg_args= deconvolution_method_is_enabled("deepdia",params) ? "-min_decoy_fraction 0.0" : ""
+
     """
     TargetedFileConverter -in $speclib_tsv -out SpecLib_cons.TraML
     OpenSwathDecoyGenerator -decoy_tag DECOY_ -in SpecLib_cons.TraML -out $outputfile -method reverse $oswdg_args
