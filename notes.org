@@ -593,13 +593,17 @@ params.deconvolution_method = null
 
 #+begin_src nextflow :noweb-ref nf-function-definitions :tangle no 
 def deconvolution_method_is_enabled(method, params){
+    // method to use if the user didnt specify anything
+    def fallback_method = "deepdia";
     if (params.deconvolution_method){
 	return method == params.deconvolution_method
     }
-    if (params.ddafiles){
-	return method == "dda"
+
+    switch (method) {
+	    case "dda": return !!params.dda_files;
+	    case "custom": return !!params.speclib;
+	    default: return method == fallback_method;
     }
-    return method == "deepdia"
 }
 #+end_src
 
@@ -2018,7 +2022,7 @@ params.speclib = null
 
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no 
-if (deconvolution_method_is_enabled("custom", params){
+if (deconvolution_method_is_enabled("custom", params)){
     Channel.fromPath(params.speclib).set{speclib_tsv_for_decoys}
 }
 
@@ -2032,10 +2036,16 @@ OpenSwathDecoyGenerator from =OpenMS= =topp=
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // optional 
 params.openswath_transitions = ""
+// Minimum decoy fraction for open swath decoy generator
+// if left unset, gladiator might pick an appropriate one depending on your deconvolution method,
+// should be a fraction between 0.0 and 1.0
+params.oswdg_min_decoy_fraction = null
 #+end_src
 
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
+if(params.oswdg_min_decoy_fraction != null)
+    Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args}
 if (deconvolution_method_is_enabled("deepdia",params)){
  Channel.value("-min_decoy_fraction 0.0").set{oswdg_args}
 } else {
