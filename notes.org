@@ -605,6 +605,12 @@ def deconvolution_method_is_enabled(method, params){
 	    default: return method == fallback_method;
     }
 }
+
+def deconvolution_method_is_exclusively_enabled(method, params) {
+    deconv_methods = [ "dda","custom", "deepdia", "pseudospectra"]
+    return deconv_methods.inject(true) { acc, val -> acc && ( deconvolution_method_is_enabled(val, params)  == (val == methods)) }
+    
+}
 #+end_src
 
 # In certain nextflow source blocks i might set :noweb-ref  to "nf-vars"
@@ -2033,6 +2039,7 @@ if (deconvolution_method_is_enabled("custom", params)){
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
 #+VINDEX: params.openswath_transitions
+#+VINDEX: params.oswdg_min_decoy_fractions
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // optional 
 params.openswath_transitions = ""
@@ -2044,9 +2051,9 @@ params.oswdg_min_decoy_fraction = null
 
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
-if(params.oswdg_min_decoy_fraction != null)
-    Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args}
-if (deconvolution_method_is_enabled("deepdia",params)){
+if(params.oswdg_min_decoy_fraction != null) { 
+    Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args} 
+} else if (deconvolution_method_is_enabled("deepdia",params)){
  Channel.value("-min_decoy_fraction 0.0").set{oswdg_args}
 } else {
   Channel.value("").set{oswdg_args}
@@ -2073,7 +2080,7 @@ process AddDecoysToOpenSwathTransitions {
 #+end_src
 
 
-=TargetedFileConverter= from msproteomics.
+=TargetedFileConverter= from =openms=
 #+begin_quote
 /usr/bin/TargetedFileConverter: error while loading shared libraries: libQt5Core.so.5: cannot open shared object file: No such file or directory
 #+end_quote
