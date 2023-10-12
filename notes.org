@@ -2024,9 +2024,7 @@ if (deconvolution_method_is_enabled("custom", params){
 
 #+end_src
 
-#+begin_src nextflow
 
-#+end_src
 ** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
@@ -2734,6 +2732,13 @@ process {
     withName: pyprophet_legacy {
 	container='%P'
    }
+   // for perl-diamspep
+   withName: 'DIAMS2PEP_.*'{
+   // there is really no good single letter here
+   	container='%V'
+   }
+   
+   
 }
 #+end_example
 
@@ -2798,7 +2803,12 @@ And here we write the logic that fills the template
 		     ,(construct-container-uri "pyprophet"
 					       program-name-key
 					       locality))
-		 
+		 (?V .
+		     ,(construct-container-uri
+		       "diams2pep"
+		       program-name-key
+		       locality))
+					       
 		 (?P .
 		     ,(construct-container-uri
 		       "pyprophet-legacy"

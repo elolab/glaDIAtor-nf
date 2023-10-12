@@ -62,7 +62,7 @@ CONTAINER_TAG=
 .PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment
 # If you want to push only some of the containers to the registry
 # set CONTAINER_NAMES on the command line to that subset.
-CONTAINER_NAMES:=pyprophet-legacy gladiator pyprophet deepdia
+CONTAINER_NAMES:=pyprophet-legacy gladiator pyprophet deepdia diams2pep
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
 docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
 
@@ -112,6 +112,11 @@ containers/deepdia.simg containers/deepdia.tar: ci/guix/deepdia-channels.scm ci/
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
+containers/diams2pep.simg containers/diams2pep.tar: MANIFESTS=
+containers/diams2pep.simg containers/diams2pep.tar: PACKAGES=guix coreutils bash-minimal
+containers/diams2pep.simg containers/diams2pep.tar: ci/guix/diams2pep-channels.scm ci/guix/manifests/diams2pep.scm ci/guix/manifests/nextflow-trace.scm
+	mkdir -p $(@D)
+	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
 # For some reason, -S /usr/bin/env=bin/env doesnt work for squashfs,
 # but linking -S /usr=. (so to the profile dir) does work, so /usr/bin/env  exist this way.
