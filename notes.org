@@ -2008,6 +2008,25 @@ process DeepDIAPredictionsToLibrary {
 }  // end of deepdia guard
 #+end_src
 
+*** Supplying a custom spectral library
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// if params.deconvolution method is set
+// set this to to spectral libraries tsvs in maxquant / openms / any input format that openms TargetedConverter understands
+params.speclib = null
+#+end_src
+
+
+
+#+begin_src nextflow :noweb-ref nf-vars :tangle no 
+if (deconvolution_method_is_enabled("custom", params){
+    Channel.fromPath(params.speclib).set{speclib_tsv_for_decoys}
+}
+
+#+end_src
+
+#+begin_src nextflow
+
+#+end_src
 ** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
