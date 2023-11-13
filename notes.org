@@ -649,7 +649,7 @@ and getting output mgf from output channels.
 #+begin_src nextflow :noweb-ref nf-vars :tangle no :noweb no-export
 deconvolution_methods = []
 <<nf-deconvolution-handling>>
-deconv_input_chs = deconvolution_method.*input.findAll({it != null))
+deconv_input_chs = deconvolution_methods*.input.findAll({it != null})
 if(deconv_input_chs){
     Channel
 	.fromPath(params.diafiles)
@@ -657,9 +657,9 @@ if(deconv_input_chs){
 	    deconv_input_chs
 		.inject() { acc, val -> acc << val })
 }
-deconv_output_chs = deconvolution_method.*output.findAll({it != null))
+deconv_output_chs = deconvolution_methods*.output.findAll({it != null})
 for(ch:deconv_output_chs)
-    Channel.create.set(ch.clone())
+    Channel.create().set(ch.clone())
 if(deconv_output_chs){
     Channel.empty()
 	.mix(*(deconv_output_chs*.call()))
@@ -672,17 +672,17 @@ if(deconv_output_chs){
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
-if(libgen_method_any_pseudospectra_method_is_enabled(params) || libgen_method_is_enabled("dda",params))
+if(libgen_method_any_pseudospectra_method_is_enabled(params) || libgen_method_is_enabled("dda",params)){
 #+end_src
 **** Using DDA Data
 #+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
 if(libgen_method_is_enabled("dda",params)){
-    deconvolution_methods += [out: { dda_files_ch } ]
+    deconvolution_methods += [output: { dda_files_ch } ]
 }
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-vars :noweb strip-export :tangle no
-if(libgen_method_is_enabled("dda",params){
+if(libgen_method_is_enabled("dda",params)){
     Channel.fromPath(params.ddafiles).tap(dda_files_ch)
 }
 #+end_src
@@ -740,8 +740,8 @@ DIAumpire is =Apache 2= licensed.
 
 #+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
 if(libgen_method_is_enabled("diaumpire",params)){
-    deconvolution_methods += [output: diaumpire_pseudospectra_ch,
-			      input:  dia_mzml_files_for_diaumpire_ch]
+    deconvolution_methods += [output: {diaumpire_pseudospectra_ch},
+			      input:  {dia_mzml_files_for_diaumpire_ch}]
 }
 #+end_src
 #+begin_src nextflow :noweb-ref nf-vars :noweb strip-export 
@@ -909,8 +909,8 @@ params.ddafiles = null
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 #+end_src
 
-#+begin_src nextflow :noewb-ref nf-vars 
-} 
+#+begin_src nextflow :noweb-ref nf-vars 
+} // end of diaumpire guard
 #+end_src
 **** Creating Pseudospectra with diams2pep
 https://github.com/SS2proteome/DIA-MS2pep
@@ -923,14 +923,14 @@ params.diams2pep_fragment_tolerance = null
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
-if(libgen_method_is_enabled("diams2pep",params){
-    deconvolution_methods += [output: diaumpire_pseudospectra_ch,
-			      input: diams2pep_mgf_mzml]
+if(libgen_method_is_enabled("diams2pep",params)){
+    deconvolution_methods += [output: { diams2pep_pseudospectra},
+			      input: { diams2pep_input_mzml}]
 }
 #+end_src
 
-#+begin_src nextflow :noweb-ref nf-vars :tangle yes
-if(libgen_method_is_enabled("diams2pep",params){
+#+begin_src nextflow :noweb-ref nf-vars 
+if(libgen_method_is_enabled("diams2pep",params)){
 #+end_src
 
 Do we need msconvert to convert to a friendly mzml file?
@@ -974,6 +974,8 @@ process DIAMS2PEP_mgf_generation {
 }
 #+end_src
 
+
+=DIA_acquistion_window_generator.pl= is _not_ a typo, this is how it is in the original repo.
 #+begin_src nextflow 
 process DIAMS2PEP_window {
     input:
@@ -982,7 +984,7 @@ process DIAMS2PEP_window {
     tuple val(hash), file("${mzml}.DIA_acquisition_window.txt") into diams2pep_window
     
     """
-    DIA_acquisition_window_generator.pl $mzml
+    DIA_acquistion_window_generator.pl $mzml
     """
 }
 #+end_src
@@ -993,6 +995,7 @@ which would not be known before running =DIA_acquisition_window_generator.pl=
 # Is there a way to join them again?
 # see http://web.archive.org/web/20211130025352/http://www.matrixscience.com/help/data_file_help.html
 # 
+=DIA_pesudo_MS2.pl=.pl= is _not_ a typo, this is how it is in the original repo
 #+begin_src nextflow
 process DIAMS2PEP_generate_pseudo {
     input:
@@ -1001,7 +1004,7 @@ process DIAMS2PEP_generate_pseudo {
     output:
     file "mgf-output/*.mgf" into diams2pep_pseudospectra_mgf mode flatten
     """
-    DIA_pesudoM2.pl ${mzml.baseName} mgf-output $tolerance
+    DIA_pesudo_MS2.pl ${mzml.baseName} mgf-output $tolerance
     """
 }
 #+end_src
