@@ -572,33 +572,56 @@ process InferNonOverlappingSwathWindows {
 }
 #+end_src
 
-** Deconvolution of DIA 
-There are various way to deconvolute DIA data 
-for generating the spectral library for downstream analysis.
-Here we choose between them.
+** Library Generation 
+There are various way to generate spectral libraries from DIA data / DDA dat.
+Here we make the distinction between deconvolution methods and other library generation methods.
 
+The following is a list of the methods we support,
+#+NAME: nf-existing-libgen-methods
+#+begin_src nextflow :tangle no
+[ "dda","custom", "deepdia", "diaumpire","diams2pep"]
+#+end_src
 
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-// one of "dda","deepdia","pseudospectra"
+And you can adjust the following parameter 
+#+begin_src nextflow :noweb-ref nf-params :tangle no :noweb yes
+// one or more of <<nf-existing-libgen-methods>> seperated by commas
 // will default to "dda" if ddafiles are supplied
 // othewise to "deepdia"
-params.deconvolution_method = null
+params.libgen_method = null
 #+end_src
 
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no 
-// TODO: raise an error if params.deconvolution_method  is not a supported method
+// TODO: raise an error if params.libgen_method  is not a supported method
+libgen_methods_validate_params(params)
 #+end_src
 
 
-#+begin_src nextflow :noweb-ref nf-function-definitions :tangle no 
-def deconvolution_method_is_enabled(method, params){
+#+begin_src nextflow :noweb-ref nf-function-definitions :tangle no :noweb yes
+// returns all libgen methods that we supplor
+def libgen_methods_get_existing (){
+    return <<nf-existing-libgen-methods>>
+}
+
+def libgen_method_any_pseudospectra_method_is_enabled(params){
+    def pseudospectra_methods = ["diams2pep","diaumpire"]
+    return pseudospectra_methods.inject(false) { acc, val -> acc || libgen_method_is_enabled(val, params)}
+}
+
+
+def libgen_methods_validate_params(params){
+    if(params.libgen_method != null){
+	def invalid_methods = params.libgen_method.split(",").findAll({	   !libgen_methods_get_existing().contains(it)})
+	if(invalid_methods)
+	    raise RunTimeError("Invalid libgen methods specified: " + invalid_methods.join(","))
+    }
+}
+def libgen_method_is_enabled(method, params){
     // method to use if the user didnt specify anything
     def fallback_method = "deepdia";
-    if (params.deconvolution_method){
-	return method == params.deconvolution_method
+    if (params.libgen_method){
+	return params.libgen_method.split(",").contains(method)
     }
-
     switch (method) {
 	    case "dda": return !!params.dda_files;
 	    case "custom": return !!params.speclib;
@@ -606,10 +629,8 @@ def deconvolution_method_is_enabled(method, params){
     }
 }
 
-def deconvolution_method_is_exclusively_enabled(method, params) {
-    deconv_methods = [ "dda","custom", "deepdia", "pseudospectra"]
-    return deconv_methods.inject(true) { acc, val -> acc && ( deconvolution_method_is_enabled(val, params)  == (val == methods)) }
-    
+def libgen_method_is_exclusively_enabled(method, params) {
+    return libgen_methods_get_existing().inject(true) { acc, val -> acc && ( libgen_method_is_enabled(val, params)  == (val == methods)) }
 }
 #+end_src
 
@@ -618,15 +639,55 @@ def deconvolution_method_is_exclusively_enabled(method, params) {
 # so that the logic is wrapped both in the main file and in the nf-vars section
 # and in the main file.
 *** DONE Building {Pseudo-,}Spectral library from (Pseudo)-Spectra  [5/5]
-This section covers both Diaumpire pseudo
+:PROPERTIES:
+:ID:       613dd7ad-72d0-4103-bb85-0a8222b5dfe0
+:END:
+This section covers seval ways of deconvolution for making spectral libraries for later usage by open swath.
 
-#+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
-<<nf-pagebreak>> 
-if(deconvolution_method_is_enabled("dda",params) || deconvolution_method_is_enabled("pseudospectra",params))
-    {
+The below block handles the logic of dealing with the various deconvolution methods, sending diafiles to all input channels,
+and getting output mgf from output channels.
+#+begin_src nextflow :noweb-ref nf-vars :tangle no :noweb no-export
+deconvolution_methods = []
+<<nf-deconvolution-handling>>
+deconv_input_chs = deconvolution_method.*input.findAll({it != null))
+if(deconv_input_chs){
+    Channel
+	.fromPath(params.diafiles)
+	.into(
+	    deconv_input_chs
+		.inject() { acc, val -> acc << val })
+}
+deconv_output_chs = deconvolution_method.*output.findAll({it != null))
+for(ch:deconv_output_chs)
+    Channel.create.set(ch.clone())
+if(deconv_output_chs){
+    Channel.empty()
+	.mix(*(deconv_output_chs*.call()))
+	.multiMap{ it -> spectrast: comet: xtandem: it }
+	.set{maybespectra_ch}
+}
+#+end_src
+#+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
+
 #+end_src
 
-**** DONE Creating Pseudospectra
+#+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
+if(libgen_method_any_pseudospectra_method_is_enabled(params) || libgen_method_is_enabled("dda",params))
+#+end_src
+**** Using DDA Data
+#+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
+if(libgen_method_is_enabled("dda",params)){
+    deconvolution_methods += [out: { dda_files_ch } ]
+}
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-vars :noweb strip-export :tangle no
+if(libgen_method_is_enabled("dda",params){
+    Channel.fromPath(params.ddafiles).tap(dda_files_ch)
+}
+#+end_src
+
+**** DONE Creating Pseudospectra with DIAumpire
 :LOGBOOK:
 CLOCK: [2022-06-07 Tue 10:33]--[2022-06-07 Tue 19:38] =>  9:05
 :END:
@@ -676,6 +737,18 @@ in =MzmltoMzxml=, that can mean that something went wrong
 when you used =msconvert= to convert from the propriatary format to mzml
 ***** Steps that are run 
 DIAumpire is =Apache 2= licensed.
+
+#+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
+if(libgen_method_is_enabled("diaumpire",params)){
+    deconvolution_methods += [output: diaumpire_pseudospectra_ch,
+			      input:  dia_mzml_files_for_diaumpire_ch]
+}
+#+end_src
+#+begin_src nextflow :noweb-ref nf-vars :noweb strip-export 
+<<nf-pagebreak>> 
+if(libgen_method_is_enabled("diaumpire",params)){
+#+end_src
+
 #+NAME: diaumpireconfig
 #+begin_src conf :eval no :tangle diaumpireconfig.txt 
 #Number of threads
@@ -747,7 +820,6 @@ SE.MinMZ = 200
 SE.MinPrecursorMass = 600
 SE.MaxPrecursorMass = 5000
 
-
 #Isolation window setting
 #The current version supports the following window type: SWATH (fixed window size), V_SWATH (variable SWATH window), MSX, MSE, pSMART
 WindowType=SWATH
@@ -768,23 +840,22 @@ https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518119/
 // create mzxml
 process MzmlToMzxml {
     input:
-    file diafile from dia_mzml_files_for_pseudospectra_ch
+    file diafile from dia_mzml_files_for_diaumpire_ch
     output:
-    file "*.mzXML" into dia_mzxml_files_for_pseudospectra_ch
+    file "*.mzXML" into dia_mzxml_files_for_diaumpire_ch
     """
     msconvert $diafile --32 --zlib --filter "peakPicking false 1-" --mzXML
     """
-        
 }
 
 process GeneratePseudoSpectra  {
     memory '16 GB' 
     input:
-    file diafile from dia_mzxml_files_for_pseudospectra_ch
+    file diafile from dia_mzxml_files_for_diaumpire_ch
     path diaumpireconfig from diaumpireconfig_ch.first()
     output:
     // we flatten here becuase a single mzxml might result in multiple mgf files
-    file "*.mgf" into pseudospectra_mgf_ch mode flatten 
+    file "*.mgf" into diaumpire_pseudospectra_mgf_ch mode flatten 
 
     """
     # we set \$1 to the number of gigs of memory
@@ -798,11 +869,11 @@ process GeneratePseudoSpectra  {
     """
 }
 
-process MgfToMzxml {
+process DiaUmpireMgfToMzxml {
     input:
-    file mgf from pseudospectra_mgf_ch
+    file mgf from diaumpire_pseudospectra_mgf_ch
     output:
-    file "*.mzXML" into pseudospectra_ch
+    file "*.mzXML" into diaumpire_pseudospectra_ch
     when:
     // excluding empty files   
     mgf.size()  > 0
@@ -812,9 +883,7 @@ process MgfToMzxml {
 }
 #+end_src
 
-
 #+begin_src scheme :noweb-ref deps :tangle no 
-
 ("generate-pseudo-spectra"
  "dia-umpire" 
  "pwiz") ;; the free one 
@@ -838,38 +907,122 @@ params.ddafiles = null
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 // so that this is a singleton channel
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
-// dda_assisted_p = dda_files_empty_check.ifEmpty('Empty').first() != 'Empty'
-dda_assisted_p = !!params.ddafiles
-if (dda_assisted_p) {
-    Channel.fromPath(params.ddafiles).set{dda_files_ch}
-    Channel.empty().set{dia_mzml_files_for_pseudospectra_ch}
-} else {
-    Channel.fromPath(params.diafiles).set{dia_mzml_files_for_pseudospectra_ch}
-}
-
 #+end_src
-As dia will be listened to by two in the case of not dda-assisted,
-we'll have to use the [[https://www.nextflow.io/docs/latest/operator.html#operator-into][=into=]] operator to input into two channels if we dont have =dda=  data
 
+#+begin_src nextflow :noewb-ref nf-vars 
+} 
+#+end_src
+**** Creating Pseudospectra with diams2pep
+https://github.com/SS2proteome/DIA-MS2pep
+doi:10.52601/bpr.2022.220011
 
-The channel-juggling below  makes the path for pseudo-spectra and "real" input spectra
-follow the same path after =MgfToMzxml= / from comet&xtandem onwards,
-by putting the ones to act on in the =maybespectra_ch.{comet,xtandem}= channels.
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-// we forward-declare pseudospectra_ch here (output of the MgfToMzxml process)
-// so that we can define a multiMap rule for it.
-pseudospectra_ch = Channel.create()
-// maybe-spectra can be either real spectra or pseudo-spectra
-if(deconvolution_method_is_enabled("dda",params)){
-    dda_files_ch.multiMap { it ->
-	spectrast: comet: xtandem: it }.set{maybespectra_ch}
-} else if (deconvolution_method_is_enabled("pseudospectra",params)){
-    pseudospectra_ch
-	.multiMap{ it -> spectrast: comet: xtandem: it }
-	.set{maybespectra_ch}
+#+begin_src nextflow :noweb-ref nf-params :tangle no
+// fragment tolarance for diam2spep in ppm
+// (other tools require it in dalton)
+params.diams2pep_fragment_tolerance = null
+#+end_src
+
+#+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
+if(libgen_method_is_enabled("diams2pep",params){
+    deconvolution_methods += [output: diaumpire_pseudospectra_ch,
+			      input: diams2pep_mgf_mzml]
 }
-#+end_src 
+#+end_src
 
+#+begin_src nextflow :noweb-ref nf-vars :tangle yes
+if(libgen_method_is_enabled("diams2pep",params){
+#+end_src
+
+Do we need msconvert to convert to a friendly mzml file?
+According to DIA-MS2PEP's readme we need
+#+begin_example conf
+mzML=true
+zlib=true
+mz64=true
+inten64=true
+simAsSpectra=true
+filter=”peakPicking vendor msLevel=1-2"
+#+end_example
+
+
+trying with filter "cwt" because we don't ship vendors.
+#+begin_src nextflow
+process convert_for_DIAMS2PEP {
+    input:
+    file mzml from diams2pep_input_mzml
+    output:
+    tuple val(task.hash), file(mzml) into diams2pep_mgf_mzml, diams2pep_window_mzml, diams2pep_for_pseudo_mzml
+    script:
+    ofile="converted/${mzml.baseName}.mzML"
+    """
+    mkdir -p converted
+    msconvert --mzML --mz64 --zlib --inten64 --simAsSpectra --filter "peakPicking cwt msLevel=1-2" --outdir converted $mzml
+    """
+}
+#+end_src
+
+#+begin_src nextflow
+process DIAMS2PEP_mgf_generation {
+    input:
+    tuple val(hash), file(mzml) from diams2pep_mgf_mzml
+    output:
+    tuple val(hash), file("${mzml.baseName}.mgf") into diams2pep_mgf
+    
+    """
+    RAW.mzMZM.parser.pl mgf $mzml
+    """
+}
+#+end_src
+
+#+begin_src nextflow 
+process DIAMS2PEP_window {
+    input:
+    tuple val(hash), file(mzml) from  diams2pep_window_mzml
+    output:
+    tuple val(hash), file("${mzml}.DIA_acquisition_window.txt") into diams2pep_window
+    
+    """
+    DIA_acquisition_window_generator.pl $mzml
+    """
+}
+#+end_src
+
+
+Looking at the source, this creates an mgf file for every window that was detected.
+which would not be known before running =DIA_acquisition_window_generator.pl=
+# Is there a way to join them again?
+# see http://web.archive.org/web/20211130025352/http://www.matrixscience.com/help/data_file_help.html
+# 
+#+begin_src nextflow
+process DIAMS2PEP_generate_pseudo {
+    input:
+    tuple val(hash), file(mzml), file(mgf), file(acq_window) from diams2pep_for_pseudo_mzml.join(diams2pep_mgf).join(diams2pep_window)
+    val tolerance from Channel.value(params.diams2pep_fragment_tolerance)
+    output:
+    file "mgf-output/*.mgf" into diams2pep_pseudospectra_mgf mode flatten
+    """
+    DIA_pesudoM2.pl ${mzml.baseName} mgf-output $tolerance
+    """
+}
+#+end_src
+
+#+begin_src nextflow 
+// this will use the default container because we need msconvert
+process MgfToMzml_DIAMS2PEP {
+    input:
+    file mgf from diams2pep_pseudospectra_mgf
+    output:
+    file "*.mzXML" into diams2pep_pseudospectra
+    """
+    msconvert --mzxml $mgf
+    """
+}
+#+end_src
+
+
+#+begin_src nextflow :noweb-ref nf-vars 
+} // end of diams2pep guard
+#+end_src
 **** Choosing the MS Sequence database search engine: Comet/Xtandem
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
@@ -1826,6 +1979,7 @@ consensus_pseudospectra_openswath_library_tsv
 # so we leave it to be tangled to the default tangle destinitation
 # in addition to having noweb ref
 # so that this statement goes to both 
+
 *** Building Spectral library from Machine learning
 :PROPERTIES:
 :ID:       0052ce0b-566c-4a13-9a72-a4e19e7eece0
@@ -1839,7 +1993,7 @@ doi:10.1038/s41467-019-13866-z
 
 #+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
 <<nf-pagebreak>>
-if(deconvolution_method_is_enabled("deepdia",params))  { 
+if(libgen_method_is_enabled("deepdia",params))  { 
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-params :tangle no
@@ -2019,6 +2173,16 @@ process DeepDIAPredictionsToLibrary {
 #+end_src
 
 *** Supplying a custom spectral library
+You can also supply a custom spectral library by setting ==--speclib= to a glob/path
+of your customly generated library.
+This should be in a format that openms's TargetedFileConverte understand,
+so MaxQuant or OpenMS works.
+
+To check, one can manually inspect whether  =TargetedFileConverter --in yourlibrary --out speclib.tsv= looks proper.
+Pay special attention to the modified peptides field, if this is being parsed correctly.
+One bug observed by this developer is that this field is repeated after not being parsed correctly.
+See also https://abibuilder.cs.uni-tuebingen.de/archive/openms/Documentation/release/2.7.0/html/classOpenMS_1_1TransitionTSVFile.html
+
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // if params.deconvolution method is set
 // set this to to spectral libraries tsvs in maxquant / openms / any input format that openms TargetedConverter understands
@@ -2026,15 +2190,17 @@ params.speclib = null
 #+end_src
 
 
-
 #+begin_src nextflow :noweb-ref nf-vars :tangle no 
-if (deconvolution_method_is_enabled("custom", params)){
+if (libgen_method_is_enabled("custom", params)){
     Channel.fromPath(params.speclib).set{speclib_tsv_for_decoys}
 }
-
 #+end_src
 
-
+*** TODO combining various spectral libraries into one.
+would need to use openms TargetedFileConverter to convert to openswath like tsv,
+then msproteomicstools [[/ssh:tamatoa:/data/epouta1/B22003_Elixir_DIA_Nextflow/src-for-inspection/msproteomicstools/analysis/spectral_libs/tsv2spectrast.py][tsv2spectrast.py]] to turn into spectrast.
+Then merge merge with spectrast with either -cJA  or -cJU http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST#Creating_Consensus_Libraries
+See aso schubert et al (doi:10.1038/nprot.2015.015)
 ** OpenSwathDecoys
 specrast2tsv.py is from =msproteomicstools=
 OpenSwathDecoyGenerator from =OpenMS= =topp=
@@ -2053,7 +2219,7 @@ params.oswdg_min_decoy_fraction = null
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 if(params.oswdg_min_decoy_fraction != null) { 
     Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args} 
-} else if (deconvolution_method_is_enabled("deepdia",params)){
+} else if (libgen_method_is_enabled("deepdia",params)){
  Channel.value("-min_decoy_fraction 0.0").set{oswdg_args}
 } else {
   Channel.value("").set{oswdg_args}
@@ -2115,7 +2281,7 @@ If we are using legacy pyprophet we will need to create a tsv
 #+NAME: nf-openswathworkflow-for-pyprophet-legacy
 #+begin_src nextflow :tangle no 
 process OpenSwathWorkflow_legacy {
-	memory { 16.GB * (deconvolution_method_is_enabled("deepdia",params) ? 2 : 1 )}
+	memory { 16.GB * (libgen_method_is_enabled("deepdia",params) ? 2 : 1 )}
 	input:
 	file dia_mzml_file from dia_mzml_files_ch.osw
 	// file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
@@ -2153,7 +2319,7 @@ openswath_osw_indirect_ch = Channel.create()
 openswath_osw_indirect_ch.multiMap{ it ->
     pyprophet_subsample: pyprophet_score  : it}.set{openswath_osw_ch}
 process OpenSwathWorkflow {
-    memory { 16.GB * (deconvolution_method_is_enabled("deepdia",params) ? 2 : 1 )}
+    memory { 16.GB * (libgen_method_is_enabled("deepdia",params) ? 2 : 1 )}
     input:
     file dia_mzml_file from dia_mzml_files_ch.osw
     // file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
