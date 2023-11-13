@@ -15,4 +15,4 @@
        (url "git@gitlab.utu.fi:elixirdianf/unelo-proteomics.git")
        (branch "master")
        (commit
-	"e02c0e15f134bcc7f94641ea95b663882b5ebd49")))
+	"9f6e43b4fb7837a3355db52fe9863d85616d7fe5")))
