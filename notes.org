@@ -1003,7 +1003,7 @@ process DIAMS2PEP_generate_pseudo {
     output:
     file "mgf-output/*.mgf" into diams2pep_pseudospectra_mgf mode flatten
     """
-    DIA_pesudo_MS2.pl ${mzml.baseName} mgf-output $tolerance
+    DIA_pesudo_MS2_multiforks.pl ${mzml.baseName} mgf-output $tolerance ${task.cpus}
     """
 }
 #+end_src
