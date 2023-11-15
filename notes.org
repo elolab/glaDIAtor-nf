@@ -950,7 +950,9 @@ process convert_for_DIAMS2PEP {
     input:
     file mzml from diams2pep_input_mzml
     output:
-    tuple val(task.hash), file(mzml) into diams2pep_mgf_mzml, diams2pep_window_mzml, diams2pep_for_pseudo_mzml
+    // there is no good way in nextflow that makes a UUUID that persists across -resume things
+    // task.hash is forgotten in resume, as is task.id.
+    tuple val("${mzml.baseName}"), path(ofile) into diams2pep_mgf_mzml, diams2pep_window_mzml, diams2pep_for_pseudo_mzml
     script:
     ofile="converted/${mzml.baseName}.mzML"
     """
@@ -963,9 +965,9 @@ process convert_for_DIAMS2PEP {
 #+begin_src nextflow
 process convert_mgf_for_DIAMS2PEP {
     input:
-    tuple val(hash), file(mzml) from diams2pep_mgf_mzml
+    tuple val(hash), path(mzml) from diams2pep_mgf_mzml
     output:
-    tuple val(hash), file("${mzml.baseName}.mgf") into diams2pep_mgf
+    tuple val(hash), path("${mzml.baseName}.mgf") into diams2pep_mgf
     
     """
     msconvert --mgf $mzml
@@ -978,9 +980,9 @@ process convert_mgf_for_DIAMS2PEP {
 #+begin_src nextflow 
 process DIAMS2PEP_window {
     input:
-    tuple val(hash), file(mzml) from  diams2pep_window_mzml
+    tuple val(hash), path(mzml) from  diams2pep_window_mzml
     output:
-    tuple val(hash), file("${mzml}.DIA_acquisition_window.txt") into diams2pep_window
+    tuple val(hash), path("${mzml}.DIA_acquisition_window.txt") into diams2pep_window
     
     """
     DIA_acquistion_window_generator.pl $mzml
@@ -996,13 +998,16 @@ which would not be known before running =DIA_acquisition_window_generator.pl=
 # 
 =DIA_pesudo_MS2.pl=.pl= is _not_ a typo, this is how it is in the original repo
 #+begin_src nextflow
+if(params.diams2pep_fragment_tolerance == null)
+    raise RunTimeEreror("DIAMSM2PEP enabled but no diams2pep_fragment_tolerance specified.")
 process DIAMS2PEP_generate_pseudo {
     input:
-    tuple val(hash), file(mzml), file(mgf), file(acq_window) from diams2pep_for_pseudo_mzml.join(diams2pep_mgf).join(diams2pep_window)
+    tuple val(hash), path(mzml), path(mgf), path(acq_window) from diams2pep_for_pseudo_mzml.join(diams2pep_mgf).join(diams2pep_window)
     val tolerance from Channel.value(params.diams2pep_fragment_tolerance)
     output:
     file "mgf-output/*.mgf" into diams2pep_pseudospectra_mgf mode flatten
     """
+    mkdir -p mgf-output
     DIA_pesudo_MS2_multiforks.pl ${mzml.baseName} mgf-output $tolerance ${task.cpus}
     """
 }
