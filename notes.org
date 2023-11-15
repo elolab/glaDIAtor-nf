@@ -921,7 +921,6 @@ doi:10.52601/bpr.2022.220011
 // (other tools require it in dalton)
 params.diams2pep_fragment_tolerance = null
 #+end_src
-
 #+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
 if(libgen_method_is_enabled("diams2pep",params)){
     deconvolution_methods += [output: { diams2pep_pseudospectra},
@@ -962,14 +961,14 @@ process convert_for_DIAMS2PEP {
 #+end_src
 
 #+begin_src nextflow
-process DIAMS2PEP_mgf_generation {
+process convert_mgf_for_DIAMS2PEP {
     input:
     tuple val(hash), file(mzml) from diams2pep_mgf_mzml
     output:
     tuple val(hash), file("${mzml.baseName}.mgf") into diams2pep_mgf
     
     """
-    RAW.mzMZM.parser.pl mgf $mzml
+    msconvert --mgf $mzml
     """
 }
 #+end_src
