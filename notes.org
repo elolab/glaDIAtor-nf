@@ -999,7 +999,7 @@ which would not be known before running =DIA_acquisition_window_generator.pl=
 =DIA_pesudo_MS2.pl=.pl= is _not_ a typo, this is how it is in the original repo
 #+begin_src nextflow
 if(params.diams2pep_fragment_tolerance == null)
-    raise RunTimeEreror("DIAMSM2PEP enabled but no diams2pep_fragment_tolerance specified.")
+    raise RunTimeError("DIAMSM2PEP enabled but no diams2pep_fragment_tolerance specified.")
 process DIAMS2PEP_generate_pseudo {
     input:
     tuple val(hash), path(mzml), path(mgf), path(acq_window) from diams2pep_for_pseudo_mzml.join(diams2pep_mgf).join(diams2pep_window)
@@ -1021,7 +1021,7 @@ process MgfToMzml_DIAMS2PEP {
     output:
     file "*.mzXML" into diams2pep_pseudospectra
     """
-    msconvert --mzxml $mgf
+    msconvert --mzXML $mgf
     """
 }
 #+end_src
@@ -1053,17 +1053,19 @@ params.fragment_mass_tolerance=null
 Notably, a more stringent (lower) tolerance increases memorary usage by comet.
 
 
-the maximum number of allowed missed cleavages is also passed to all search engines
+the maximum number of allowed missed cleavages is also passed to all search engines.
+*Mandatory* if you want to use these search engines.
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // Int, if you are using the comet, this can by at maximum 5,
 params.max_missed_cleavages=null
 #+end_src
 
+
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 max_missed_cleavages = Channel.value(params.max_missed_cleavages)
 #+end_src
 
-However, in this developers experience, =xtandem= will crash when using another =max-missed-cleavages= then one so you would
+However, in this developers experience, =xtandem= will crash when using another =max-missed-cleavages= then 1 so you would
 put e.g. the following in your config file.
 #+begin_src nextflow :tangle no 
 params.search_engines = ["comet"]
