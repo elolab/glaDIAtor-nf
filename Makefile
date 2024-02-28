@@ -62,7 +62,7 @@ CONTAINER_TAG=
 .PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment
 # If you want to push only some of the containers to the registry
 # set CONTAINER_NAMES on the command line to that subset.
-CONTAINER_NAMES:=pyprophet-legacy gladiator pyprophet deepdia diams2pep
+CONTAINER_NAMES:=pyprophet-legacy gladiator-guix pyprophet deepdia diams2pep
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
 docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
 
