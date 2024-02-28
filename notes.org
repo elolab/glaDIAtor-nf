@@ -643,14 +643,14 @@ def libgen_methods_validate_params(params){
 }
 def libgen_method_is_enabled(method, params){
     // method to use if the user didnt specify anything
-    def fallback_method = "deepdia";
+    def fallback_method = "diaumpire";
     if (params.libgen_method){
 	return params.libgen_method.split(",").contains(method)
     }
     switch (method) {
 	    case "dda": return !!params.dda_files;
 	    case "custom": return !!params.speclib;
-	    default: return method == fallback_method;
+	default: return (method == fallback_method) && !params.dda_files && !params.speclib;  
     }
 }
 
