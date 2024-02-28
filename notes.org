@@ -2527,49 +2527,6 @@ WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_scorer.bin
 WRITTEN:  B_D140314_SGSDSsample1_R01_MHRM_T0.mzML-DIA_weights.txt
 #+end_quote
 
-The pip pyprophet install would be
-
-generated from =pip freeze= on dockerhub://elolab/gladiator,
-and removing entries that are not in conda legacy-pyprophet
-
-#+begin_src fundamental :tangle pyprophet-legacy-requirements.txt
-backports.functools-lru-cache==1.6.4
-cycler==0.10.0
-kiwisolver==1.1.0
-matplotlib==2.2.5
-numexpr==2.7.3
-numpy==1.16.5
-pandas==0.24.2
-pyparsing==2.4.7
-# pyprophet==0.24.1
-python-dateutil==2.8.1
-pytz==2021.1
-scikit-learn==0.20.4
-scipy==1.2.3
-seaborn==0.9.1
-six==1.15.0
-subprocess32==3.5.4
-#+end_src
-
-#+begin_src fundamental :tangle pyprophet-legacy-standalone.dockerfile
-FROM ubuntu:20.04
-MAINTAINER GlaDIAtorAdmin
-ARG DEBIAN_FRONTEND=noninteractive
-WORKDIR /tmp/
-RUN apt-get update \
-    && apt-get install -y apt-utils
-# python-dev and g++ for compiling pyprophet
-RUN apt-get update \
-    && apt-get -y install wget python python-dev g++
-
-RUN wget https://bootstrap.pypa.io/pip/2.7/get-pip.py -O get-pip.py
-RUN python2 get-pip.py
-COPY pyprophet-legacy-requirements.txt .
-# we first install version locked requirements, then pyprophet in this order because pip is dumb.
-RUN pip2 install -r pyprophet-legacy-requirements.txt
-RUN pip2 install pyprophet==0.24.1
-#+end_src
-
 If you get an error here as
 #+begin_quote
       raise Exception("got empty input file")
