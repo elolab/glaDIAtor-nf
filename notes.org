@@ -21,9 +21,15 @@ are instructions to the end user.
 
 
 ** Tangling
-in order to turn this file into the needed files run
+in order to turn this file into the needed files run, you'll need to have
+emacs and gnu make installed, and then run
 #+begin_src sh 
-yes '//' | emacs --batch -Q --file notes.org -f org-babel-tangle 
+yes '//' | make tangle
+#+end_src
+
+alternatively, if you have gnu guix installed, you can run
+#+begin_src sh
+make SHELL=guix tangle
 #+end_src
 
 The following is a list of all files this document tangles into
@@ -51,6 +57,25 @@ The following is a list of all files this document tangles into
 | nextflow.config                        |
 | nextflow.tags                          |
 
+
+** Building the containers
+Containers are available from the public registry,
+but you can also build them yourself.
+The containers are defined in terms guix manifests, rather than Dockerfiles or the like,
+so you will need to install [[https://guix.gnu.org][guix]] in order to build the containers yourself.
+#+begin_src sh
+# if you want singularity images
+make SHELL=guix singularity-containers
+# if you want docker images
+make SHELL=guix docker-containers
+#+end_src
+
+If you want to pass arguments to the step that's responsible for building the containers,
+(like e.g. guix style transformations), you can specify those with make variable =GUIX_PACK_FLAGS=.
+e.g. 
+#+begin_src sh
+make SHELL=guix 'GUIX_PACK_FLAGS=--with-patch=tpp=/path/to/my/tpp/patchfile.patch' singularity-containers
+#+end_src
 
 
 * Overview of this pipeline
