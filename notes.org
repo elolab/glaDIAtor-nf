@@ -1114,7 +1114,7 @@ https://github.com/UWPR/Comet
 The following  is the template file for the parameters passed to comet.
 you can change fields for things that we don't give parameters for (so where the value is not "@...@"),
 in order to change behaviour of comet specific to your use case.
-
+For more information, see comet's documentation: https://comet-ms.sourceforge.net/parameters/parameters_202101/
 #+begin_src conf :tangle comet_template.txt
 # comet_version 2022.01 rev. 0
 # Comet MS/MS search engine parameters file.
@@ -1284,7 +1284,10 @@ add_Z_user_amino_acid = 0.0000         # added to Z - avg.   0.0000, mono.   0.0
 11. No_cut                 1      @           @
 #+end_src
 
-Here we set the above as the default parameter template 
+#+VINDEX: params.comet_template
+Here we set the above as the default parameter template.
+If you customized or have your own the comet config,
+you can point to it with this.
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 params.comet_template="comet_template.txt"
 #+end_src
@@ -1384,6 +1387,11 @@ CLOCK: [2022-06-09 Thu 09:31]--[2022-06-09 Thu 18:58] =>  9:27
 :END:
 [[file:glaDIAtor/UI/ui/__init__.py::workflow.runXTandem]]
 [[file:glaDIAtor/workflow.py::def runXTandem]]
+
+As with tandem, you an adjust the file
+"xtandem-template.xml" to suit your needs,
+values with =@...@= are automatically replaced.
+See also the documentation of xtandem here: https://www.thegpm.org/TANDEM/api/
 
 #+NAME: taxonomy-template
 #+begin_src xml 
@@ -1666,6 +1674,9 @@ process XinteractXTandem {
 
 #+end_src
 
+#+VINDEX: params.xtandem_template
+If you customized or have your own the xtandem template,
+you can point to it with this.
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 params.xtandem_template="xtandem-template.xml"
 #+end_src
