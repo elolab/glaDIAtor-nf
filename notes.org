@@ -648,9 +648,9 @@ def libgen_method_is_enabled(method, params){
 	return params.libgen_method.split(",").contains(method)
     }
     switch (method) {
-	    case "dda": return !!params.dda_files;
+	    case "dda": return !!params.ddafiles;
 	    case "custom": return !!params.speclib;
-	default: return (method == fallback_method) && !params.dda_files && !params.speclib;  
+	default: return (method == fallback_method) && !params.ddafiles && !params.speclib;  
     }
 }
 
