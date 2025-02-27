@@ -1769,7 +1769,7 @@ For a pepxml file with peptide-spectrum-matches =PSM=
 (type of =(spectrum,peptide,probability)=, where the probality is based on the similarity of the theoratical spectrum,
 mayu determines the peptide-spectrum-match False Detection Rate (=mFDR=),
 and protein identification false discovery rates (=protFDR=).
-We select a =protFDR= for mayu finds a matching =mFDR= level (no higher than the =-G= flag) and it will filter
+We select a =protFDR= for which mayu finds a matching =mFDR= level (no higher than the =-G= flag) and it will filter
 everything with a higher mFDR level
 In the output csv the =score= column is the the =probability= in PSM (in mayu documentation "discrimant")
 
