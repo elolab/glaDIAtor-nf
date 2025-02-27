@@ -2723,6 +2723,7 @@ else
 #+end_src
 
 *** feature-alignment
+http://www.openswath.org/en/latest/docs/tric.html
 of =msproteomicstools/analysis/alignment/feature_alignment.py=
 
 Note: If things fail here,
@@ -2752,8 +2753,8 @@ process feature_alignment
     "feature_alignment.py " +
         "--method best_overall " +
         "--max_rt_diff 90 " +
-        "--target_fdr $params.trig_target_fdr " +
-        "--max_fdr_quality $params.trig_max_fdr " +
+        "--target_fdr $params.tric_target_fdr " +
+        "--max_fdr_quality $params.tric_max_fdr " +
         "--in $dscore_csvs " +         // will this break on filenames with spaces
         " --realign_method $realign_method " + 
         "--out $outfile"
@@ -2761,12 +2762,12 @@ process feature_alignment
 #+end_src
 
 #+begin_src nextflow :noweb-ref nf-params :tangle no
-// Target FDR used in TRIG alignment in dirT mode [default 0.01]
+// Target FDR used in TRIC alignment in dirT mode [default 0.01]
 // This was "trig_target_pvalue" in the original python gladiator implementation
-params.trig_target_fdr=0.01
-// Maximum FDR for TRIG alignment in dirT mode [default 0.05]
+params.tric_target_fdr=0.01
+// Maximum FDR for TRIC alignment in dirT mode [default 0.05]
 // This was "trig_max_pvalue" in the original python gladiator implementation
-params.trig_max_fdr=0.05
+params.tric_max_fdr=0.05
 #+end_src
 
 *** Swath2stats
