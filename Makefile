@@ -82,11 +82,20 @@ tangle: $(tangled-files)
 %.html: MANIFESTS = ci/guix/manifests/emacs.scm ci/guix/manifests/html-doc.scm
 %.html: %.org .dir-locals.el 
 	$(EMACSCMD) --file $< -f org-html-export-to-html
+ci/doc/%.html:  %.org .dir-locals.el ci/doc/make-doc.el
+	$(EMACSCMD) --load ./ci/doc/make-doc.el  $< $@
 
+%.info: MANIFESTS= ci/guix/manifests/emacs.scm ci/guix/manifests/texinfo-doc.scm
+ci/doc/%.info:  %.org .dir-locals.el ci/doc/make-doc.el
+	$(EMACSCMD) --load ./ci/doc/make-doc.el  $< $@
 
 %.pdf: MANIFESTS = ci/guix/manifests/emacs.scm ci/guix/manifests/pdf-doc.scm
+
 %.pdf: %.org .dir-locals.el
 	$(EMACSCMD) --file $< -f org-latex-export-to-pdf
+
+ci/doc/%.pdf:  %.org .dir-locals.el ci/doc/make-doc.el
+	$(EMACSCMD) --load ./ci/doc/make-doc.el  $< $@
 
 
 # the & indicate that a single invocation generates all
