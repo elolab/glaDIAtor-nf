@@ -2892,7 +2892,7 @@ BiocManager::install("SWATH2stats", ask=FALSE,update=FALSE)
 ** Defining the config template
 Here we define what the registry is that hosts our images
 #+NAME: registry
-: registry.gitlab.utu.fi/elixirdianf/gladiator-notes/
+: docker.io/elolab/
 
 This is the template that we fill with the container manager program to be used (~%p~),
 the gladiator container uri to be used (~%G~),
