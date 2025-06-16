@@ -2892,7 +2892,7 @@ BiocManager::install("SWATH2stats", ask=FALSE,update=FALSE)
 ** Defining the config template
 Here we define what the registry is that hosts our images
 #+NAME: registry
-: docker.io/elolab/
+: docker.io/elolabfi/
 
 This is the template that we fill with the container manager program to be used (~%p~),
 the gladiator container uri to be used (~%G~),
@@ -2939,11 +2939,11 @@ And here we write the logic that fills the template
        ("singularity"
 	("access-protocol" . "docker://")
 	("registry" . ,remote-registry)
-	("container-suffix" . ""))
+	("container-suffix" . ":0.1.4-0-f7abd8"))
        ("docker"
-	("access-protocol" . "https://")
+	("access-protocol" . "docker://")
 	("registry" . ,remote-registry)
-	("container-suffix" . "")))
+	("container-suffix" . ":0.1.4-0-f7abd8")))
       ("local"
        ("singularity"
 	("access-protocol" . "file://")
