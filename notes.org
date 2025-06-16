@@ -2932,7 +2932,7 @@ And here we write the logic that fills the template
 
 #+NAME: construct-container-config
 #+HEADER: :tangle no 
-#+begin_src emacs-lisp :noweb yes :var program-name="singularity" :var locality="remote" :var gladiator-image="gladiator" :var template=container-config-template :var registry=registry 
+#+begin_src emacs-lisp :noweb yes :var program-name="singularity" :var locality="remote" :var gladiator-image="gladiator-guix" :var template=container-config-template :var registry=registry 
 (defvar container-property-alist
   (let ((remote-registry registry))
     `(("remote"
