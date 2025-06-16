@@ -11,8 +11,8 @@
             (openpgp-fingerprint
              "BBB0 2DDF 2CEA F6A8 0D1D  E643 A2A0 6DF2 A33A 54FA"))))
  (channel
-       (name 'unelo-guix)
-       (url "git@gitlab.utu.fi:elixirdianf/unelo-proteomics.git")
+       (name 'proteomics-guix)
+       (url "https://github.com/elolab/proteomics-guix.git")
        (branch "master")
        (commit
 	"f483d1f45e577c65795f08e9c4915faa83c32fd3"
