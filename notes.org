@@ -3113,15 +3113,23 @@ based on the name of the
 #+NAME: config-singularity
 #+begin_src nextflow :noweb yes
 <<construct-container-config("singularity","remote")>>
+singularity.runOptions = '-B $TMPDIR:/tmp'
+singularity.autoMounts=true
+#+end_src
+
 #+end_src
 #+NAME: config-singularity-local
 #+begin_src nextflow 
 <<construct-container-config("singularity","local")>>
+singularity.runOptions = '-B $TMPDIR:/tmp'
+singularity.autoMounts=true
 #+end_src
 
 #+NAME: config-singularity-guix-local
 #+begin_src nextflow :noweb yes
 <<construct-container-config("singularity","local","gladiator-guix")>>
+singularity.runOptions = '-B $TMPDIR:/tmp'
+singularity.autoMounts=true    
 #+end_src
 
 #+NAME: config-docker
