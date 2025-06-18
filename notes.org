@@ -5,6 +5,97 @@
 #+TODO: TODO(t) | DONE(d)
 #+OPTIONS: ^:{} todo:nil H:20
 #+LINK: gladiator file:../glaDIAtor/%s
+* Quick Start
+:PROPERTIES:
+:ID:       ad56ac17-63b8-45ae-963c-66b62306a04c
+:CUSTOM_ID: QUICK_START
+:HEADER-ARGS: :eval no :tangle on
+:END:
+This shows section shows you how to quickly get started with gladiator-nf.
+** Tutorial
+*** Cloning the directory
+If you are using the development version of this, you will wnat to clone this directory, and 'tangle' (create the scripts).
+#+begin_src sh
+git clone https://github.com/elolab/gladiator-nf
+cd gladiator-nf 
+yes '//' | make tangle
+#+end_src
+
+*** Example Data
+For this example we will use MSV000090837 from , just 210820_Grad090_LFQ_A_01.raw and 210820_Grad090_LFQ_B_01.raw, so that you dont need to use that much disk space for trying this out.
+While the massive repo provides mzml files, which you could use, we are gonna start from the raw for educational purposes.
+Lets say
+Download the data
+#+begin_src sh
+mkdir RAW
+wget --no-directories  --directory-prefix=RAW ftp://massive-ftp.ucsd.edu/v05/MSV000090837/raw/Exp03_repeat_90minGradient_from_Exp02_same_Mastermix/210820_Grad090_LFQ_{A,B}_01.raw 
+#+end_src
+
+
+#+begin_src sh
+mkdir fasta
+wget ---directory-prefix=fasta  'ftp://massive-ftp.ucsd.edu:/v05/MSV000090837/sequence/fasta/*.fasta' 
+#+end_src
+
+*** Convert RAW to mzml mzml
+We will want to convert the raw files to mzml, so we will want to run the following command in the container 
+#+NAME: container-command
+#+begin_example sh
+find . -iname '*.raw' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML/
+#+end_example
+
+#+begin_src sh :var COMMAND=container-command
+COMMAND='find . -iname '"'"'*.raw'"'"' -print0 | xargs -P5 -0 -i wine msconvert {} --filter '"'"'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"'"'"' -o MZML/'
+IMAGEID=$(podman pull docker://chambm/pwiz-skyline-i-agree-to-the-vendor-licenses:3.0.21354-9ee14c7)
+echo  $COMMAND > ./convert.sh
+chmod +x convert.sh
+podman run -it  -v $PWD:$PWD -w $PWD $IMAGEID /bin/bash  ./convert.sh
+#+end_src
+
+*** Setting up your experiments config file
+
+Create a config file with the following contents, 
+adjusting as needed.
+Lets name it =myconf.nf=
+#+begin_src nextflow
+params {
+    // this is fragment mass tolerance in Dalton, 0.02 is a sensible default
+    fragment_mass_tolerance=0.02
+    // This is in parts per million, ppm
+    precursor_mass_tolerance=10
+    // this is cutoffrate used by mayu for finding the peptide probability
+    protFDR=0.01
+    // retention time information, this traml is a good default.
+    irt_traml_file='ftp://PASS00289:XY4524h@ftp.peptideatlas.org:/SGS/assays/OpenSWATH_SM4_iRT_AssayLibrary.TraML'
+    use_irt=false
+    max_missed_cleavages=1 
+    libgen_method='diaumpire'
+    // motivation for legacy here id:4be49008-f406-4d2b-afb6-a574e18bec5c
+    pyprophet_use_legacy=false
+    pyprophet_fixed_seed=false
+    // this would make your subsample ratio 1 / your number of samples
+    pyprophet_subsample_ratio=null
+}
+#+end_src
+
+*** Calling gladiator
+I personally like to each run in its own directory, so that we dont lose logfiles from gladiator if more than one 
+
+Note that you will have to quote wildcards, because nextflows java expects to handle the wildcard expansion,
+rather than 
+
+#+begin_src sh
+# if you are using podman 
+nextflow -c myconfig.nf \
+	 -c config/podman.nf \
+	 run gladiator.nf \
+	 --fastafiles='fasta/*.fasta' \
+	 --diafiles='MZML/*.mzML' 
+#+end_src
+
+
+
+
 * About this document
 This is a literate programming (org-mode) document that describes the
 the nextflow implemantiation of gladiator (https://github.com/elolab/glaDIAtor)
