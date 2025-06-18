@@ -2385,7 +2385,7 @@ process OpenSwathWorkflow {
         "-sort_swath_maps " +
         "-out_osw ${dia_osw_file} " + 
         "-swath_windows_file $swath_truncated_windows " +
-        params.osw_extra_flags
+        params.osw_extra_flags + " "
     
     if (params.use_irt)
         to_execute +=  "-tr_irt $irt_traml "
@@ -2923,8 +2923,6 @@ process {
    // there is really no good single letter here
    	container='%V'
    }
-   
-   
 }
 #+end_example
 
