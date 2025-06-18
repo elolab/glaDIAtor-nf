@@ -79,20 +79,39 @@ params {
 #+end_src
 
 *** Calling gladiator
-I personally like to each run in its own directory, so that we dont lose logfiles from gladiator if more than one 
-
-Note that you will have to quote wildcards, because nextflows java expects to handle the wildcard expansion,
-rather than 
+Note that you will have to quote wildcards, because nextflow's java expects to handle the wildcard expansion,rather than your shell handling the expandsion
 
 #+begin_src sh
 # if you are using podman 
-nextflow -c myconfig.nf \
+NXF_VER=21.04.3 nextflow -c myconfig.nf \
 	 -c config/podman.nf \
 	 run gladiator.nf \
 	 --fastafiles='fasta/*.fasta' \
 	 --diafiles='MZML/*.mzML' 
 #+end_src
 
+if you are using singularity, use =config/singularity.nf= in lieu of =config/podman.nf=.
+if you have the guix package manager, you can use =config/guix.nf= .
+** Results
+In the results directory , which you can specify with =--outdir=/path/to/results=, which  defaults to =./results=,
+you will find two files
+- =dia/DIA-peptide-matrix.tsv=
+  This contains the intensitities on the peptide level,
+  the first column is the peptide identifier, and the the other columns are the intensities in that sample.
+  For example:
+| "ProteinName_FullPeptideName"                       | "210820_Grad090_LFQ_A_01.mzML" | "210820_Grad090_LFQ_B_01.mzML" |
+|-----------------------------------------------------+--------------------------------+--------------------------------|
+| "1/A2I7N3_LAVSHVIHK"                                |                         624895 |                         723064 |
+| "3/sp¦P08729¦K2C7_HUMAN/Q3KNV1/P08729_VDALNDEINFLR" |                        2037142 |                        1283280 |
+  
+- =dia/DIA-protein-matrix.tsv=
+  Here the intensities are on the protein group level, with the first column containing the protein group name and size.
+
+| ProteinName                                   | 210820_Grad090_LFQ_A_01.mzML | 210820_Grad090_LFQ_B_01.mzML |
+|-----------------------------------------------+------------------------------+------------------------------|
+| 1/sp¦O14561¦ACPM_HUMAN                        |                      1410100 |                      1359820 |
+| 2/sp¦P0CX49¦RL18A_YEAST/sp¦P0CX50¦RL18B_YEAST |                     99249410 |                     44970930 |  
+(read =|= instead of  =¦= )
 
 
 
