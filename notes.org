@@ -9,12 +9,13 @@
 :PROPERTIES:
 :ID:       ad56ac17-63b8-45ae-963c-66b62306a04c
 :CUSTOM_ID: QUICK_START
-:HEADER-ARGS: :eval no :tangle on
+:HEADER-ARGS: :eval no :tangle no
 :END:
 This shows section shows you how to quickly get started with gladiator-nf.
 ** Tutorial
 *** Cloning the directory
 If you are using the development version of this, you will wnat to clone this directory, and 'tangle' (create the scripts).
+This will require 'make', emacs 27 or greater, and the coreutils
 #+begin_src sh
 git clone https://github.com/elolab/gladiator-nf
 cd gladiator-nf 
@@ -37,12 +38,12 @@ mkdir fasta
 wget ---directory-prefix=fasta  'ftp://massive-ftp.ucsd.edu:/v05/MSV000090837/sequence/fasta/*.fasta' 
 #+end_src
 
-*** Convert RAW to mzml mzml
+*** Convert RAW to mzml
 We will want to convert the raw files to mzml, so we will want to run the following command in the container 
-#+NAME: container-command
-#+begin_example sh
-find . -iname '*.raw' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML/
-#+end_example
+# #+NAME: container-command
+# #+begin_example sh
+# find . -iname '*.raw' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML/
+# #+end_example
 
 #+begin_src sh :var COMMAND=container-command
 COMMAND='find . -iname '"'"'*.raw'"'"' -print0 | xargs -P5 -0 -i wine msconvert {} --filter '"'"'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"'"'"' -o MZML/'
@@ -57,7 +58,7 @@ podman run -it  -v $PWD:$PWD -w $PWD $IMAGEID /bin/bash  ./convert.sh
 Create a config file with the following contents, 
 adjusting as needed.
 Lets name it =myconf.nf=
-#+begin_src nextflow
+#+begin_src nextflow :tangle no
 params {
     // this is fragment mass tolerance in Dalton, 0.02 is a sensible default
     fragment_mass_tolerance=0.02
@@ -70,7 +71,6 @@ params {
     use_irt=false
     max_missed_cleavages=1 
     libgen_method='diaumpire'
-    // motivation for legacy here id:4be49008-f406-4d2b-afb6-a574e18bec5c
     pyprophet_use_legacy=false
     pyprophet_fixed_seed=false
     // this would make your subsample ratio 1 / your number of samples
