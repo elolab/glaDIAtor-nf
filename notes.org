@@ -35,7 +35,7 @@ wget --no-directories  --directory-prefix=RAW ftp://massive-ftp.ucsd.edu/v05/MSV
 
 #+begin_src sh
 mkdir fasta
-wget ---directory-prefix=fasta  'ftp://massive-ftp.ucsd.edu:/v05/MSV000090837/sequence/fasta/*.fasta' 
+wget --directory-prefix=fasta  'ftp://massive-ftp.ucsd.edu:/v05/MSV000090837/sequence/fasta/*.fasta' 
 #+end_src
 
 *** Convert RAW to mzml
@@ -45,7 +45,7 @@ We will want to convert the raw files to mzml, so we will want to run the follow
 # find . -iname '*.raw' -print0 | xargs -P5 -0 -i wine msconvert {} --filter 'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"' -o MZML/
 # #+end_example
 
-#+begin_src sh :var COMMAND=container-command
+#+begin_src sh 
 COMMAND='find . -iname '"'"'*.raw'"'"' -print0 | xargs -P5 -0 -i wine msconvert {} --filter '"'"'titleMaker <RunId>.<ScanNumber>.<ScanNumber>.<ChargeState> File:"<SourcePath>", NativeID:"<Id>"'"'"' -o MZML/'
 IMAGEID=$(podman pull docker://chambm/pwiz-skyline-i-agree-to-the-vendor-licenses:3.0.21354-9ee14c7)
 echo  $COMMAND > ./convert.sh
@@ -129,7 +129,10 @@ are notes about the development process or an explanation of the program,
 whereas sentences with the  second person as subject ("You" e.g. "You might try setting foo to 3")
 are instructions to the end user.
 
-
+** Trouble Shooting
+When you encounter an error, go to the section of this document that this error occurred,
+there we will describe fixes for errors that occur in that step.
+You can also search for the text the error message gave, we will usually include it in that section.
 ** Tangling
 in order to turn this file into the needed files run, you'll need to have
 emacs and gnu make installed, and then run
@@ -460,6 +463,7 @@ join_fasta_files({{inputs}}.split(" "),{{outputs}})
 #+begin_src scheme :noweb-ref gwl-proc :tangle no
 (join-fasta-files fasta-files)
 #+end_src
+
 *** Adding Decoys
 #+NAME: nf-buildfastadatabase
 #+begin_src nextflow
@@ -2822,6 +2826,27 @@ https://github.com/PyProphet/pyprophet/issues/49
 #+begin_src nextflow
 }
 #+end_src
+***** KeyError: 'HOME' in =pyprophet_subsample=
+#+CINDEX: HOME
+#+CINDEX: error
+If in this section you get the error
+#+begin_quote
+Command error:
+    File "/gnu/store/lvip6h5pamjwmvnkwg60sjb63ph8698k-python-3.9.9/lib/python3.9/os.py", line 679, in __getitem__
+      raise KeyError(key) from None
+  KeyError: 'HOME'
+#+end_quote
+and you are using podman or docker,  you will want to add to your config file the following:
+#+begin_src nextflow :tangle no
+process {
+    withName: 'pyprophet_.*' {
+	containerOptions= '--env HOME=$PWD'
+    }}
+#+end_src
+
+This will set your home directory to the running directory in pyprophet processes
+(Note, single quotes ( ='= ), rather than double-quotes ( ="= ), to prevent expansion
+
 
 **** Choosing between legacy and nonlegacy pyprophet
 Here we choose between legacy or nonlegacy pyprophet
@@ -3201,6 +3226,32 @@ process {
    }
 }
 #+end_src
+** Backend Specific Issues
+*** Podman specific Issues
+#+CINDEX: cgroups
+#+CINDEX: cpu
+If you get the error in any process
+#+begin_quote
+Error: OCI runtime error: the requested cgroup controller `cpu` is not available
+#+end_quote
+This is because nextflow sets the number of CPU's podman can use, but you do not have the cpu cgroup in podman.
+
+If, when you do
+#+begin_src sh :tangle no 
+podman info  --format={{".Host.CgroupControllers"}}
+#+end_src
+you do _not_ see =cpu= listed, but when you do
+#+begin_src sh :tangle no
+podman --cgroup-manager cgroupfs info  --format={{".Host.CgroupControllers"}}
+#+end_src
+you _do_ see =cpu= listed,
+you will want to add to your nextflow config file:
+
+#+begin_src nextflow :tangle no
+podman.engineOptions="--cgroup-manager cgroupfs"
+#+end_src
+
+
 * SDRF support
 :PROPERTIES:
 :HEADER-ARGS:nextflow: :noweb-ref nf-sdrf-handling :tangle no
