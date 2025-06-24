@@ -3732,7 +3732,11 @@ especially so that ~org-html-head~ can be inferred from the
 
 
 
-* Index
+* Variable Index :texinfo:
 :PROPERTIES:
 :INDEX:    vr
+:END:
+* Concept Index :texinfo:
+:PROPERTIES:
+:INDEX:    cp
 :END:

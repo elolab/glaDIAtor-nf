@@ -59,15 +59,17 @@ CONTAINER_TAG=
 ################# TARGETS ###############################
 # This section defines the pseudo-targets that you might want to request
 
-.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment
+.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment html info
 # If you want to push only some of the containers to the registry
 # set CONTAINER_NAMES on the command line to that subset.
 CONTAINER_NAMES:=pyprophet-legacy gladiator-guix pyprophet deepdia diams2pep
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
 docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
 
-all: tangle doc 
-doc: notes.html notes.pdf
+all: tangle doc
+html: ci/doc/notes.html
+doc: ci/doc/notes.html ci/doc/notes.pdf
+info: ci/doc/notes.info
 
 EMACSCMD=emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --eval "(require 'ob-dot)" 
 

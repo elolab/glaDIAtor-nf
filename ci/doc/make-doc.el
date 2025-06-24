@@ -73,7 +73,18 @@
 			     (if (boundp
 				  (intern s))
 				 (eval (intern s) t))
-			     org-export-coding-system))))
+			     org-export-coding-system)))
+	 (org-export-exclude-tags
+	  (if (eq backend 'texinfo) 
+	      org-export-exclude-tags
+	    (cons "texinfo" org-export-exclude-tags)
+	    ;; we exclude the texinfo specific sections (the vindex and cindex)
+	    ;; in html/pdf
+	     
+	    )))
+    
+
+      
     (setq infile (expand-file-name infile))
     (let ((default-directory outdir)
 	  (org-export-with-broken-links t))
