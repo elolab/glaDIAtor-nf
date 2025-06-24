@@ -6,7 +6,11 @@
 (require 'ox-texinfo)
 (require 'ox-html)
 (require 'ox-latex)
+(require 'files)
+
 (setq org-confirm-babel-evaluate nil)
+
+
 (defun find-this-script-dir  (launch-dir cli-args)
   (let* (
 	 (this-file-nondirectory "make-doc.el")
@@ -24,11 +28,27 @@
 
 (defvar this-script-dir
   (find-this-script-dir default-directory command-line-args))
+(defvar project-root-dir
+  (expand-file-name
+   "../../"
+   this-script-dir))
 
 (defun gladiator-notes-file ()
   (expand-file-name
-   "../../notes.org"
-   this-script-dir))
+   "notes.org"
+   project-root-dir))
+;; apply dir-local variables so that we get the proper html highlighting 
+(mapc
+ (lambda (x)
+   (set (car x) (cdr x)))
+ (alist-get
+	  'org-mode
+	  (read (with-current-buffer
+		   (find-file-noselect (expand-file-name ".dir-locals.el" project-root-dir )
+		 (goto-char (point-min))
+		 (current-buffer))
+		 ))))
+
 
 (defun document-project-smart (infile outfile)
   (let* ((outdir (file-name-directory (expand-file-name  outfile)))
