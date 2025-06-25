@@ -83,7 +83,7 @@ Note that you will have to quote wildcards, because nextflow's java expects to h
 
 #+begin_src sh
 # if you are using podman 
-NXF_VER=21.04.3 nextflow -c myconfig.nf \
+NXF_VER=22.10.1 nextflow -c myconfig.nf \
 	 -c config/podman.nf \
 	 run gladiator.nf \
 	 --fastafiles='fasta/*.fasta' \
@@ -92,6 +92,10 @@ NXF_VER=21.04.3 nextflow -c myconfig.nf \
 
 if you are using singularity, use =config/singularity.nf= in lieu of =config/podman.nf=.
 if you have the guix package manager, you can use =config/guix.nf= .
+
+You will want to have java / openjdk 17, 18, or 19.
+Java 20 and later will give you a groovy error.
+
 ** Results
 In the results directory , which you can specify with =--outdir=/path/to/results=, which  defaults to =./results=,
 you will find two files
