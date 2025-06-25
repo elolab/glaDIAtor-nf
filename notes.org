@@ -2847,7 +2847,7 @@ and you are using podman or docker,  you will want to add to your config file th
 #+begin_src nextflow :tangle no
 process {
     withName: 'pyprophet_.*' {
-	containerOptions= '--env HOME=$PWD'
+	containerOptions= '--env HOME="$PWD"'
     }}
 #+end_src
 
@@ -3176,13 +3176,15 @@ singularity.autoMounts=true
 
 
 This block is whats common between singularity and podman.
-On certain machines, matplotlib in pyprophet in podman has tried to read the home directory,
+On certain machines (reported on Ubuntu 22.04.5 LTS, 6.2.0-26-generic, with podman 3.4.4)
+# yes this is not enough information, but alas, not everybody is using a functional package manager. 
+matplotlib in pyprophet in podman tries to read the home directory.
 which does not exist in the container, which will result in the error described [[id:8a330e41-b865-495f-8fb3-f13fa612d407][here]]. 
 #+NAME: dockerlike-general-options
 #+begin_src nextflow :tangle no
 process {
     withName: 'pyprophet_.*' {
-	containerOptions= '--env HOME=$PWD'
+	containerOptions= '--env HOME="$PWD"'
     }
 }
 #+end_src
