@@ -3165,48 +3165,70 @@ And here we write the logic that fills the template
 So here we fill the templates that we defined in the previous section.
 If you are reading this as an org-mode file,
 this headings default tangle argument makes each blocks tangle output file
-based on the name of the 
+based on the name of the block
+
+This block is whats common between singularity
+#+NAME: singularity-general-options
+#+begin_src nextflow :tangle no
+singularity.runOptions = '-B $TMPDIR:/tmp'
+singularity.autoMounts=true
+#+end_src
+
+
+This block is whats common between singularity and podman.
+On certain machines, matplotlib in pyprophet in podman has tried to read the home directory,
+which does not exist in the container, which will result in the error described [[id:8a330e41-b865-495f-8fb3-f13fa612d407][here]]. 
+#+NAME: dockerlike-general-options
+#+begin_src nextflow :tangle no
+process {
+    withName: 'pyprophet_.*' {
+	containerOptions= '--env HOME=$PWD'
+    }
+}
+#+end_src
+
 
 #+NAME: config-singularity
 #+begin_src nextflow :noweb yes
 <<construct-container-config("singularity","remote")>>
-singularity.runOptions = '-B $TMPDIR:/tmp'
-singularity.autoMounts=true
+<<singularity-general-options>>
 #+end_src
 
 #+end_src
 #+NAME: config-singularity-local
 #+begin_src nextflow 
 <<construct-container-config("singularity","local")>>
-singularity.runOptions = '-B $TMPDIR:/tmp'
-singularity.autoMounts=true
+<<singularity-general-options>>
 #+end_src
 
 #+NAME: config-singularity-guix-local
 #+begin_src nextflow :noweb yes
 <<construct-container-config("singularity","local","gladiator-guix")>>
-singularity.runOptions = '-B $TMPDIR:/tmp'
-singularity.autoMounts=true    
+<<singularity-general-options>>
 #+end_src
 
 #+NAME: config-docker
 #+begin_src nextflow 
 <<construct-container-config("docker","remote")>>
+<<dockerlike-general-options>>    
 #+end_src
 
 #+NAME: config-docker-local
 #+begin_src nextflow
 <<construct-container-config("docker","local")>>
+<<dockerlike-general-options>>
 #+end_src
 
 #+NAME: config-podman
 #+begin_src nextflow 
 <<construct-container-config("podman","remote")>>
+<<dockerlike-general-options>>
 #+end_src
 
 #+NAME: config-podman-local
 #+begin_src nextflow
 <<construct-container-config("podman","local")>>
+<<dockerlike-general-options>>
 #+end_src
 
 #+NAME: config-guix
