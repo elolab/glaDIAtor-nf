@@ -2831,6 +2831,9 @@ https://github.com/PyProphet/pyprophet/issues/49
 }
 #+end_src
 ***** KeyError: 'HOME' in =pyprophet_subsample=
+:PROPERTIES:
+:ID:       8a330e41-b865-495f-8fb3-f13fa612d407
+:END:
 #+CINDEX: HOME
 #+CINDEX: error
 If in this section you get the error
@@ -3232,6 +3235,9 @@ process {
 #+end_src
 ** Backend Specific Issues
 *** Podman specific Issues
+:PROPERTIES:
+:ID:       e63b3a76-a5c0-4ddb-bbee-201cd8de619e
+:END:
 #+CINDEX: cgroups
 #+CINDEX: cpu
 If you get the error in any process
@@ -3735,7 +3741,9 @@ especially so that ~org-html-head~ can be inferred from the
 [[file:.dir-locals.el]]
 
 
-
+* Troubleshooting
+- [[id:e63b3a76-a5c0-4ddb-bbee-201cd8de619e][Podman specific Issues]]
+- [[id:8a330e41-b865-495f-8fb3-f13fa612d407][KeyError: 'HOME' in =pyprophet_subsample=]]
 * Variable Index :texinfo:
 :PROPERTIES:
 :INDEX:    vr
