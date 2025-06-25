@@ -3081,6 +3081,10 @@ And here we write the logic that fills the template
 	("registry" . ,remote-registry)
 	("container-suffix" . ":0.1.4-0-f7abd8"))
        ("docker"
+	("access-protocol" . "")
+	("registry" . ,remote-registry)
+	("container-suffix" . ":0.1.4-0-f7abd8"))
+       ("podman"
 	("access-protocol" . "docker://")
 	("registry" . ,remote-registry)
 	("container-suffix" . ":0.1.4-0-f7abd8")))
@@ -3090,6 +3094,10 @@ And here we write the logic that fills the template
 	("registry" . "containers/")
 	("container-suffix" . ".simg"))
        ("docker"
+	("access-protocol" . "")
+	("registry" . "localhost/")
+	("container-suffix" . ""))
+       ("podman"
 	("access-protocol" . "")
 	("registry" . "localhost/")
 	("container-suffix" . ""))))))
@@ -3112,9 +3120,7 @@ And here we write the logic that fills the template
 
 (cl-defun construct-container-config (template program-name locality &key (gladiator-image "gladiator"))
   (let ((program-name-key
-	 (pcase program-name
-	   ("podman" "docker")
-	   (_ program-name))))
+	 program-name))
     (format-spec template
 	       `((?p . ,program-name)
 		 (?G . 
