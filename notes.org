@@ -57,7 +57,7 @@ podman run -it  -v $PWD:$PWD -w $PWD $IMAGEID /bin/bash  ./convert.sh
 
 Create a config file with the following contents, 
 adjusting as needed.
-Lets name it =myconf.nf=
+Lets name it =myconfig.nf=
 #+begin_src nextflow :tangle no
 params {
     // this is fragment mass tolerance in Dalton, 0.02 is a sensible default
