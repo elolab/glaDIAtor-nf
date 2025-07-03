@@ -120,6 +120,7 @@ you will find two files
   This contains the intensitities on the peptide level,
   the first column is the peptide identifier, and the the other columns are the intensities in that sample.
   For example:
+#+ATTR_LATEX: :font \tiny :width \linewidth
 | "ProteinName_FullPeptideName"                       | "210820_Grad090_LFQ_A_01.mzML" | "210820_Grad090_LFQ_B_01.mzML" |
 |-----------------------------------------------------+--------------------------------+--------------------------------|
 | "1/A2I7N3_LAVSHVIHK"                                |                         624895 |                         723064 |
@@ -127,7 +128,7 @@ you will find two files
   
 - =dia/DIA-protein-matrix.tsv=
   Here the intensities are on the protein group level, with the first column containing the protein group name and size.
-
+#+ATTR_LATEX: :font \tiny :width \linewidth
 | ProteinName                                   | 210820_Grad090_LFQ_A_01.mzML | 210820_Grad090_LFQ_B_01.mzML |
 |-----------------------------------------------+------------------------------+------------------------------|
 | 1/sp¦O14561¦ACPM_HUMAN                        |                      1410100 |                      1359820 |
