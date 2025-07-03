@@ -14,9 +14,6 @@ File: notes.info,  Node: Top,  Next: Quick Start,  Up: (dir)
 * Configuration for backends::
 * SDRF support::
 * Putting it together::
-* File local variables::
-* Note::
-* Launching::
 * Troubleshooting::
 * Variable Index::
 * Concept Index::
@@ -3449,7 +3446,7 @@ File: notes.info,  Node: Updating params,  Prev: Testing,  Up: SDRF support
      }
 
 
-File: notes.info,  Node: Putting it together,  Next: File local variables,  Prev: SDRF support,  Up: Top
+File: notes.info,  Node: Putting it together,  Next: Troubleshooting,  Prev: SDRF support,  Up: Top
 
 8 Putting it together
 *********************
@@ -3506,66 +3503,10 @@ same path but different content.  ’sha256’ might be the best one?
      <<nf-params>>
 
 
-File: notes.info,  Node: File local variables,  Next: Note,  Prev: Putting it together,  Up: Top
+File: notes.info,  Node: Troubleshooting,  Next: Variable Index,  Prev: Putting it together,  Up: Top
 
-9 File local variables
-**********************
-
-For this file
-
-   For the scheme file
-
-     ;; Local Variables;
-     ;; compile-command: "guix shell guix guile gwl --with-git-url=gwl=git://git.savannah.gnu.org/gwl.git --with-commit=gwl=e233be5cf0e2f9cb37e3daa299f5031bea56ba71 -- guix workflow run -v10 gwl-gladiator.scm
-     ;; End:
-   For the nextflow file
-     // Local Variables:
-     // compile-command: "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf"
-     // End:
-
-
-File: notes.info,  Node: Note,  Next: Launching,  Prev: File local variables,  Up: Top
-
-10 Note
-*******
-
-Pyprophet calling convention altered after v2.1.0, check what changed so
-can’t literally copy invocation from ‘workflow.py’.  (S.  said)
-
-
-File: notes.info,  Node: Launching,  Next: Troubleshooting,  Prev: Note,  Up: Top
-
-11 Launching
-************
-
-     module use /appl/user/modulefiles/
-     module load nextflow
-     mkdir -p runs
-     RUNLOGDIR=`mktemp -p runs -d run.XXXX`
-     export TMPDIR=$PWD/tmp
-     echo $RUNLOGDIR
-     sbatch --partition=long  --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.log --time=13-11:59:00 nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd003497/DIA/MZML-pwiz/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --osw_use_cache=false -resume -c pxd000672.config
-
-     module use /appl/user/modulefiles/
-     module load nextflow
-     mkdir -p runs
-     RUNLOGDIR=`mktemp -p runs -d run.XXXX`
-     export TMPDIR=$PWD/tmp
-     echo $RUNLOGDIR
-     sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.logo nextflow -log $RUNLOGDIR/.nextflow.log run gladiator.nf -with-trace $RUNLOGDIR/trace.txt -with-report $RUNLOGDIR/report.html -with-dag $RUNLOGDIR/graph.dot --dda_assisted=false --fastafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/pxd014194/pxd014194/fasta/*.fasta' --diafiles='/data/epouta1/B22003_Elixir_DIA_Nextflow/datasets/bruderer/DIA/MZML-pwiz/B_D140314_SGSDSsample1_R01_MHRM_T0.mzML' --protFDR=0.01  --precursor_mass_tolerance=10 --fragment_mass_tolerance=0.02 --
-
-     (let ((default-directory (concat (file-remote-p default-directory)
-                                        "/data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf"))
-             ;; dont ask about saving things
-             (compilation-save-buffers-predicate 'ignore))
-       (compile nextflow-compile-command))
-
-
-
-File: notes.info,  Node: Troubleshooting,  Next: Variable Index,  Prev: Launching,  Up: Top
-
-12 Troubleshooting
-******************
+9 Troubleshooting
+*****************
 
    • *note Podman specific Issues::
    • *note KeyError 'HOME' in pyprophet_subsample::
@@ -3573,7 +3514,7 @@ File: notes.info,  Node: Troubleshooting,  Next: Variable Index,  Prev: Launchin
 
 File: notes.info,  Node: Variable Index,  Next: Concept Index,  Prev: Troubleshooting,  Up: Top
 
-13 Variable Index :texinfo:
+10 Variable Index :texinfo:
 ***************************
 
  [index ]
@@ -3599,7 +3540,7 @@ File: notes.info,  Node: Variable Index,  Next: Concept Index,  Prev: Troublesho
 
 File: notes.info,  Node: Concept Index,  Prev: Variable Index,  Up: Top
 
-14 Concept Index :texinfo:
+11 Concept Index :texinfo:
 **************************
 
  [index ]
@@ -3616,90 +3557,87 @@ File: notes.info,  Node: Concept Index,  Prev: Variable Index,  Up: Top
 
 Tag Table:
 Node: Top76
-Node: Quick Start2825
-Node: Tutorial3055
-Node: Cloning the directory3296
-Node: Example Data3741
-Node: Convert RAW to mzml4556
-Node: Setting up your experiments config file5306
-Node: Calling gladiator6433
-Node: Results7262
-Node: About this document8768
-Node: Writing Style9327
-Node: Trouble Shooting9786
-Node: Tangling10197
-Node: Building the containers11021
-Node: License11940
-Node: Overview of this pipeline12870
-Node: Preprocessing Data13079
-Node: Picking Peaks13672
-Node: Converting Dia Raw with Msconvert14032
-Node: Analysis [4/4]14436
-Node: Headers14870
-Node: building database15446
-Node: Combining Fasta Files15761
-Node: Adding Decoys17924
-Node: Input DIA files19130
-Node: Creating Swath window files19482
-Node: Branching if user supplied windows20164
-Node: Making truncated-swath-windows and swath-windows from user-supplied swath-windows20951
-Node: Inferring Windows from mzml files22096
-Node: Making the non-overlapping swath-windows26081
-Node: Library Generation27400
-Node: Building {Pseudo-}Spectral library from (Pseudo)-Spectra [5/5]30127
-Node: Using DDA Data31795
-Node: Creating Pseudospectra with DIAumpire32237
-Ref: Problems you might encounter during this step32749
-Ref: Out of Memory in Dia-umpire32806
-Ref: MzmlToMzxml processing error33418
-Ref: Steps that are run33860
-Node: Creating Pseudospectra with diams2pep40193
-Node: Choosing the MS Sequence database search engine Comet/Xtandem43932
-Node: Comet45461
-Node: Xtandem59482
-Node: Joining Comet & Xtandem77466
-Node: Building Specral Library79206
-Ref: Mayu79592
-Ref: Spectrast83529
-Ref: Converting traml into spectrast friendly format84628
-Ref: Running Spectrast86563
-Ref: nf-param-use_irt88432
-Ref: nf-param-irt_traml-file88432
-Node: Building Spectral library from Machine learning90986
-Node: Supplying a custom spectral library97076
-Node: combining various spectral libraries into one98379
-Node: OpenSwathDecoys99141
-Node: Building Dia Matrix101140
-Node: OpenSwathWorkflow101473
-Node: What is the relation between irttxt and iRTAssayLibraryTraML106092
-Node: Pyprophet109857
-Node: Legacy Pyprophet110442
-Node: nonlegacy prypophet112512
-Ref: KeyError 'HOME' in pyprophet_subsample118416
-Node: Choosing between legacy and nonlegacy pyprophet119151
-Node: feature-alignment119583
-Node: Swath2stats121371
-Node: Dependencies124458
-Node: Configuration for backends124945
-Node: Defining the config template125213
-Node: Per backend config files129674
-Node: Backend Specific Issues133273
-Node: Podman specific Issues133485
-Node: SDRF support134225
-Node: comment[file uri]136665
-Node: comment[precursor mass tolerance] comment[fragment mass tolerance]138849
-Node: Utility functions141569
-Node: Testing141959
-Node: Updating params142169
-Node: Putting it together142377
-Node: gwl142555
-Node: nf142777
-Node: File local variables143980
-Node: Note144599
-Node: Launching144850
-Node: Troubleshooting146789
-Node: Variable Index147016
-Node: Concept Index148344
+Node: Quick Start2777
+Node: Tutorial3007
+Node: Cloning the directory3248
+Node: Example Data3693
+Node: Convert RAW to mzml4508
+Node: Setting up your experiments config file5258
+Node: Calling gladiator6385
+Node: Results7214
+Node: About this document8720
+Node: Writing Style9279
+Node: Trouble Shooting9738
+Node: Tangling10149
+Node: Building the containers10973
+Node: License11892
+Node: Overview of this pipeline12822
+Node: Preprocessing Data13031
+Node: Picking Peaks13624
+Node: Converting Dia Raw with Msconvert13984
+Node: Analysis [4/4]14388
+Node: Headers14822
+Node: building database15398
+Node: Combining Fasta Files15713
+Node: Adding Decoys17876
+Node: Input DIA files19082
+Node: Creating Swath window files19434
+Node: Branching if user supplied windows20116
+Node: Making truncated-swath-windows and swath-windows from user-supplied swath-windows20903
+Node: Inferring Windows from mzml files22048
+Node: Making the non-overlapping swath-windows26033
+Node: Library Generation27352
+Node: Building {Pseudo-}Spectral library from (Pseudo)-Spectra [5/5]30079
+Node: Using DDA Data31747
+Node: Creating Pseudospectra with DIAumpire32189
+Ref: Problems you might encounter during this step32701
+Ref: Out of Memory in Dia-umpire32758
+Ref: MzmlToMzxml processing error33370
+Ref: Steps that are run33812
+Node: Creating Pseudospectra with diams2pep40145
+Node: Choosing the MS Sequence database search engine Comet/Xtandem43884
+Node: Comet45413
+Node: Xtandem59434
+Node: Joining Comet & Xtandem77418
+Node: Building Specral Library79158
+Ref: Mayu79544
+Ref: Spectrast83481
+Ref: Converting traml into spectrast friendly format84580
+Ref: Running Spectrast86515
+Ref: nf-param-use_irt88384
+Ref: nf-param-irt_traml-file88384
+Node: Building Spectral library from Machine learning90938
+Node: Supplying a custom spectral library97028
+Node: combining various spectral libraries into one98331
+Node: OpenSwathDecoys99093
+Node: Building Dia Matrix101092
+Node: OpenSwathWorkflow101425
+Node: What is the relation between irttxt and iRTAssayLibraryTraML106044
+Node: Pyprophet109809
+Node: Legacy Pyprophet110394
+Node: nonlegacy prypophet112464
+Ref: KeyError 'HOME' in pyprophet_subsample118368
+Node: Choosing between legacy and nonlegacy pyprophet119103
+Node: feature-alignment119535
+Node: Swath2stats121323
+Node: Dependencies124410
+Node: Configuration for backends124897
+Node: Defining the config template125165
+Node: Per backend config files129626
+Node: Backend Specific Issues133225
+Node: Podman specific Issues133437
+Node: SDRF support134177
+Node: comment[file uri]136617
+Node: comment[precursor mass tolerance] comment[fragment mass tolerance]138801
+Node: Utility functions141521
+Node: Testing141911
+Node: Updating params142121
+Node: Putting it together142329
+Node: gwl142502
+Node: nf142724
+Node: Troubleshooting143927
+Node: Variable Index144162
+Node: Concept Index145490
 
 End Tag Table
 

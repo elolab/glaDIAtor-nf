@@ -3542,7 +3542,7 @@ params.outdir = "./results"
 <<nf-params>>
 #+end_src
 
-* File local variables
+* File local variables :noexport:
 For this file
 
 # Local Variables:
@@ -3565,7 +3565,7 @@ For the nextflow file
 
 
 
-* Note
+* Note :noexport:
 :LOGBOOK:
 - State "TODO"       from              [2022-06-03 Fri 15:52]
 :END:
@@ -3573,7 +3573,7 @@ Pyprophet calling convention altered after v2.1.0,
 check what changed
 so can't literally copy invocation from =workflow.py=.
 (S. said)
-* Launching
+* Launching :noexport:
 #+NAME: launch-nextflow
 #+begin_example sh :eval no
 module use /appl/user/modulefiles/
@@ -3762,7 +3762,7 @@ we can ~xref-find-definitions~ (~M-.~) nextflow variables.
   -- this matches def function
 / *def *\([A-Za-z0-9_.-]+\)/\1/
 #+end_src
-** COMMENT dir-locals
+** COMMENT dir-locals :noexport:
 Here we set the dir-locals,
 this is to be run interactively
 especially so that ~org-html-head~ can be inferred from the 
@@ -3820,3 +3820,17 @@ especially so that ~org-html-head~ can be inferred from the
 :PROPERTIES:
 :INDEX:    cp
 :END:
+
+* ReadtheOrg setup :noexport:
+
+from https://github.com/fniessen/org-html-themes
+#+OPTIONS: html-style:nil
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/htmlize.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/readtheorg.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="src/readtheorg_theme/css/search.css"/>
+
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/lib/js/jquery.stickytableheaders.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/js/search.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/js/readtheorg.js"></script>
