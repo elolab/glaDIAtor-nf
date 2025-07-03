@@ -4,7 +4,8 @@
 ## Description
 
 glaDIAtor-nf is a workflow for analyzing mass spectrometry data acquired using *data independent acquisition* (DIA) mode.
-You can read a tutorial here: 
+You can read how to get started [here](https://htmlpreview.github.io/?https://github.com/elolab/gladiator-nf/blob/master/ci/doc/notes.html#QUICK_START)
+<!-- or, you know, [here](ci/doc/notes.html#QUICK_START) if you are viewing this, and following links to html files renders them.   -->
 
 This document describes usage of the workflow, for technical documentation see [this program's literate description](./ci/doc/notes.html#QUICK_START), also available as [pdf](ci/doc/notes.pdf) or as its source [org-file](./notes.org).
 
@@ -41,7 +42,7 @@ Fetch and unpack the template files to your project folder, or run `make tangle`
 Make sure you have nextflow installed and it is in your path when 
 you run the workflow.
 ```
-NXF_VER=21.04.3 nextflow  -c config/docker.config run gladiator.nf --fastafiles='fasta/*.fasta' --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
+NXF_VER=22.10.1 nextflow  -c config/docker.config run gladiator.nf --fastafiles='fasta/*.fasta' --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
 ```
 Once the analysis run is completed,
 results can be found in the `--outdir` folder. (See the section `Analysis Results`)
