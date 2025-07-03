@@ -77,11 +77,9 @@
 	 (org-export-exclude-tags
 	  (if (eq backend 'texinfo) 
 	      org-export-exclude-tags
-	    (cons "texinfo" org-export-exclude-tags)
 	    ;; we exclude the texinfo specific sections (the vindex and cindex)
 	    ;; in html/pdf
-	     
-	    )))
+	    (cons "texinfo" org-export-exclude-tags))))
     
 
       
@@ -115,6 +113,3 @@
 			  this-script-dir)))))
 
 (apply #'document-project-smart command-line-args-left)
-
-
-
