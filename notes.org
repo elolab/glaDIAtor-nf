@@ -30,9 +30,18 @@
 :END:
 This shows section shows you how to quickly get started with gladiator-nf.
 ** Tutorial
+*** Requirements
+This tutorial  will require you to have on your system: 
+- make (tested with Gnu make 4.4.1)
+- emacs 27 or greater
+- coreutils (i.e. ls,cp, mkdir)
+- podman or another container solution, such as docker, apptainer (formerly known as singularity), or guix.
+- git
+- java 17, 18 or 19.
+
 *** Cloning the directory
 If you are using the development version of this, you will wnat to clone this directory, and 'tangle' (create the scripts).
-This will require 'make', emacs 27 or greater, and the coreutils
+  
 #+begin_src sh
 git clone https://github.com/elolab/gladiator-nf
 cd gladiator-nf 
