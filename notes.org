@@ -178,28 +178,27 @@ make SHELL=guix tangle
 
 The following is a list of all files this document tangles into
 #+begin_src emacs-lisp :exports results :tangle no
-(mapcar 'list (mapcar 'car (org-babel-tangle-collect-blocks)))
+(mapcar 'list (mapcar 'file-relative-name (mapcar 'car (org-babel-tangle-collect-blocks))))
 #+end_src
 
 #+RESULTS:
-| gwl-gladiator.scm                      |
-| gladiator.nf                           |
-| diaumpireconfig.txt                    |
-| comet_template.txt                     |
-| xtandem-template.xml                   |
-| tpp-5.2-fix.diff                       |
-| irt.txt                                |
-| pyprophet-legacy-requirements.txt      |
-| pyprophet-legacy-standalone.dockerfile |
-| install-R-packages.R                   |
-| config/singularity.nf                  |
-| config/singularity-local.nf            |
-| config/docker.nf                       |
-| config/docker-local.nf                 |
-| config/podman.nf                       |
-| config/podman-local.nf                 |
-| nextflow.config                        |
-| nextflow.tags                          |
+| gladiator.nf                         |
+| gwl-gladiator.scm                    |
+| diaumpireconfig.txt                  |
+| comet_template.txt                   |
+| xtandem-template.xml                 |
+| irt.txt                              |
+| config/singularity.nf                |
+| config/singularity-local.nf          |
+| config/singularity-guix-local.nf     |
+| config/docker.nf                     |
+| config/docker-local.nf               |
+| config/podman.nf                     |
+| config/podman-local.nf               |
+| config/guix.nf                       |
+| nextflow.config                      |
+| ci/guix/manifests/nextflow-trace.scm |
+| nextflow.tags                        |
 
 
 ** Building the containers
@@ -1852,23 +1851,6 @@ params.xtandem_template="xtandem-template.xml"
 Why is this much smaller than comet?
 
 
-We patch tpp to accept comet 2019015 
-
-#+begin_src diff :tangle tpp-5.2-fix.diff
-diff -Naur release_5-2-0/extern/Makefile release_5-2-0_mod/extern/Makefile
---- release_5-2-0/extern/Makefile	2020-07-29 23:43:45.483620066 +0300
-+++ release_5-2-0_mod/extern/Makefile	2020-07-29 23:47:41.796860274 +0300
-@@ -339,7 +339,7 @@
- #
- # http://comet-ms.sourceforge.net/
- #
--COMET_VER := 2018014
-+COMET_VER := 2019015
- COMET_ZIP := $(TPP_EXT)/comet_source_$(COMET_VER).zip
- COMET_SRC := $(BUILD_SRC)/comet_source_$(COMET_VER)
- .PHONY: comet comet-source comet-clean
-#+end_src
-
 **** DONE Joining Comet & Xtandem
 [[file:glaDIAtor/workflow.py::combine_search_engine_results(event,]]
 [[file:glaDIAtor/workflow.py::def combine_search_engine_results]]
@@ -3066,7 +3048,7 @@ params.swath2stats_strict_checking=true
 
 The above as an R-script
 
-#+begin_src R :eval no :tangle install-R-packages.R 
+#+begin_src R :eval no :tangle no
 #!/usr/bin/env Rscript
 
 .libPaths("/opt/Rlibs/")
