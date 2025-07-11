@@ -59,7 +59,7 @@ CONTAINER_TAG=
 ################# TARGETS ###############################
 # This section defines the pseudo-targets that you might want to request
 
-.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment html info
+.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment html info dist
 # If you want to push only some of the containers to the registry
 # set CONTAINER_NAMES on the command line to that subset.
 CONTAINER_NAMES:=pyprophet-legacy gladiator-guix pyprophet deepdia diams2pep
@@ -84,6 +84,15 @@ tangle: $(tangled-files)
 %.html: MANIFESTS = ci/guix/manifests/emacs.scm ci/guix/manifests/html-doc.scm
 %.html: %.org .dir-locals.el 
 	$(EMACSCMD) --file $< -f org-html-export-to-html
+
+dist: gladiator-nf.tar
+
+gladiator-nf.tar: MANIFESTS=ci/guix/manifests/release.scm
+gladiator-nf.tar: $(tangled-files) ci/doc/notes.html ci/doc/notes.info ci/doc/notes.pdf
+	git archive -o $@ HEAD
+	tar -f $@ --delete ci/doc/notes.html ci/doc/notes.info ci/doc/notes.pdf
+	tar -f $@ --append $^ 
+
 ci/doc/%.html:  %.org .dir-locals.el ci/doc/make-doc.el
 	$(EMACSCMD) --load ./ci/doc/make-doc.el  $< $@
 
