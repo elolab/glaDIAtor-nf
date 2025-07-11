@@ -87,7 +87,7 @@ tangle: $(tangled-files)
 
 dist: gladiator-nf.tar
 
-gladiator-nf.tar: MANIFESTS=ci/guix/manifests/release.scm
+gladiator-nf.tar: MANIFESTS=ci/guix/manifests/make-dist.scm
 gladiator-nf.tar: $(tangled-files) ci/doc/notes.html ci/doc/notes.info ci/doc/notes.pdf
 	git archive -o $@ HEAD
 	tar -f $@ --delete ci/doc/notes.html ci/doc/notes.info ci/doc/notes.pdf
