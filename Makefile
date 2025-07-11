@@ -75,7 +75,7 @@ EMACSCMD=emacs --batch --eval "(setq enable-local-variables :all user-full-name 
 
 # temporarily set manifests to use to emacs.scm so that we can find what files the org-file tangles out to
 MANIFESTS=ci/guix/manifests/emacs.scm
-tangled-files:=$(shell $(EMACSCMD)  --file=notes.org --eval  "(princ (mapconcat 'car (with-output-to-temp-buffer \"ignored-messages\" (let ((inhibit-message t)) (org-babel-tangle-collect-blocks))) \"\n\"))")
+tangled-files:=$(shell $(EMACSCMD)  --file=notes.org --eval  "(princ (mapconcat (lambda (x) (file-relative-name (car x))) (with-output-to-temp-buffer \"ignored-messages\" (let ((inhibit-message t)) (org-babel-tangle-collect-blocks))) \"\n\"))")
 MANIFESTS=
 tangle: $(tangled-files)
 
