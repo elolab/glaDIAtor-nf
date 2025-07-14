@@ -220,7 +220,15 @@ e.g.
 make SHELL=guix 'GUIX_PACK_FLAGS=--with-patch=tpp=/path/to/my/tpp/patchfile.patch' singularity-containers
 #+end_src
 
-
+** Making distribution tarball
+You can make a distribution tarball with the tangled files and documentaion with
+#+begin_src sh
+make dist
+#+end_src
+or if you have guix on your system
+#+begin_src sh
+make SHELL=guix dist
+#+end_src
 ** License
 This program is free software, under GPL3 or later.
 #+begin_src nextflow
