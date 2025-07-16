@@ -2378,7 +2378,7 @@ of your customly generated library.
 This should be in a format that openms's TargetedFileConverte understand,
 so MaxQuant or OpenMS works.
 
-To check, one can manually inspect whether  =TargetedFileConverter --in yourlibrary --out speclib.tsv= looks proper.
+To check, one can manually inspect (using the =gladiator-guix= container), whether  =TargetedFileConverter -in yourlibrary -out speclib.tsv= looks proper.
 Pay special attention to the modified peptides field, if this is being parsed correctly.
 One bug observed by this developer is that this field is repeated after not being parsed correctly.
 See also https://abibuilder.cs.uni-tuebingen.de/archive/openms/Documentation/release/2.7.0/html/classOpenMS_1_1TransitionTSVFile.html
