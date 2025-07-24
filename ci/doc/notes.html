@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-07-03 Thu 17:04 -->
+<!-- 2025-07-24 Thu 16:21 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>&lrm;</title>
@@ -25,80 +25,82 @@
 <ul>
 <li><a href="#QUICK_START">1. Quick Start</a>
 <ul>
-<li><a href="#org220bd77">1.1. Tutorial</a>
+<li><a href="#orgb0b43ad">1.1. Tutorial</a>
 <ul>
-<li><a href="#orgb9a816b">1.1.1. Cloning the directory</a></li>
-<li><a href="#org43d3931">1.1.2. Example Data</a></li>
-<li><a href="#org91d7be4">1.1.3. Convert RAW to mzml</a></li>
-<li><a href="#org24bed32">1.1.4. Setting up your experiments config file</a></li>
-<li><a href="#orge4641b7">1.1.5. Calling gladiator</a></li>
+<li><a href="#org5b33ee9">1.1.1. Requirements</a></li>
+<li><a href="#orgaea078d">1.1.2. Cloning the directory</a></li>
+<li><a href="#org19453a0">1.1.3. Example Data</a></li>
+<li><a href="#orgded95c7">1.1.4. Convert RAW to mzml</a></li>
+<li><a href="#org48ccc7a">1.1.5. Setting up your experiments config file</a></li>
+<li><a href="#org8996371">1.1.6. Calling gladiator</a></li>
 </ul>
 </li>
-<li><a href="#org63b94ee">1.2. Results</a></li>
+<li><a href="#orgac9119f">1.2. Results</a></li>
 </ul>
 </li>
-<li><a href="#org92769f1">2. About this document</a>
+<li><a href="#org31f17b9">2. About this document</a>
 <ul>
-<li><a href="#org268464c">2.1. Writing Style</a></li>
-<li><a href="#orga97f17b">2.2. Trouble Shooting</a></li>
-<li><a href="#org71b5da7">2.3. Tangling</a></li>
-<li><a href="#org1a3f7fc">2.4. Building the containers</a></li>
-<li><a href="#org55d966a">2.5. License</a></li>
+<li><a href="#org3880ab3">2.1. Writing Style</a></li>
+<li><a href="#org90c8f65">2.2. Trouble Shooting</a></li>
+<li><a href="#org5ce226a">2.3. Tangling</a></li>
+<li><a href="#org80a7afd">2.4. Building the containers</a></li>
+<li><a href="#org69960c0">2.5. Making distribution tarball</a></li>
+<li><a href="#orgbc913aa">2.6. License</a></li>
 </ul>
 </li>
-<li><a href="#org90ff944">3. Overview of this pipeline</a></li>
-<li><a href="#orgeb3ef51">4. Preprocessing Data</a>
+<li><a href="#org7cab42e">3. Overview of this pipeline</a></li>
+<li><a href="#org2bc694a">4. Preprocessing Data</a>
 <ul>
-<li><a href="#org69651a2">4.1. Picking Peaks</a></li>
-<li><a href="#org45c8511">4.2. Converting Dia Raw with Msconvert</a></li>
+<li><a href="#orgcc3913b">4.1. Picking Peaks</a></li>
+<li><a href="#orgedf182b">4.2. Converting Dia Raw with Msconvert</a></li>
 </ul>
 </li>
-<li><a href="#org4052a71">5. Analysis <code>[4/4]</code></a>
+<li><a href="#orgb9dee62">5. Analysis <code>[4/4]</code></a>
 <ul>
-<li><a href="#org1afe910">5.1. Headers</a></li>
-<li><a href="#orgdcb46c5">5.2. building database</a>
+<li><a href="#orgfd5b0df">5.1. Headers</a></li>
+<li><a href="#org7cd1499">5.2. building database</a>
 <ul>
-<li><a href="#org0d9826b">5.2.1. Combining Fasta Files</a></li>
-<li><a href="#org155989c">5.2.2. Adding Decoys</a></li>
+<li><a href="#org0ecc846">5.2.1. Combining Fasta Files</a></li>
+<li><a href="#orge994be0">5.2.2. Adding Decoys</a></li>
 </ul>
 </li>
-<li><a href="#orgc15b2ad">5.3. Input DIA files</a></li>
-<li><a href="#org6493efd">5.4. Creating Swath window files</a>
+<li><a href="#org964f5f1">5.3. Input DIA files</a></li>
+<li><a href="#orgcf2df27">5.4. Creating Swath window files</a>
 <ul>
-<li><a href="#org04f53d9">5.4.1. Branching if user supplied windows</a></li>
-<li><a href="#orgf1ca53a">5.4.2. Making truncated-swath-windows and swath-windows from user-supplied swath-windows</a></li>
-<li><a href="#orgc6dac8b">5.4.3. Inferring Windows from mzml files</a></li>
-<li><a href="#org7ce3ad5">5.4.4. Making the non-overlapping swath-windows</a></li>
+<li><a href="#org5f7e0fc">5.4.1. Branching if user supplied windows</a></li>
+<li><a href="#orgbe1b7b8">5.4.2. Making truncated-swath-windows and swath-windows from user-supplied swath-windows</a></li>
+<li><a href="#org857493e">5.4.3. Inferring Windows from mzml files</a></li>
+<li><a href="#orgcb8ca0c">5.4.4. Making the non-overlapping swath-windows</a></li>
 </ul>
 </li>
-<li><a href="#orgea05c38">5.5. Library Generation</a>
+<li><a href="#org75289d9">5.5. Library Generation</a>
 <ul>
-<li><a href="#org9f9bf70">5.5.1. Building {Pseudo-,}Spectral library from (Pseudo)-Spectra  <code>[5/5]</code></a>
+<li><a href="#org20951a0">5.5.1. Building {Pseudo-,}Spectral library from (Pseudo)-Spectra  <code>[5/5]</code></a>
 <ul>
-<li><a href="#orgf78e0e8">5.5.1.1. Using DDA Data</a></li>
-<li><a href="#org2af30a9">5.5.1.2. Creating Pseudospectra with DIAumpire</a>
+<li><a href="#org161a850">5.5.1.1. Using DDA Data</a></li>
+<li><a href="#orga924818">5.5.1.2. Creating Pseudospectra with DIAumpire</a>
 <ul>
-<li><a href="#org6d5fd53">5.5.1.2.1. Problems you might encounter during this step</a>
+<li><a href="#org2560ff4">5.5.1.2.1. Problems you might encounter during this step</a>
 <ul>
-<li><a href="#org0bf8e1c">5.5.1.2.1.1. Out of Memory in Dia-umpire</a></li>
-<li><a href="#org6e73614">5.5.1.2.1.2. <code>MzmlToMzxml</code> processing error.</a></li>
+<li><a href="#org14e6456">5.5.1.2.1.1. Out of Memory in Dia-umpire</a></li>
+<li><a href="#org17a433a">5.5.1.2.1.2. <code>MzmlToMzxml</code> processing error.</a></li>
 </ul>
 </li>
-<li><a href="#org1c8ccc4">5.5.1.2.2. Steps that are run</a></li>
+<li><a href="#orga5e2aa9">5.5.1.2.2. Steps that are run</a></li>
 </ul>
 </li>
-<li><a href="#org8622c05">5.5.1.3. Creating Pseudospectra with diams2pep</a></li>
-<li><a href="#orgb9ce9d0">5.5.1.4. Choosing the MS Sequence database search engine: Comet/Xtandem</a></li>
-<li><a href="#org552d0ac">5.5.1.5. Comet</a></li>
-<li><a href="#org0fbf8e4">5.5.1.6. Xtandem</a></li>
-<li><a href="#org6d7adf4">5.5.1.7. Joining Comet &amp; Xtandem</a></li>
-<li><a href="#org5a46f47">5.5.1.8. Building Specral Library</a>
+<li><a href="#org51ee00c">5.5.1.3. Creating Pseudospectra with diams2pep</a></li>
+<li><a href="#orge9596ab">5.5.1.4. Choosing the MS Sequence database search engine: Comet/Xtandem</a></li>
+<li><a href="#orgb666086">5.5.1.5. Comet</a></li>
+<li><a href="#org7d2d957">5.5.1.6. Xtandem</a></li>
+<li><a href="#org4051808">5.5.1.7. Joining Comet &amp; Xtandem</a></li>
+<li><a href="#org687a8d0">5.5.1.8. Building Specral Library</a>
 <ul>
-<li><a href="#org7b2955e">5.5.1.8.1. Mayu</a></li>
-<li><a href="#orgf879769">5.5.1.8.2. Spectrast</a>
+<li><a href="#orgfb9cfa1">5.5.1.8.1. Mayu</a></li>
+<li><a href="#org5879866">5.5.1.8.2. Spectrast</a>
 <ul>
-<li><a href="#orge5db5bb">5.5.1.8.2.1. Converting traml into spectrast friendly format</a></li>
-<li><a href="#orgd03dcd2">5.5.1.8.2.2. Running Spectrast</a></li>
+<li><a href="#org078f71c">5.5.1.8.2.1. Converting traml into spectrast friendly format</a></li>
+<li><a href="#org75abee2">5.5.1.8.2.2. Running Spectrast</a></li>
 </ul>
 </li>
 </ul>
@@ -106,66 +108,66 @@
 </ul>
 </li>
 <li><a href="#section-deepdia">5.5.2. Building Spectral library from Machine learning</a></li>
-<li><a href="#org976d727">5.5.3. Supplying a custom spectral library</a></li>
-<li><a href="#orge5dce86">5.5.4. combining various spectral libraries into one.</a></li>
+<li><a href="#orgcfd90d1">5.5.3. Supplying a custom spectral library</a></li>
+<li><a href="#orge23a32a">5.5.4. combining various spectral libraries into one.</a></li>
 </ul>
 </li>
-<li><a href="#orgd8db938">5.6. OpenSwathDecoys</a></li>
-<li><a href="#orgdddf4f7">5.7. Building Dia Matrix</a>
+<li><a href="#orga9c3ce1">5.6. OpenSwathDecoys</a></li>
+<li><a href="#orga97c088">5.7. Building Dia Matrix</a>
 <ul>
-<li><a href="#org726aba0">5.7.1. OpenSwathWorkflow</a>
+<li><a href="#org5da90d2">5.7.1. OpenSwathWorkflow</a>
 <ul>
-<li><a href="#org5accf49">5.7.1.1. What is the relation between <code>irt.txt</code> and <code>iRTAssayLibrary.TraML</code></a></li>
+<li><a href="#org9832669">5.7.1.1. What is the relation between <code>irt.txt</code> and <code>iRTAssayLibrary.TraML</code></a></li>
 </ul>
 </li>
-<li><a href="#orgbe3d3b2">5.7.2. Pyprophet</a>
+<li><a href="#orge6e5566">5.7.2. Pyprophet</a>
 <ul>
-<li><a href="#org4997608">5.7.2.1. Legacy Pyprophet</a></li>
-<li><a href="#org53899ec">5.7.2.2. nonlegacy prypophet</a>
+<li><a href="#org42e5b1f">5.7.2.1. Legacy Pyprophet</a></li>
+<li><a href="#org7acf3ba">5.7.2.2. nonlegacy prypophet</a>
 <ul>
-<li><a href="#orga5f5505">5.7.2.2.1. KeyError: 'HOME' in <code>pyprophet_subsample</code></a></li>
+<li><a href="#org742aed4">5.7.2.2.1. KeyError: 'HOME' in <code>pyprophet_subsample</code></a></li>
 </ul>
 </li>
-<li><a href="#org08c75bc">5.7.2.3. Choosing between legacy and nonlegacy pyprophet</a></li>
+<li><a href="#orgbaa8923">5.7.2.3. Choosing between legacy and nonlegacy pyprophet</a></li>
 </ul>
 </li>
-<li><a href="#org48e8565">5.7.3. feature-alignment</a></li>
-<li><a href="#orgaae53bb">5.7.4. Swath2stats</a>
+<li><a href="#orgf57c2f5">5.7.3. feature-alignment</a></li>
+<li><a href="#orgbbdf8b4">5.7.4. Swath2stats</a>
 <ul>
-<li><a href="#org6f37727">5.7.4.1. Dependencies</a></li>
+<li><a href="#orgd4ab538">5.7.4.1. Dependencies</a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#orge9f24cb">6. Configuration for backends</a>
+<li><a href="#org9f13aa4">6. Configuration for backends</a>
 <ul>
-<li><a href="#orgb498f62">6.1. Defining the config template</a></li>
-<li><a href="#orgcef7f9b">6.2. Per backend config files</a></li>
-<li><a href="#org4a3b110">6.3. Backend Specific Issues</a>
+<li><a href="#org08cbddd">6.1. Defining the config template</a></li>
+<li><a href="#orgc436ccf">6.2. Per backend config files</a></li>
+<li><a href="#org16a0cd5">6.3. Backend Specific Issues</a>
 <ul>
-<li><a href="#org653dcd5">6.3.1. Podman specific Issues</a></li>
+<li><a href="#org2f475ed">6.3.1. Podman specific Issues</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#org9a953ad">7. SDRF support</a>
+<li><a href="#orgc6af4b0">7. SDRF support</a>
 <ul>
-<li><a href="#org45675c5">7.1. <code>comment[file uri]</code></a></li>
-<li><a href="#org53bd64f">7.2. <code>comment[precursor mass tolerance]</code>, <code>comment[fragment mass tolerance]</code></a></li>
-<li><a href="#org177c607">7.3. Utility functions</a></li>
-<li><a href="#org4e168c8">7.4. Testing</a></li>
-<li><a href="#org3c9dc93">7.5. Updating params</a></li>
+<li><a href="#orgbc31edb">7.1. <code>comment[file uri]</code></a></li>
+<li><a href="#orge815c9b">7.2. <code>comment[precursor mass tolerance]</code>, <code>comment[fragment mass tolerance]</code></a></li>
+<li><a href="#org58a2df1">7.3. Utility functions</a></li>
+<li><a href="#orgb014c06">7.4. Testing</a></li>
+<li><a href="#orgc34bf0e">7.5. Updating params</a></li>
 </ul>
 </li>
-<li><a href="#org540678a">8. Putting it together</a>
+<li><a href="#orgd916f8d">8. Putting it together</a>
 <ul>
-<li><a href="#org4748be6">8.1. gwl</a></li>
-<li><a href="#orgd6f9edc">8.2. nf</a></li>
+<li><a href="#orgf327d9b">8.1. gwl</a></li>
+<li><a href="#org07f2351">8.2. nf</a></li>
 </ul>
 </li>
-<li><a href="#org6607104">9. Troubleshooting</a></li>
+<li><a href="#org763ebca">9. Troubleshooting</a></li>
 </ul>
 </div>
 </div>
@@ -178,17 +180,34 @@
 This shows section shows you how to quickly get started with gladiator-nf.
 </p>
 </div>
-<div id="outline-container-org220bd77" class="outline-3">
-<h3 id="org220bd77"><span class="section-number-3">1.1.</span> Tutorial</h3>
+<div id="outline-container-orgb0b43ad" class="outline-3">
+<h3 id="orgb0b43ad"><span class="section-number-3">1.1.</span> Tutorial</h3>
 <div class="outline-text-3" id="text-1-1">
 </div>
-<div id="outline-container-orgb9a816b" class="outline-4">
-<h4 id="orgb9a816b"><span class="section-number-4">1.1.1.</span> Cloning the directory</h4>
+<div id="outline-container-org5b33ee9" class="outline-4">
+<h4 id="org5b33ee9"><span class="section-number-4">1.1.1.</span> Requirements</h4>
 <div class="outline-text-4" id="text-1-1-1">
 <p>
-If you are using the development version of this, you will wnat to clone this directory, and 'tangle' (create the scripts).
-This will require 'make', emacs 27 or greater, and the coreutils
+This tutorial  will require you to have on your system: 
 </p>
+<ul class="org-ul">
+<li>make (tested with Gnu make 4.4.1)</li>
+<li>emacs 27 or greater</li>
+<li>coreutils (i.e. ls,cp, mkdir)</li>
+<li>podman or another container solution, such as docker, apptainer (formerly known as singularity), or guix.</li>
+<li>git</li>
+<li>java 17, 18 or 19.</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgaea078d" class="outline-4">
+<h4 id="orgaea078d"><span class="section-number-4">1.1.2.</span> Cloning the directory</h4>
+<div class="outline-text-4" id="text-1-1-2">
+<p>
+If you are using the development version of this, you will wnat to clone this directory, and 'tangle' (create the scripts).
+</p>
+
 <div class="org-src-container">
 <pre class="src src-sh">git clone https://github.com/elolab/gladiator-nf
 <span class="org-builtin">cd</span> gladiator-nf 
@@ -198,9 +217,9 @@ yes <span class="org-string">'//'</span> | make tangle
 </div>
 </div>
 
-<div id="outline-container-org43d3931" class="outline-4">
-<h4 id="org43d3931"><span class="section-number-4">1.1.2.</span> Example Data</h4>
-<div class="outline-text-4" id="text-1-1-2">
+<div id="outline-container-org19453a0" class="outline-4">
+<h4 id="org19453a0"><span class="section-number-4">1.1.3.</span> Example Data</h4>
+<div class="outline-text-4" id="text-1-1-3">
 <p>
 For this example we will use MSV000090837 from , just 210820_Grad090_LFQ_A_01.raw and 210820_Grad090_LFQ_B_01.raw, so that you dont need to use that much disk space for trying this out.
 While the massive repo provides mzml files, which you could use, we are gonna start from the raw for educational purposes.
@@ -222,9 +241,9 @@ wget --directory-prefix=fasta  <span class="org-string">'ftp://massive-ftp.ucsd.
 </div>
 </div>
 
-<div id="outline-container-org91d7be4" class="outline-4">
-<h4 id="org91d7be4"><span class="section-number-4">1.1.3.</span> Convert RAW to mzml</h4>
-<div class="outline-text-4" id="text-1-1-3">
+<div id="outline-container-orgded95c7" class="outline-4">
+<h4 id="orgded95c7"><span class="section-number-4">1.1.4.</span> Convert RAW to mzml</h4>
+<div class="outline-text-4" id="text-1-1-4">
 <p>
 We will want to convert the raw files to mzml, so we will want to run the following command in the container 
 </p>
@@ -240,9 +259,9 @@ podman run -it  -v $<span class="org-variable-name">PWD</span>:$<span class="org
 </div>
 </div>
 
-<div id="outline-container-org24bed32" class="outline-4">
-<h4 id="org24bed32"><span class="section-number-4">1.1.4.</span> Setting up your experiments config file</h4>
-<div class="outline-text-4" id="text-1-1-4">
+<div id="outline-container-org48ccc7a" class="outline-4">
+<h4 id="org48ccc7a"><span class="section-number-4">1.1.5.</span> Setting up your experiments config file</h4>
+<div class="outline-text-4" id="text-1-1-5">
 <p>
 Create a config file with the following contents, 
 adjusting as needed.
@@ -271,9 +290,9 @@ Lets name it <code>myconfig.nf</code>
 </div>
 </div>
 
-<div id="outline-container-orge4641b7" class="outline-4">
-<h4 id="orge4641b7"><span class="section-number-4">1.1.5.</span> Calling gladiator</h4>
-<div class="outline-text-4" id="text-1-1-5">
+<div id="outline-container-org8996371" class="outline-4">
+<h4 id="org8996371"><span class="section-number-4">1.1.6.</span> Calling gladiator</h4>
+<div class="outline-text-4" id="text-1-1-6">
 <p>
 Note that you will have to quote wildcards, because nextflow's java expects to handle the wildcard expansion,rather than your shell handling the expandsion
 </p>
@@ -301,8 +320,8 @@ Java 20 and later will give you a groovy error.
 </div>
 </div>
 
-<div id="outline-container-org63b94ee" class="outline-3">
-<h3 id="org63b94ee"><span class="section-number-3">1.2.</span> Results</h3>
+<div id="outline-container-orgac9119f" class="outline-3">
+<h3 id="orgac9119f"><span class="section-number-3">1.2.</span> Results</h3>
 <div class="outline-text-3" id="text-1-2">
 <p>
 In the results directory , which you can specify with <code>--outdir=/path/to/results</code>, which  defaults to <code>./results</code>,
@@ -390,8 +409,8 @@ Here the intensities are on the protein group level, with the first column conta
 
 
 
-<div id="outline-container-org92769f1" class="outline-2">
-<h2 id="org92769f1"><span class="section-number-2">2.</span> About this document</h2>
+<div id="outline-container-org31f17b9" class="outline-2">
+<h2 id="org31f17b9"><span class="section-number-2">2.</span> About this document</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 This is a literate programming (org-mode) document that describes the
@@ -402,8 +421,8 @@ To learn more about org-mode, see <a href="https://orgmode.org/">https://orgmode
 </p>
 </div>
 
-<div id="outline-container-org268464c" class="outline-3">
-<h3 id="org268464c"><span class="section-number-3">2.1.</span> Writing Style</h3>
+<div id="outline-container-org3880ab3" class="outline-3">
+<h3 id="org3880ab3"><span class="section-number-3">2.1.</span> Writing Style</h3>
 <div class="outline-text-3" id="text-2-1">
 <p>
 Sentences with the first person plural ("we") as subject
@@ -415,8 +434,8 @@ are instructions to the end user.
 </div>
 </div>
 
-<div id="outline-container-orga97f17b" class="outline-3">
-<h3 id="orga97f17b"><span class="section-number-3">2.2.</span> Trouble Shooting</h3>
+<div id="outline-container-org90c8f65" class="outline-3">
+<h3 id="org90c8f65"><span class="section-number-3">2.2.</span> Trouble Shooting</h3>
 <div class="outline-text-3" id="text-2-2">
 <p>
 When you encounter an error, go to the section of this document that this error occurred,
@@ -425,8 +444,8 @@ You can also search for the text the error message gave, we will usually include
 </p>
 </div>
 </div>
-<div id="outline-container-org71b5da7" class="outline-3">
-<h3 id="org71b5da7"><span class="section-number-3">2.3.</span> Tangling</h3>
+<div id="outline-container-org5ce226a" class="outline-3">
+<h3 id="org5ce226a"><span class="section-number-3">2.3.</span> Tangling</h3>
 <div class="outline-text-3" id="text-2-3">
 <p>
 in order to turn this file into the needed files run, you'll need to have
@@ -456,11 +475,11 @@ The following is a list of all files this document tangles into
 </colgroup>
 <tbody>
 <tr>
-<td class="org-left">gwl-gladiator.scm</td>
+<td class="org-left">gladiator.nf</td>
 </tr>
 
 <tr>
-<td class="org-left">gladiator.nf</td>
+<td class="org-left">gwl-gladiator.scm</td>
 </tr>
 
 <tr>
@@ -476,23 +495,7 @@ The following is a list of all files this document tangles into
 </tr>
 
 <tr>
-<td class="org-left">tpp-5.2-fix.diff</td>
-</tr>
-
-<tr>
 <td class="org-left">irt.txt</td>
-</tr>
-
-<tr>
-<td class="org-left">pyprophet-legacy-requirements.txt</td>
-</tr>
-
-<tr>
-<td class="org-left">pyprophet-legacy-standalone.dockerfile</td>
-</tr>
-
-<tr>
-<td class="org-left">install-R-packages.R</td>
 </tr>
 
 <tr>
@@ -501,6 +504,10 @@ The following is a list of all files this document tangles into
 
 <tr>
 <td class="org-left">config/singularity-local.nf</td>
+</tr>
+
+<tr>
+<td class="org-left">config/singularity-guix-local.nf</td>
 </tr>
 
 <tr>
@@ -520,7 +527,15 @@ The following is a list of all files this document tangles into
 </tr>
 
 <tr>
+<td class="org-left">config/guix.nf</td>
+</tr>
+
+<tr>
 <td class="org-left">nextflow.config</td>
+</tr>
+
+<tr>
+<td class="org-left">ci/guix/manifests/nextflow-trace.scm</td>
 </tr>
 
 <tr>
@@ -532,8 +547,8 @@ The following is a list of all files this document tangles into
 </div>
 
 
-<div id="outline-container-org1a3f7fc" class="outline-3">
-<h3 id="org1a3f7fc"><span class="section-number-3">2.4.</span> Building the containers</h3>
+<div id="outline-container-org80a7afd" class="outline-3">
+<h3 id="org80a7afd"><span class="section-number-3">2.4.</span> Building the containers</h3>
 <div class="outline-text-3" id="text-2-4">
 <p>
 Containers are available from the public registry,
@@ -561,10 +576,28 @@ e.g.
 </div>
 </div>
 
-
-<div id="outline-container-org55d966a" class="outline-3">
-<h3 id="org55d966a"><span class="section-number-3">2.5.</span> License</h3>
+<div id="outline-container-org69960c0" class="outline-3">
+<h3 id="org69960c0"><span class="section-number-3">2.5.</span> Making distribution tarball</h3>
 <div class="outline-text-3" id="text-2-5">
+<p>
+You can make a distribution tarball with the tangled files and documentaion with
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">make dist
+</pre>
+</div>
+<p>
+or if you have guix on your system
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">make <span class="org-variable-name">SHELL</span>=guix dist
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbc913aa" class="outline-3">
+<h3 id="orgbc913aa"><span class="section-number-3">2.6.</span> License</h3>
+<div class="outline-text-3" id="text-2-6">
 <p>
 This program is free software, under GPL3 or later.
 </p>
@@ -590,11 +623,11 @@ This program is free software, under GPL3 or later.
 </div>
 </div>
 </div>
-<div id="outline-container-org90ff944" class="outline-2">
-<h2 id="org90ff944"><span class="section-number-2">3.</span> Overview of this pipeline</h2>
+<div id="outline-container-org7cab42e" class="outline-2">
+<h2 id="org7cab42e"><span class="section-number-2">3.</span> Overview of this pipeline</h2>
 <div class="outline-text-2" id="text-3">
 
-<div id="org7a16f1d" class="figure">
+<div id="org04d6f4f" class="figure">
 <p><img src="img/flow.svg" alt="flow.svg" class="org-svg" />
 </p>
 </div>
@@ -603,8 +636,8 @@ This program is free software, under GPL3 or later.
 
 
 
-<div id="outline-container-orgeb3ef51" class="outline-2">
-<h2 id="orgeb3ef51"><span class="section-number-2">4.</span> Preprocessing Data</h2>
+<div id="outline-container-org2bc694a" class="outline-2">
+<h2 id="org2bc694a"><span class="section-number-2">4.</span> Preprocessing Data</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 We will not distribute the vendored msconvert,
@@ -614,8 +647,8 @@ and you can use the docker image of <code>dockerhub:chambm/pwiz-skyline-i-agree-
 You can convert your DIA-files with the same container following "Converting Dia Raw with Msconvert"
 </p>
 </div>
-<div id="outline-container-org69651a2" class="outline-3">
-<h3 id="org69651a2"><span class="section-number-3">4.1.</span> Picking Peaks</h3>
+<div id="outline-container-orgcc3913b" class="outline-3">
+<h3 id="orgcc3913b"><span class="section-number-3">4.1.</span> Picking Peaks</h3>
 <div class="outline-text-3" id="text-4-1">
 <div class="org-src-container">
 <pre class="src src-sh">mkdir -p MZXML-pwiz
@@ -626,8 +659,8 @@ You can convert your DIA-files with the same container following "Converting Dia
 </div>
 </div>
 </div>
-<div id="outline-container-org45c8511" class="outline-3">
-<h3 id="org45c8511"><span class="section-number-3">4.2.</span> Converting Dia Raw with Msconvert</h3>
+<div id="outline-container-orgedf182b" class="outline-3">
+<h3 id="orgedf182b"><span class="section-number-3">4.2.</span> Converting Dia Raw with Msconvert</h3>
 <div class="outline-text-3" id="text-4-2">
 <div class="org-src-container">
 <pre class="src src-sh">mkdir -p MZML-pwiz
@@ -639,16 +672,16 @@ find . -iname <span class="org-string">'*.wiff'</span> -print0 | xargs -P5 -0 -i
 </div>
 
 
-<div id="outline-container-org4052a71" class="outline-2">
-<h2 id="org4052a71"><span class="section-number-2">5.</span> Analysis <code>[4/4]</code></h2>
+<div id="outline-container-orgb9dee62" class="outline-2">
+<h2 id="orgb9dee62"><span class="section-number-2">5.</span> Analysis <code>[4/4]</code></h2>
 <div class="outline-text-2" id="text-5">
 <p>
 Gladiator paper: <a href="https://doi.org/10.1038/s43705-022-00137-0">https://doi.org/10.1038/s43705-022-00137-0</a>
 diatools: <a href="https://doi.org/10.1021/acs.jproteome.9b00606">https://doi.org/10.1021/acs.jproteome.9b00606</a>
 </p>
 </div>
-<div id="outline-container-org1afe910" class="outline-3">
-<h3 id="org1afe910"><span class="section-number-3">5.1.</span> Headers</h3>
+<div id="outline-container-orgfd5b0df" class="outline-3">
+<h3 id="orgfd5b0df"><span class="section-number-3">5.1.</span> Headers</h3>
 <div class="outline-text-3" id="text-5-1">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> org-babel-tangle-lang-exts
@@ -661,7 +694,7 @@ diatools: <a href="https://doi.org/10.1021/acs.jproteome.9b00606">https://doi.or
 </pre>
 </div>
 <div class="org-src-container">
-<pre class="src src-scheme" id="orgc3df6c0">(<span class="org-keyword">define-module</span> (<span class="org-type">workflow</span>)
+<pre class="src src-scheme" id="org9fff7f8">(<span class="org-keyword">define-module</span> (<span class="org-type">workflow</span>)
   <span class="org-builtin">#:use-module</span> (gwl workflows)
   <span class="org-builtin">#:use-module</span> (gwl processes)
   <span class="org-builtin">#:use-module</span> (gwl utils)
@@ -674,7 +707,7 @@ diatools: <a href="https://doi.org/10.1021/acs.jproteome.9b00606">https://doi.or
 
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="orgd85d31c">&lt;&lt;nf-sdrf-handling&gt;&gt;
+<pre class="src src-nextflow" id="orgf7a9bf3">&lt;&lt;nf-sdrf-handling&gt;&gt;
 &lt;&lt;nf-function-definitions&gt;&gt;
 &lt;&lt;nf-vars&gt;&gt;
 </pre>
@@ -683,8 +716,8 @@ diatools: <a href="https://doi.org/10.1021/acs.jproteome.9b00606">https://doi.or
 </div>
 
 
-<div id="outline-container-orgdcb46c5" class="outline-3">
-<h3 id="orgdcb46c5"><span class="section-number-3">5.2.</span> building database</h3>
+<div id="outline-container-org7cd1499" class="outline-3">
+<h3 id="org7cd1499"><span class="section-number-3">5.2.</span> building database</h3>
 <div class="outline-text-3" id="text-5-2">
 <p>
 <b>Overview</b>
@@ -692,18 +725,18 @@ diatools: <a href="https://doi.org/10.1021/acs.jproteome.9b00606">https://doi.or
 </p>
 
 
-<div id="org615248d" class="figure">
+<div id="orgb113b5f" class="figure">
 <p><img src="img/dot-build-database.svg" alt="dot-build-database.svg" class="org-svg" />
 </p>
 </div>
 </div>
 
 
-<div id="outline-container-org0d9826b" class="outline-4">
-<h4 id="org0d9826b"><span class="section-number-4">5.2.1.</span> Combining Fasta Files</h4>
+<div id="outline-container-org0ecc846" class="outline-4">
+<h4 id="org0ecc846"><span class="section-number-4">5.2.1.</span> Combining Fasta Files</h4>
 <div class="outline-text-4" id="text-5-2-1">
 <div class="org-src-container">
-<pre class="src src-python" id="orgeaecc7e"><span class="org-keyword">from</span> Bio <span class="org-keyword">import</span> SeqIO
+<pre class="src src-python" id="orgb2c8d0c"><span class="org-keyword">from</span> Bio <span class="org-keyword">import</span> SeqIO
 <span class="org-keyword">def</span> <span class="org-function-name">join_fasta_files</span>(input_files, output_file):
     <span class="org-variable-name">IDs</span> = <span class="org-builtin">set</span>()
     <span class="org-variable-name">seqRecords</span> = []
@@ -721,7 +754,7 @@ diatools: <a href="https://doi.org/10.1021/acs.jproteome.9b00606">https://doi.or
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org794b30d"><span class="org-keyword">process</span> <span class="org-function-name">JoinFastaFiles</span> {
+<pre class="src src-nextflow" id="orgdb97f3e"><span class="org-keyword">process</span> <span class="org-function-name">JoinFastaFiles</span> {
     input:
     <span class="org-keyword">file</span> <span class="org-function-name">fasta_files</span> from fasta_files_ch.toSortedList()
     output:
@@ -763,14 +796,14 @@ the original bruderer run
 </pre>
 </div>
 <div class="org-src-container">
-<pre class="src src-scheme" id="org5529f8a">(<span class="org-string">"join-fasta-files"</span>
+<pre class="src src-scheme" id="orgdc88700">(<span class="org-string">"join-fasta-files"</span>
  <span class="org-string">"python"</span>
  <span class="org-string">"biopython"</span>)
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-scheme" id="orga209713">(<span class="org-keyword">define</span> (<span class="org-function-name">join-fasta-files</span> fasta-files)
+<pre class="src src-scheme" id="org0da9306">(<span class="org-keyword">define</span> (<span class="org-function-name">join-fasta-files</span> fasta-files)
   (make-process
    (name <span class="org-string">"join-fasta-files"</span>)
    (synopsis <span class="org-string">"Join fasta files into one file"</span>)
@@ -800,11 +833,11 @@ join_fasta_files({{inputs}}.split(<span class="org-string">" "</span>),{{outputs
 </div>
 </div>
 
-<div id="outline-container-org155989c" class="outline-4">
-<h4 id="org155989c"><span class="section-number-4">5.2.2.</span> Adding Decoys</h4>
+<div id="outline-container-orge994be0" class="outline-4">
+<h4 id="orge994be0"><span class="section-number-4">5.2.2.</span> Adding Decoys</h4>
 <div class="outline-text-4" id="text-5-2-2">
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org09abb10">fasta_db_with_decoys = <span class="org-type">Channel</span>.value()
+<pre class="src src-nextflow" id="org2a3a4b6">fasta_db_with_decoys = <span class="org-type">Channel</span>.value()
 <span class="org-keyword">process</span> <span class="org-function-name">BuildFastaDatabase</span> {
     input:
     <span class="org-keyword">file</span> <span class="org-function-name">joined_fasta_db</span> from joined_fasta_database_ch
@@ -825,7 +858,7 @@ License: BSD-3 clause
 should be relatively easy to define)
 </p>
 <div class="org-src-container">
-<pre class="src src-scheme" id="org6e58a55">(<span class="org-keyword">define</span> <span class="org-function-name">create-database-with-decoys</span>
+<pre class="src src-scheme" id="org92e80ae">(<span class="org-keyword">define</span> <span class="org-function-name">create-database-with-decoys</span>
   (make-process
    (name <span class="org-string">"create-database-with-database"</span>)
    (synopsis <span class="org-string">"Add decoys to fasta database"</span>)
@@ -847,8 +880,8 @@ should be relatively easy to define)
 </div>
 </div>
 
-<div id="outline-container-orgc15b2ad" class="outline-3">
-<h3 id="orgc15b2ad"><span class="section-number-3">5.3.</span> Input DIA files</h3>
+<div id="outline-container-org964f5f1" class="outline-3">
+<h3 id="org964f5f1"><span class="section-number-3">5.3.</span> Input DIA files</h3>
 <div class="outline-text-3" id="text-5-3">
 <p>
 Here we redirect the dia files to the
@@ -864,8 +897,8 @@ Here we redirect the dia files to the
 </div>
 </div>
 
-<div id="outline-container-org6493efd" class="outline-3">
-<h3 id="org6493efd"><span class="section-number-3">5.4.</span> Creating Swath window files</h3>
+<div id="outline-container-orgcf2df27" class="outline-3">
+<h3 id="orgcf2df27"><span class="section-number-3">5.4.</span> Creating Swath window files</h3>
 <div class="outline-text-3" id="text-5-4">
 <p>
 
@@ -880,8 +913,8 @@ in that case you can provide your own tab-separated file of swathwindows.
 </p>
 </div>
 
-<div id="outline-container-org04f53d9" class="outline-4">
-<h4 id="org04f53d9"><span class="section-number-4">5.4.1.</span> Branching if user supplied windows</h4>
+<div id="outline-container-org5f7e0fc" class="outline-4">
+<h4 id="org5f7e0fc"><span class="section-number-4">5.4.1.</span> Branching if user supplied windows</h4>
 <div class="outline-text-4" id="text-5-4-1">
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-comment-delimiter">// </span><span class="org-comment">optional swath windows file thats a tab-separated file</span>
@@ -905,8 +938,8 @@ params.swath_windows_file=<span class="org-string">''</span>
 </div>
 
 
-<div id="outline-container-orgf1ca53a" class="outline-4">
-<h4 id="orgf1ca53a"><span class="section-number-4">5.4.2.</span> Making truncated-swath-windows and swath-windows from user-supplied swath-windows</h4>
+<div id="outline-container-orgbe1b7b8" class="outline-4">
+<h4 id="orgbe1b7b8"><span class="section-number-4">5.4.2.</span> Making truncated-swath-windows and swath-windows from user-supplied swath-windows</h4>
 <div class="outline-text-4" id="text-5-4-2">
 <p>
 Here we do some mangling so that the user inputed swathwindows is in the same format as the one that would be generated by us.
@@ -919,7 +952,7 @@ but we output with tab as separators.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="orgc5622bf"><span class="org-keyword">process</span> <span class="org-function-name">RegularizeUserSwathWindow</span> {
+<pre class="src src-nextflow" id="org295e07f"><span class="org-keyword">process</span> <span class="org-function-name">RegularizeUserSwathWindow</span> {
     input:
     path user_swath_windows, stageAs: <span class="org-string">'userSwathWindow.txt'</span> from <span class="org-type">Channel</span>.fromPath(params.swath_windows_file).first()
     output:
@@ -936,15 +969,15 @@ but we output with tab as separators.
 </div>
 
 
-<div id="outline-container-orgc6dac8b" class="outline-4">
-<h4 id="orgc6dac8b"><span class="section-number-4">5.4.3.</span> Inferring Windows from mzml files</h4>
+<div id="outline-container-org857493e" class="outline-4">
+<h4 id="org857493e"><span class="section-number-4">5.4.3.</span> Inferring Windows from mzml files</h4>
 <div class="outline-text-4" id="text-5-4-3">
 <p>
 If the user didnt supply a swath windows file, we infer it from the mzml file
 </p>
 
 <div class="org-src-container">
-<pre class="src src-python" id="orga0d1455"><span class="org-keyword">import</span> xml.etree.ElementTree <span class="org-keyword">as</span> ET
+<pre class="src src-python" id="org0b6ee90"><span class="org-keyword">import</span> xml.etree.ElementTree <span class="org-keyword">as</span> ET
 <span class="org-keyword">import</span> os
 
 <span class="org-keyword">def</span> <span class="org-function-name">read_swath_windows</span>(dia_mzML):
@@ -1024,7 +1057,7 @@ If the user didnt supply a swath windows file, we infer it from the mzml file
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="orga5c85ad"><span class="org-keyword">process</span> <span class="org-function-name">InferSwathWindows</span> {
+<pre class="src src-nextflow" id="org8753d2d"><span class="org-keyword">process</span> <span class="org-function-name">InferSwathWindows</span> {
     input:
     <span class="org-keyword">file</span> <span class="org-function-name">diafile</span> from dia_mzml_files_ch.swath_windows.first()
     output: 
@@ -1044,8 +1077,8 @@ we'll have to get minswath and maxswath by reading <code>"swath-windows.txt"</co
 </p>
 </div>
 </div>
-<div id="outline-container-org7ce3ad5" class="outline-4">
-<h4 id="org7ce3ad5"><span class="section-number-4">5.4.4.</span> Making the non-overlapping swath-windows</h4>
+<div id="outline-container-orgcb8ca0c" class="outline-4">
+<h4 id="orgcb8ca0c"><span class="section-number-4">5.4.4.</span> Making the non-overlapping swath-windows</h4>
 <div class="outline-text-4" id="text-5-4-4">
 <p>
 <code>Openswath</code> requires non-overlapping windows,
@@ -1053,7 +1086,7 @@ so we create them here.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-awk" id="org19551ae"><span class="org-keyword">BEGIN</span> {<span class="org-variable-name">OFS</span>=<span class="org-string">"    "</span>}
+<pre class="src src-awk" id="org0039bb0"><span class="org-keyword">BEGIN</span> {<span class="org-variable-name">OFS</span>=<span class="org-string">"    "</span>}
 <span class="org-keyword">function</span> <span class="org-function-name">max</span>(a,b){
     <span class="org-keyword">if</span>(a &gt; b)
         <span class="org-keyword">return</span> a
@@ -1096,8 +1129,8 @@ so we create them here.
 </div>
 </div>
 
-<div id="outline-container-orgea05c38" class="outline-3">
-<h3 id="orgea05c38"><span class="section-number-3">5.5.</span> Library Generation</h3>
+<div id="outline-container-org75289d9" class="outline-3">
+<h3 id="org75289d9"><span class="section-number-3">5.5.</span> Library Generation</h3>
 <div class="outline-text-3" id="text-5-5">
 <p>
 There are various way to generate spectral libraries from DIA data / DDA dat.
@@ -1108,7 +1141,7 @@ Here we make the distinction between deconvolution methods and other library gen
 The following is a list of the methods we support,
 </p>
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org8c98e58">[ <span class="org-string">"dda"</span>,<span class="org-string">"custom"</span>, <span class="org-string">"deepdia"</span>, <span class="org-string">"diaumpire"</span>,<span class="org-string">"diams2pep"</span>]
+<pre class="src src-nextflow" id="orge5a66e1">[ <span class="org-string">"dda"</span>,<span class="org-string">"custom"</span>, <span class="org-string">"deepdia"</span>, <span class="org-string">"diaumpire"</span>,<span class="org-string">"diams2pep"</span>]
 </pre>
 </div>
 
@@ -1169,8 +1202,8 @@ libgen_methods_validate_params(params)
 </pre>
 </div>
 </div>
-<div id="outline-container-org9f9bf70" class="outline-4">
-<h4 id="org9f9bf70"><span class="section-number-4">5.5.1.</span> Building {Pseudo-,}Spectral library from (Pseudo)-Spectra  <code>[5/5]</code></h4>
+<div id="outline-container-org20951a0" class="outline-4">
+<h4 id="org20951a0"><span class="section-number-4">5.5.1.</span> Building {Pseudo-,}Spectral library from (Pseudo)-Spectra  <code>[5/5]</code></h4>
 <div class="outline-text-4" id="text-5-5-1">
 <p>
 This section covers seval ways of deconvolution for making spectral libraries for later usage by open swath.
@@ -1212,8 +1245,8 @@ deconv_output_chs = deconvolution_methods*.output.findAll({<span class="org-vari
 </pre>
 </div>
 </div>
-<div id="outline-container-orgf78e0e8" class="outline-5">
-<h5 id="orgf78e0e8"><span class="section-number-5">5.5.1.1.</span> Using DDA Data</h5>
+<div id="outline-container-org161a850" class="outline-5">
+<h5 id="org161a850"><span class="section-number-5">5.5.1.1.</span> Using DDA Data</h5>
 <div class="outline-text-5" id="text-5-5-1-1">
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-keyword">if</span>(libgen_method_is_enabled(<span class="org-string">"dda"</span>,params)){
@@ -1231,8 +1264,8 @@ deconv_output_chs = deconvolution_methods*.output.findAll({<span class="org-vari
 </div>
 </div>
 
-<div id="outline-container-org2af30a9" class="outline-5">
-<h5 id="org2af30a9"><span class="section-number-5">5.5.1.2.</span> Creating Pseudospectra with DIAumpire</h5>
+<div id="outline-container-orga924818" class="outline-5">
+<h5 id="orga924818"><span class="section-number-5">5.5.1.2.</span> Creating Pseudospectra with DIAumpire</h5>
 <div class="outline-text-5" id="text-5-5-1-2">
 <p>
 
@@ -1243,12 +1276,12 @@ deconv_output_chs = deconvolution_methods*.output.findAll({<span class="org-vari
 <a href="https://github.com/Nesvilab/DIA-Umpire/raw/gh-pages/DIA_Umpire_Manual_v2.0.pdf">https://github.com/Nesvilab/DIA-Umpire/raw/gh-pages/DIA_Umpire_Manual_v2.0.pdf</a>
 </p>
 </div>
-<div id="outline-container-org6d5fd53" class="outline-6">
-<h6 id="org6d5fd53"><span class="section-number-6">5.5.1.2.1.</span> Problems you might encounter during this step</h6>
+<div id="outline-container-org2560ff4" class="outline-6">
+<h6 id="org2560ff4"><span class="section-number-6">5.5.1.2.1.</span> Problems you might encounter during this step</h6>
 <div class="outline-text-6" id="text-5-5-1-2-1">
 </div>
-<div id="outline-container-org0bf8e1c" class="outline-7">
-<h7 id="org0bf8e1c"><span class="section-number-7">5.5.1.2.1.1.</span> Out of Memory in Dia-umpire</h7>
+<div id="outline-container-org14e6456" class="outline-7">
+<h7 id="org14e6456"><span class="section-number-7">5.5.1.2.1.1.</span> Out of Memory in Dia-umpire</h7>
 <div class="outline-text-7" id="text-5-5-1-2-1-1">
 <p>
 Dia-umpire, which we use here for pseudo-spectra creation,
@@ -1270,8 +1303,8 @@ see also <a href="https://www.nextflow.io/docs/latest/process.html#memory">The N
 </p>
 </div>
 </div>
-<div id="outline-container-org6e73614" class="outline-7">
-<h7 id="org6e73614"><span class="section-number-7">5.5.1.2.1.2.</span> <code>MzmlToMzxml</code> processing error.</h7>
+<div id="outline-container-org17a433a" class="outline-7">
+<h7 id="org17a433a"><span class="section-number-7">5.5.1.2.1.2.</span> <code>MzmlToMzxml</code> processing error.</h7>
 <div class="outline-text-7" id="text-5-5-1-2-1-2">
 <p>
 If you get an error of
@@ -1289,8 +1322,8 @@ when you used <code>msconvert</code> to convert from the propriatary format to m
 </div>
 </div>
 </div>
-<div id="outline-container-org1c8ccc4" class="outline-6">
-<h6 id="org1c8ccc4"><span class="section-number-6">5.5.1.2.2.</span> Steps that are run</h6>
+<div id="outline-container-orga5e2aa9" class="outline-6">
+<h6 id="orga5e2aa9"><span class="section-number-6">5.5.1.2.2.</span> Steps that are run</h6>
 <div class="outline-text-6" id="text-5-5-1-2-2">
 <p>
 DIAumpire is <code>Apache 2</code> licensed.
@@ -1310,7 +1343,7 @@ DIAumpire is <code>Apache 2</code> licensed.
 </div>
 
 <div class="org-src-container">
-<pre class="src src-conf" id="orgd52331a"><span class="org-comment-delimiter">#</span><span class="org-comment">Number of threads</span>
+<pre class="src src-conf" id="orgc134618"><span class="org-comment-delimiter">#</span><span class="org-comment">Number of threads</span>
 <span class="org-comment-delimiter"># </span><span class="org-comment">set to the number of cores available</span>
 <span class="org-comment-delimiter"># </span><span class="org-comment">In the original gladiator, this was set by replicing this all caps </span>
 <span class="org-variable-name">Thread</span> = 4
@@ -1484,8 +1517,8 @@ diaumpireconfig_ch = <span class="org-type">Channel</span>.fromPath(params.diaum
 </div>
 </div>
 </div>
-<div id="outline-container-org8622c05" class="outline-5">
-<h5 id="org8622c05"><span class="section-number-5">5.5.1.3.</span> Creating Pseudospectra with diams2pep</h5>
+<div id="outline-container-org51ee00c" class="outline-5">
+<h5 id="org51ee00c"><span class="section-number-5">5.5.1.3.</span> Creating Pseudospectra with diams2pep</h5>
 <div class="outline-text-5" id="text-5-5-1-3">
 <p>
 <a href="https://github.com/SS2proteome/DIA-MS2pep">https://github.com/SS2proteome/DIA-MS2pep</a>
@@ -1515,7 +1548,7 @@ params.diams2pep_fragment_tolerance = <span class="org-constant">null</span>
 Do we need msconvert to convert to a friendly mzml file?
 According to DIA-MS2PEP's readme we need
 </p>
-<pre class="example" id="org797859a">
+<pre class="example" id="org75f40fa">
 mzML=true
 zlib=true
 mz64=true
@@ -1625,8 +1658,8 @@ which would not be known before running <code>DIA_acquisition_window_generator.p
 </div>
 </div>
 </div>
-<div id="outline-container-orgb9ce9d0" class="outline-5">
-<h5 id="orgb9ce9d0"><span class="section-number-5">5.5.1.4.</span> Choosing the MS Sequence database search engine: Comet/Xtandem</h5>
+<div id="outline-container-orge9596ab" class="outline-5">
+<h5 id="orge9596ab"><span class="section-number-5">5.5.1.4.</span> Choosing the MS Sequence database search engine: Comet/Xtandem</h5>
 <div class="outline-text-5" id="text-5-5-1-4">
 <div class="org-src-container">
 <pre class="src src-nextflow">params.search_engines = [<span class="org-string">"comet"</span>,<span class="org-string">"xtandem"</span>]
@@ -1683,8 +1716,8 @@ params.max_missed_cleavages= 2
 </div>
 </div>
 
-<div id="outline-container-org552d0ac" class="outline-5">
-<h5 id="org552d0ac"><span class="section-number-5">5.5.1.5.</span> Comet</h5>
+<div id="outline-container-orgb666086" class="outline-5">
+<h5 id="orgb666086"><span class="section-number-5">5.5.1.5.</span> Comet</h5>
 <div class="outline-text-5" id="text-5-5-1-5">
 <p>
 
@@ -1970,8 +2003,8 @@ is tried first
 
 
 
-<div id="outline-container-org0fbf8e4" class="outline-5">
-<h5 id="org0fbf8e4"><span class="section-number-5">5.5.1.6.</span> Xtandem</h5>
+<div id="outline-container-org7d2d957" class="outline-5">
+<h5 id="org7d2d957"><span class="section-number-5">5.5.1.6.</span> Xtandem</h5>
 <div class="outline-text-5" id="text-5-5-1-6">
 <p>
 
@@ -1986,7 +2019,7 @@ See also the documentation of xtandem here: <a href="https://www.thegpm.org/TAND
 </p>
 
 <div class="org-src-container">
-<pre class="src src-xml" id="org4b4d1c5"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span><span class="org-nxml-processing-instruction-target">xml</span> <span class="org-nxml-processing-instruction-content">version="1.0"</span><span class="org-nxml-processing-instruction-delimiter">?&gt;</span>
+<pre class="src src-xml" id="org9ebb1a6"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span><span class="org-nxml-processing-instruction-target">xml</span> <span class="org-nxml-processing-instruction-content">version="1.0"</span><span class="org-nxml-processing-instruction-delimiter">?&gt;</span>
 <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">bioml</span> <span class="org-nxml-attribute-local-name">label</span>=<span class="org-string">"x! taxon-to-file matching list"</span><span class="org-nxml-tag-delimiter">&gt;</span>
   <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">taxon</span> <span class="org-nxml-attribute-local-name">label</span>=<span class="org-string">"DB"</span><span class="org-nxml-tag-delimiter">&gt;</span>
     <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">file</span> <span class="org-nxml-attribute-local-name">format</span>=<span class="org-string">"peptide"</span> <span class="org-nxml-attribute-local-name">URL</span>=<span class="org-string">"%s"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
@@ -1996,7 +2029,7 @@ See also the documentation of xtandem here: <a href="https://www.thegpm.org/TAND
 </div>
 
 <div class="org-src-container">
-<pre class="src src-xml" id="org81fea0f"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span><span class="org-nxml-processing-instruction-target">xml</span> <span class="org-nxml-processing-instruction-content">version="1.0"</span><span class="org-nxml-processing-instruction-delimiter">?&gt;</span>
+<pre class="src src-xml" id="orga35083b"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span><span class="org-nxml-processing-instruction-target">xml</span> <span class="org-nxml-processing-instruction-content">version="1.0"</span><span class="org-nxml-processing-instruction-delimiter">?&gt;</span>
 <span class="org-nxml-processing-instruction-delimiter">&lt;?</span><span class="org-nxml-processing-instruction-target">xml-stylesheet</span> <span class="org-nxml-processing-instruction-content">type="text/xsl" href="tandem-input-style.xsl"</span><span class="org-nxml-processing-instruction-delimiter">?&gt;</span>
 <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">bioml</span><span class="org-nxml-tag-delimiter">&gt;</span>
 <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">note</span><span class="org-nxml-tag-delimiter">&gt;</span><span class="org-nxml-text">list path parameters</span><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">note</span><span class="org-nxml-tag-delimiter">&gt;</span>
@@ -2179,7 +2212,7 @@ See also the documentation of xtandem here: <a href="https://www.thegpm.org/TAND
 </div>
 
 <div class="org-src-container">
-<pre class="src src-xml" id="orgbbc8fbf"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span><span class="org-nxml-processing-instruction-target">xml</span> <span class="org-nxml-processing-instruction-content">version="1.0"</span><span class="org-nxml-processing-instruction-delimiter">?&gt;</span>
+<pre class="src src-xml" id="orgad65404"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span><span class="org-nxml-processing-instruction-target">xml</span> <span class="org-nxml-processing-instruction-content">version="1.0"</span><span class="org-nxml-processing-instruction-delimiter">?&gt;</span>
 <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">bioml</span><span class="org-nxml-tag-delimiter">&gt;</span>
         <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">note</span><span class="org-nxml-tag-delimiter">&gt;</span>
 <span class="org-nxml-text">        Each one of the parameters for x! tandem is entered as a labeled note node. </span>
@@ -2304,32 +2337,12 @@ you can point to it with this.
 <p>
 Why is this much smaller than comet?
 </p>
-
-
-<p>
-We patch tpp to accept comet 2019015 
-</p>
-
-<div class="org-src-container">
-<pre class="src src-diff"><span class="org-diff-header">diff -Naur release_5-2-0/extern/Makefile release_5-2-0_mod/extern/Makefile</span>
-<span class="org-diff-header">--- </span><span class="org-diff-header"><span class="org-diff-file-header">release_5-2-0/extern/Makefile</span></span><span class="org-diff-header">       2020-07-29 23:43:45.483620066 +0300</span>
-<span class="org-diff-header">+++ </span><span class="org-diff-header"><span class="org-diff-file-header">release_5-2-0_mod/extern/Makefile</span></span><span class="org-diff-header">   2020-07-29 23:47:41.796860274 +0300</span>
-<span class="org-diff-hunk-header">@@ -339,7 +339,7 @@</span>
-<span class="org-diff-context"> #</span>
-<span class="org-diff-context"> # http://comet-ms.sourceforge.net/</span>
-<span class="org-diff-context"> #</span>
-<span class="org-diff-indicator-removed">-</span><span class="org-diff-removed">COMET_VER := 2018014</span>
-<span class="org-diff-indicator-added">+</span><span class="org-diff-added">COMET_VER := 2019015</span>
-<span class="org-diff-context"> COMET_ZIP := $(TPP_EXT)/comet_source_$(COMET_VER).zip</span>
-<span class="org-diff-context"> COMET_SRC := $(BUILD_SRC)/comet_source_$(COMET_VER)</span>
- .PHONY: comet comet-source comet-clean
-</pre>
-</div>
 </div>
 </div>
 
-<div id="outline-container-org6d7adf4" class="outline-5">
-<h5 id="org6d7adf4"><span class="section-number-5">5.5.1.7.</span> Joining Comet &amp; Xtandem</h5>
+
+<div id="outline-container-org4051808" class="outline-5">
+<h5 id="org4051808"><span class="section-number-5">5.5.1.7.</span> Joining Comet &amp; Xtandem</h5>
 <div class="outline-text-5" id="text-5-5-1-7">
 <p>
 
@@ -2382,19 +2395,19 @@ possible causes:
 </div>
 </div>
 </div>
-<div id="outline-container-org5a46f47" class="outline-5">
-<h5 id="org5a46f47"><span class="section-number-5">5.5.1.8.</span> Building Specral Library</h5>
+<div id="outline-container-org687a8d0" class="outline-5">
+<h5 id="org687a8d0"><span class="section-number-5">5.5.1.8.</span> Building Specral Library</h5>
 <div class="outline-text-5" id="text-5-5-1-8">
 <p>
 
 
-Inputs from <a href="#org6493efd">Creating Swath window files</a>
+Inputs from <a href="#orgcf2df27">Creating Swath window files</a>
 <a href="http://www.openswath.org/en/latest/docs/openswath.html">http://www.openswath.org/en/latest/docs/openswath.html</a>
 </p>
 </div>
 
-<div id="outline-container-org7b2955e" class="outline-6">
-<h6 id="org7b2955e"><span class="section-number-6">5.5.1.8.1.</span> Mayu</h6>
+<div id="outline-container-orgfb9cfa1" class="outline-6">
+<h6 id="orgfb9cfa1"><span class="section-number-6">5.5.1.8.1.</span> Mayu</h6>
 <div class="outline-text-6" id="text-5-5-1-8-1">
 <p>
 <a href="https://doi.org/10.5167/uzh-28712">https://doi.org/10.5167/uzh-28712</a>
@@ -2497,8 +2510,8 @@ params.protFDR=0.01
 </div>
 </div>
 
-<div id="outline-container-orgf879769" class="outline-6">
-<h6 id="orgf879769"><span class="section-number-6">5.5.1.8.2.</span> Spectrast</h6>
+<div id="outline-container-org5879866" class="outline-6">
+<h6 id="org5879866"><span class="section-number-6">5.5.1.8.2.</span> Spectrast</h6>
 <div class="outline-text-6" id="text-5-5-1-8-2">
 <p>
 <a href="http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST">http://tools.proteomecenter.org/wiki/index.php?title=Software:SpectraST</a>
@@ -2537,11 +2550,11 @@ It also doesn't check if illegal flags are given, they will pass silently instea
 </div>
 </div>
 
-<div id="outline-container-orge5db5bb" class="outline-7">
-<h7 id="orge5db5bb"><span class="section-number-7">5.5.1.8.2.1.</span> Converting traml into spectrast friendly format</h7>
+<div id="outline-container-org078f71c" class="outline-7">
+<h7 id="org078f71c"><span class="section-number-7">5.5.1.8.2.1.</span> Converting traml into spectrast friendly format</h7>
 <div class="outline-text-7" id="text-5-5-1-8-2-1">
 <div class="org-src-container">
-<pre class="src src-awk" id="org5a7beef"><span class="org-keyword">BEGIN</span> {<span class="org-variable-name">FS</span>=<span class="org-string">"     "</span>; <span class="org-variable-name">OFS</span>=<span class="org-string">"        "</span>}
+<pre class="src src-awk" id="org5354b55"><span class="org-keyword">BEGIN</span> {<span class="org-variable-name">FS</span>=<span class="org-string">"     "</span>; <span class="org-variable-name">OFS</span>=<span class="org-string">"        "</span>}
 <span class="org-variable-name">NR</span>==1 {
     <span class="org-keyword">for</span> (i=1; i&lt;=<span class="org-variable-name">NF</span>; i++) {
         f[$i] = i
@@ -2552,7 +2565,7 @@ It also doesn't check if illegal flags are given, they will pass silently instea
 </div>
 
 <div class="org-src-container">
-<pre class="src src-awk" id="orgd70138a"><span class="org-keyword">BEGIN</span> {<span class="org-variable-name">FS</span>=<span class="org-string">"     "</span>; <span class="org-variable-name">OFS</span>=<span class="org-string">"        "</span>}
+<pre class="src src-awk" id="org690244b"><span class="org-keyword">BEGIN</span> {<span class="org-variable-name">FS</span>=<span class="org-string">"     "</span>; <span class="org-variable-name">OFS</span>=<span class="org-string">"        "</span>}
 <span class="org-comment-delimiter"># </span><span class="org-comment">we set the column names so that we can look them up later</span>
 <span class="org-variable-name">NR</span>==1 {
     <span class="org-keyword">for</span> (i=1; i&lt;=<span class="org-variable-name">NF</span>; i++) {
@@ -2597,8 +2610,8 @@ TargetedFileConverter from <code>OpenMS</code>
 </div>
 </div>
 </div>
-<div id="outline-container-orgd03dcd2" class="outline-7">
-<h7 id="orgd03dcd2"><span class="section-number-7">5.5.1.8.2.2.</span> Running Spectrast</h7>
+<div id="outline-container-org75abee2" class="outline-7">
+<h7 id="org75abee2"><span class="section-number-7">5.5.1.8.2.2.</span> Running Spectrast</h7>
 <div class="outline-text-7" id="text-5-5-1-8-2-2">
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-comment-delimiter">// </span><span class="org-comment">spectrast will create *.splib, *.spidx, *.pepidx, </span>
@@ -2647,10 +2660,10 @@ LFLQFGAQGSPFLK  98.0897
 </div>
 
 <p>
-<a id="org87a619d"></a>
+<a id="orgb1ff9d6"></a>
 </p>
 <p>
-<a id="org0499e57"></a>
+<a id="orgfcbc2c8"></a>
 </p>
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-comment-delimiter">// </span><span class="org-comment">white-space-delimited file of peptide-sequences and internal retention times</span>
@@ -2925,8 +2938,8 @@ deepdia_speclib = <span class="org-type">Channel</span>.create()
 </div>
 </div>
 
-<div id="outline-container-org976d727" class="outline-4">
-<h4 id="org976d727"><span class="section-number-4">5.5.3.</span> Supplying a custom spectral library</h4>
+<div id="outline-container-orgcfd90d1" class="outline-4">
+<h4 id="orgcfd90d1"><span class="section-number-4">5.5.3.</span> Supplying a custom spectral library</h4>
 <div class="outline-text-4" id="text-5-5-3">
 <p>
 You can also supply a custom spectral library by setting <code>=--speclib</code> to a glob/path
@@ -2936,7 +2949,7 @@ so MaxQuant or OpenMS works.
 </p>
 
 <p>
-To check, one can manually inspect whether  <code>TargetedFileConverter --in yourlibrary --out speclib.tsv</code> looks proper.
+To check, one can manually inspect (using the <code>gladiator-guix</code> container), whether  <code>TargetedFileConverter -in yourlibrary -out speclib.tsv</code> looks proper.
 Pay special attention to the modified peptides field, if this is being parsed correctly.
 One bug observed by this developer is that this field is repeated after not being parsed correctly.
 See also <a href="https://abibuilder.cs.uni-tuebingen.de/archive/openms/Documentation/release/2.7.0/html/classOpenMS_1_1TransitionTSVFile.html">https://abibuilder.cs.uni-tuebingen.de/archive/openms/Documentation/release/2.7.0/html/classOpenMS_1_1TransitionTSVFile.html</a>
@@ -2959,8 +2972,8 @@ params.speclib = <span class="org-constant">null</span>
 </div>
 </div>
 
-<div id="outline-container-orge5dce86" class="outline-4">
-<h4 id="orge5dce86"><span class="section-number-4">5.5.4.</span> combining various spectral libraries into one.</h4>
+<div id="outline-container-orge23a32a" class="outline-4">
+<h4 id="orge23a32a"><span class="section-number-4">5.5.4.</span> combining various spectral libraries into one.</h4>
 <div class="outline-text-4" id="text-5-5-4">
 <p>
 would need to use openms TargetedFileConverter to convert to openswath like tsv,
@@ -2971,8 +2984,8 @@ See aso schubert et al (<a href="https://doi.org/10.1038/nprot.2015.015">https:/
 </div>
 </div>
 </div>
-<div id="outline-container-orgd8db938" class="outline-3">
-<h3 id="orgd8db938"><span class="section-number-3">5.6.</span> OpenSwathDecoys</h3>
+<div id="outline-container-orga9c3ce1" class="outline-3">
+<h3 id="orga9c3ce1"><span class="section-number-3">5.6.</span> OpenSwathDecoys</h3>
 <div class="outline-text-3" id="text-5-6">
 <p>
 specrast2tsv.py is from <code>msproteomicstools</code>
@@ -3039,16 +3052,16 @@ and pass result tsv to OpenSwathWorkflow as <code>-tr</code>.
 </div>
 </div>
 
-<div id="outline-container-orgdddf4f7" class="outline-3">
-<h3 id="orgdddf4f7"><span class="section-number-3">5.7.</span> Building Dia Matrix</h3>
+<div id="outline-container-orga97c088" class="outline-3">
+<h3 id="orga97c088"><span class="section-number-3">5.7.</span> Building Dia Matrix</h3>
 <div class="outline-text-3" id="text-5-7">
 <p>
 <a href="https://openswath.org/_/downloads/en/latest/pdf/">https://openswath.org/_/downloads/en/latest/pdf/</a>
 <a href="https://openswath.org/_/downloads/en/latest/htmlzip/">https://openswath.org/_/downloads/en/latest/htmlzip/</a>
 </p>
 </div>
-<div id="outline-container-org726aba0" class="outline-4">
-<h4 id="org726aba0"><span class="section-number-4">5.7.1.</span> OpenSwathWorkflow</h4>
+<div id="outline-container-org5da90d2" class="outline-4">
+<h4 id="org5da90d2"><span class="section-number-4">5.7.1.</span> OpenSwathWorkflow</h4>
 <div class="outline-text-4" id="text-5-7-1">
 <p>
 Creates tsv with <code>-out_tsv</code>
@@ -3079,7 +3092,7 @@ to use <code>-out_osw</code>, <code>-tr</code> needs to be a pqp file,
 If we are using legacy pyprophet we will need to create a tsv
 </p>
 <div class="org-src-container">
-<pre class="src src-nextflow" id="orgc6f4487"><span class="org-keyword">process</span> <span class="org-function-name">OpenSwathWorkflow_legacy</span> {
+<pre class="src src-nextflow" id="org93f775a"><span class="org-keyword">process</span> <span class="org-function-name">OpenSwathWorkflow_legacy</span> {
         memory { 16.GB * (libgen_method_is_enabled(<span class="org-string">"deepdia"</span>,params) ? 2 : 1 )}
         input:
         <span class="org-keyword">file</span> <span class="org-function-name">dia_mzml_file</span> from dia_mzml_files_ch.osw
@@ -3115,7 +3128,7 @@ If we are using legacy pyprophet we will need to create a tsv
 If we are using nonlegacy pyprophet we will need to create an osw
 </p>
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org15d92ae">openswath_osw_indirect_ch = <span class="org-type">Channel</span>.create()
+<pre class="src src-nextflow" id="org1713c1f">openswath_osw_indirect_ch = <span class="org-type">Channel</span>.create()
 openswath_osw_indirect_ch.multiMap{ <span class="org-variable-name">it</span> -&gt;
     pyprophet_subsample: pyprophet_score  : <span class="org-variable-name">it</span>}.set{openswath_osw_ch}
 <span class="org-keyword">process</span> <span class="org-function-name">OpenSwathWorkflow</span> {
@@ -3185,8 +3198,8 @@ Error: Unexpected internal error (Either out_features, out_tsv or out_osw needs 
 </blockquote>
 </div>
 
-<div id="outline-container-org5accf49" class="outline-5">
-<h5 id="org5accf49"><span class="section-number-5">5.7.1.1.</span> What is the relation between <code>irt.txt</code> and <code>iRTAssayLibrary.TraML</code></h5>
+<div id="outline-container-org9832669" class="outline-5">
+<h5 id="org9832669"><span class="section-number-5">5.7.1.1.</span> What is the relation between <code>irt.txt</code> and <code>iRTAssayLibrary.TraML</code></h5>
 <div class="outline-text-5" id="text-5-7-1-1">
 <p>
 The <code>irt.txt</code> seems to contain pairs of 
@@ -3287,8 +3300,8 @@ also hardcoded in <a href="https://github.com/msproteomicstools/msproteomicstool
 </div>
 
 
-<div id="outline-container-orgbe3d3b2" class="outline-4">
-<h4 id="orgbe3d3b2"><span class="section-number-4">5.7.2.</span> Pyprophet</h4>
+<div id="outline-container-orge6e5566" class="outline-4">
+<h4 id="orge6e5566"><span class="section-number-4">5.7.2.</span> Pyprophet</h4>
 <div class="outline-text-4" id="text-5-7-2">
 <p>
 <a href="https://github.com/PyProphet/pyprophet">https://github.com/PyProphet/pyprophet</a>
@@ -3305,8 +3318,8 @@ is based on mprophet <a href="https://doi.org/10.1038/nmeth.1584">https://doi.or
 </p>
 </div>
 
-<div id="outline-container-org4997608" class="outline-5">
-<h5 id="org4997608"><span class="section-number-5">5.7.2.1.</span> Legacy Pyprophet</h5>
+<div id="outline-container-org42e5b1f" class="outline-5">
+<h5 id="org42e5b1f"><span class="section-number-5">5.7.2.1.</span> Legacy Pyprophet</h5>
 <div class="outline-text-5" id="text-5-7-2-1">
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-keyword">if</span> (params.pyprophet_use_legacy)
@@ -3363,8 +3376,8 @@ try running with <code>params.use_irt=false</code>
 </p>
 </div>
 </div>
-<div id="outline-container-org53899ec" class="outline-5">
-<h5 id="org53899ec"><span class="section-number-5">5.7.2.2.</span> nonlegacy prypophet</h5>
+<div id="outline-container-org7acf3ba" class="outline-5">
+<h5 id="org7acf3ba"><span class="section-number-5">5.7.2.2.</span> nonlegacy prypophet</h5>
 <div class="outline-text-5" id="text-5-7-2-2">
 <p>
 <a href="http://www.openswath.org/en/latest/docs/pyprophet.html">http://www.openswath.org/en/latest/docs/pyprophet.html</a>
@@ -3400,7 +3413,7 @@ Because sql doesn't allow for settign a seed, pyprophet will just select the fir
 This can result in no decoy peptides being in the subsampled osw's.
 This is indicated by the error of pyprophet:
 </p>
-<pre class="example" id="org2e22df5">
+<pre class="example" id="orgcb48391">
 Error: At least 10 decoy groups and 10 target groups are required.
 </pre>
 
@@ -3563,8 +3576,8 @@ scored_osw_indirect_ch.multiMap{<span class="org-variable-name">it</span> -&gt;
 </pre>
 </div>
 </div>
-<div id="outline-container-orga5f5505" class="outline-6">
-<h6 id="orga5f5505"><span class="section-number-6">5.7.2.2.1.</span> KeyError: 'HOME' in <code>pyprophet_subsample</code></h6>
+<div id="outline-container-org742aed4" class="outline-6">
+<h6 id="org742aed4"><span class="section-number-6">5.7.2.2.1.</span> KeyError: 'HOME' in <code>pyprophet_subsample</code></h6>
 <div class="outline-text-6" id="text-5-7-2-2-1">
 <p>
 If in this section you get the error
@@ -3597,8 +3610,8 @@ This will set your home directory to the running directory in pyprophet processe
 </div>
 
 
-<div id="outline-container-org08c75bc" class="outline-5">
-<h5 id="org08c75bc"><span class="section-number-5">5.7.2.3.</span> Choosing between legacy and nonlegacy pyprophet</h5>
+<div id="outline-container-orgbaa8923" class="outline-5">
+<h5 id="orgbaa8923"><span class="section-number-5">5.7.2.3.</span> Choosing between legacy and nonlegacy pyprophet</h5>
 <div class="outline-text-5" id="text-5-7-2-3">
 <p>
 Here we choose between legacy or nonlegacy pyprophet
@@ -3614,8 +3627,8 @@ Here we choose between legacy or nonlegacy pyprophet
 </div>
 </div>
 
-<div id="outline-container-org48e8565" class="outline-4">
-<h4 id="org48e8565"><span class="section-number-4">5.7.3.</span> feature-alignment</h4>
+<div id="outline-container-orgf57c2f5" class="outline-4">
+<h4 id="orgf57c2f5"><span class="section-number-4">5.7.3.</span> feature-alignment</h4>
 <div class="outline-text-4" id="text-5-7-3">
 <p>
 <a href="http://www.openswath.org/en/latest/docs/tric.html">http://www.openswath.org/en/latest/docs/tric.html</a>
@@ -3674,11 +3687,11 @@ params.tric_max_fdr=0.05
 </div>
 </div>
 
-<div id="outline-container-orgaae53bb" class="outline-4">
-<h4 id="orgaae53bb"><span class="section-number-4">5.7.4.</span> Swath2stats</h4>
+<div id="outline-container-orgbbdf8b4" class="outline-4">
+<h4 id="orgbbdf8b4"><span class="section-number-4">5.7.4.</span> Swath2stats</h4>
 <div class="outline-text-4" id="text-5-7-4">
 <div class="org-src-container">
-<pre class="src src-R" id="orgcfb93e1">suppressPackageStartupMessages(library(SWATH2stats))
+<pre class="src src-R" id="org0e2c61b">suppressPackageStartupMessages(library(SWATH2stats))
 suppressPackageStartupMessages(library(data.table))
 
 remove_irt &lt;- function(df)
@@ -3776,11 +3789,11 @@ params.swath2stats_strict_checking=<span class="org-constant">true</span>
 </div>
 
 
-<div id="outline-container-org6f37727" class="outline-5">
-<h5 id="org6f37727"><span class="section-number-5">5.7.4.1.</span> Dependencies</h5>
+<div id="outline-container-orgd4ab538" class="outline-5">
+<h5 id="orgd4ab538"><span class="section-number-5">5.7.4.1.</span> Dependencies</h5>
 <div class="outline-text-5" id="text-5-7-4-1">
 <div class="org-src-container">
-<pre class="src src-scheme" id="org2439951">(<span class="org-string">"swath2stats"</span>
+<pre class="src src-scheme" id="org16a65f4">(<span class="org-string">"swath2stats"</span>
  <span class="org-string">"r-minimal"</span>
  <span class="org-string">"r-swath2stats"</span>)
 </pre>
@@ -3808,12 +3821,12 @@ BiocManager::install("SWATH2stats", ask=FALSE,update=FALSE)
 </div>
 </div>
 </div>
-<div id="outline-container-orge9f24cb" class="outline-2">
-<h2 id="orge9f24cb"><span class="section-number-2">6.</span> Configuration for backends</h2>
+<div id="outline-container-org9f13aa4" class="outline-2">
+<h2 id="org9f13aa4"><span class="section-number-2">6.</span> Configuration for backends</h2>
 <div class="outline-text-2" id="text-6">
 </div>
-<div id="outline-container-orgb498f62" class="outline-3">
-<h3 id="orgb498f62"><span class="section-number-3">6.1.</span> Defining the config template</h3>
+<div id="outline-container-org08cbddd" class="outline-3">
+<h3 id="org08cbddd"><span class="section-number-3">6.1.</span> Defining the config template</h3>
 <div class="outline-text-3" id="text-6-1">
 <p>
 Here we define what the registry is that hosts our images
@@ -3829,7 +3842,7 @@ the gladiator container uri to be used (<code>%G</code>),
 and the pyprophet legacy container to be used (<code>%P</code>).
 </p>
 
-<pre class="example" id="orge9e1b59">
+<pre class="example" id="orgc1b2695">
 %p.enabled=true
 process {
    container='%G'
@@ -3861,7 +3874,7 @@ And here we write the logic that fills the template
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org7bf1994">(<span class="org-keyword">defvar</span> <span class="org-variable-name">container-property-alist</span>
+<pre class="src src-emacs-lisp" id="org346d736">(<span class="org-keyword">defvar</span> <span class="org-variable-name">container-property-alist</span>
   (<span class="org-keyword">let</span> ((remote-registry registry))
     `((<span class="org-string">"remote"</span>
        (<span class="org-string">"singularity"</span>
@@ -3952,8 +3965,8 @@ https://registry.gitlab.utu.fi/elixirdianf/gladiator-notes/gladiator
 </pre>
 </div>
 </div>
-<div id="outline-container-orgcef7f9b" class="outline-3">
-<h3 id="orgcef7f9b"><span class="section-number-3">6.2.</span> Per backend config files</h3>
+<div id="outline-container-orgc436ccf" class="outline-3">
+<h3 id="orgc436ccf"><span class="section-number-3">6.2.</span> Per backend config files</h3>
 <div class="outline-text-3" id="text-6-2">
 <p>
 So here we fill the templates that we defined in the previous section.
@@ -3966,7 +3979,7 @@ based on the name of the block
 This block is whats common between singularity
 </p>
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org5fcb681">singularity.runOptions = <span class="org-string">'-B $TMPDIR:/tmp'</span>
+<pre class="src src-nextflow" id="org36ea0f7">singularity.runOptions = <span class="org-string">'-B $TMPDIR:/tmp'</span>
 singularity.autoMounts=<span class="org-constant">true</span>
 </pre>
 </div>
@@ -3979,10 +3992,10 @@ On certain machines (reported on Ubuntu 22.04.5 LTS, 6.2.0-26-generic, with podm
 
 <p>
 matplotlib in pyprophet in podman tries to read the home directory.
-which does not exist in the container, which will result in the error described <a href="#orga5f5505">here</a>. 
+which does not exist in the container, which will result in the error described <a href="#org742aed4">here</a>. 
 </p>
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org8671906">process {
+<pre class="src src-nextflow" id="orgb3a9aa6">process {
     withName: <span class="org-string">'pyprophet_.*'</span> {
         containerOptions= <span class="org-string">'--env HOME="$PWD"'</span>
     }
@@ -3992,7 +4005,7 @@ which does not exist in the container, which will result in the error described 
 
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org5766574">nil
+<pre class="src src-nextflow" id="org623d672">nil
 singularity.runOptions = <span class="org-string">'-B $TMPDIR:/tmp'</span>
 singularity.autoMounts=<span class="org-constant">true</span>
 </pre>
@@ -4002,44 +4015,44 @@ singularity.autoMounts=<span class="org-constant">true</span>
 #+end_src
 </p>
 <div class="org-src-container">
-<pre class="src src-nextflow" id="orgb3a67de">&lt;&lt;construct-container-config(<span class="org-string">"singularity"</span>,<span class="org-string">"local"</span>)&gt;&gt;
+<pre class="src src-nextflow" id="orgb5601db">&lt;&lt;construct-container-config(<span class="org-string">"singularity"</span>,<span class="org-string">"local"</span>)&gt;&gt;
 &lt;&lt;singularity-general-options&gt;&gt;
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org7551adc">nil
+<pre class="src src-nextflow" id="orgba8a33e">nil
 singularity.runOptions = <span class="org-string">'-B $TMPDIR:/tmp'</span>
 singularity.autoMounts=<span class="org-constant">true</span>
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org94a1b20">&lt;&lt;construct-container-config(<span class="org-string">"docker"</span>,<span class="org-string">"remote"</span>)&gt;&gt;
+<pre class="src src-nextflow" id="org7ab05f7">&lt;&lt;construct-container-config(<span class="org-string">"docker"</span>,<span class="org-string">"remote"</span>)&gt;&gt;
 &lt;&lt;dockerlike-general-options&gt;&gt;    
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org84ab00c">&lt;&lt;construct-container-config(<span class="org-string">"docker"</span>,<span class="org-string">"local"</span>)&gt;&gt;
+<pre class="src src-nextflow" id="orga85db21">&lt;&lt;construct-container-config(<span class="org-string">"docker"</span>,<span class="org-string">"local"</span>)&gt;&gt;
 &lt;&lt;dockerlike-general-options&gt;&gt;
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org04be1fd">&lt;&lt;construct-container-config(<span class="org-string">"podman"</span>,<span class="org-string">"remote"</span>)&gt;&gt;
+<pre class="src src-nextflow" id="org5c11b79">&lt;&lt;construct-container-config(<span class="org-string">"podman"</span>,<span class="org-string">"remote"</span>)&gt;&gt;
 &lt;&lt;dockerlike-general-options&gt;&gt;
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org49c7d58">&lt;&lt;construct-container-config(<span class="org-string">"podman"</span>,<span class="org-string">"local"</span>)&gt;&gt;
+<pre class="src src-nextflow" id="orgb262490">&lt;&lt;construct-container-config(<span class="org-string">"podman"</span>,<span class="org-string">"local"</span>)&gt;&gt;
 &lt;&lt;dockerlike-general-options&gt;&gt;
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nextflow" id="org6ee216c">process {
+<pre class="src src-nextflow" id="orgee60c56">process {
    beforeScript=<span class="org-string">"source &lt;(guix time-machine -C </span><span class="org-variable-name">$projectDir</span><span class="org-string">/ci/guix/gladiator-guix-channels.scm -- shell --search-paths -m </span><span class="org-variable-name">$projectDir</span><span class="org-string">/ci/guix/manifests/gladiator.scm -m </span><span class="org-variable-name">$projectDir</span><span class="org-string">/ci/guix/manifests/nextflow-trace.scm)"</span>
    withName: <span class="org-string">"DeepDIA.*"</span> {
       beforeScript=<span class="org-string">"source &lt;(guix time-machine -C </span><span class="org-variable-name">$projectDir</span><span class="org-string">/ci/guix/deepdia-channels.scm -- shell --search-paths -m </span><span class="org-variable-name">$projectDir</span><span class="org-string">/ci/guix/manifests/deepdia.scm -m </span><span class="org-variable-name">$projectDir</span><span class="org-string">/ci/guix/manifests/nextflow-trace.scm)"</span>
@@ -4070,12 +4083,12 @@ singularity.autoMounts=<span class="org-constant">true</span>
 </div>
 </div>
 </div>
-<div id="outline-container-org4a3b110" class="outline-3">
-<h3 id="org4a3b110"><span class="section-number-3">6.3.</span> Backend Specific Issues</h3>
+<div id="outline-container-org16a0cd5" class="outline-3">
+<h3 id="org16a0cd5"><span class="section-number-3">6.3.</span> Backend Specific Issues</h3>
 <div class="outline-text-3" id="text-6-3">
 </div>
-<div id="outline-container-org653dcd5" class="outline-4">
-<h4 id="org653dcd5"><span class="section-number-4">6.3.1.</span> Podman specific Issues</h4>
+<div id="outline-container-org2f475ed" class="outline-4">
+<h4 id="org2f475ed"><span class="section-number-4">6.3.1.</span> Podman specific Issues</h4>
 <div class="outline-text-4" id="text-6-3-1">
 <p>
 If you get the error in any process
@@ -4118,8 +4131,8 @@ you will want to add to your nextflow config file:
 </div>
 
 
-<div id="outline-container-org9a953ad" class="outline-2">
-<h2 id="org9a953ad"><span class="section-number-2">7.</span> SDRF support</h2>
+<div id="outline-container-orgc6af4b0" class="outline-2">
+<h2 id="orgc6af4b0"><span class="section-number-2">7.</span> SDRF support</h2>
 <div class="outline-text-2" id="text-7">
 <p>
 You can supply a path to an sdrf file with <code>--sdrf=filename</code>
@@ -4187,8 +4200,8 @@ Good examples is <code>PXD003977</code>
 Fields we handle:
 </p>
 </div>
-<div id="outline-container-org45675c5" class="outline-3">
-<h3 id="org45675c5"><span class="section-number-3">7.1.</span> <code>comment[file uri]</code></h3>
+<div id="outline-container-orgbc31edb" class="outline-3">
+<h3 id="orgbc31edb"><span class="section-number-3">7.1.</span> <code>comment[file uri]</code></h3>
 <div class="outline-text-3" id="text-7-1">
 <p>
 We can handle remote and local files in <code>comment[associated file uri]</code>
@@ -4239,8 +4252,8 @@ This can be used i.l.o <code>params.diafiles</code>
 </div>
 </div>
 
-<div id="outline-container-org53bd64f" class="outline-3">
-<h3 id="org53bd64f"><span class="section-number-3">7.2.</span> <code>comment[precursor mass tolerance]</code>, <code>comment[fragment mass tolerance]</code></h3>
+<div id="outline-container-orge815c9b" class="outline-3">
+<h3 id="orge815c9b"><span class="section-number-3">7.2.</span> <code>comment[precursor mass tolerance]</code>, <code>comment[fragment mass tolerance]</code></h3>
 <div class="outline-text-3" id="text-7-2">
 <p>
 We require (for now)
@@ -4290,8 +4303,8 @@ precursor mass tolerance to be ppm, and to be the same for all the samples.
 
 
 
-<div id="outline-container-org177c607" class="outline-3">
-<h3 id="org177c607"><span class="section-number-3">7.3.</span> Utility functions</h3>
+<div id="outline-container-org58a2df1" class="outline-3">
+<h3 id="org58a2df1"><span class="section-number-3">7.3.</span> Utility functions</h3>
 <div class="outline-text-3" id="text-7-3">
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-keyword">def</span> <span class="org-function-name">isallnull</span>(value)
@@ -4307,8 +4320,8 @@ precursor mass tolerance to be ppm, and to be the same for all the samples.
 </div>
 </div>
 
-<div id="outline-container-org4e168c8" class="outline-3">
-<h3 id="org4e168c8"><span class="section-number-3">7.4.</span> Testing</h3>
+<div id="outline-container-orgb014c06" class="outline-3">
+<h3 id="orgb014c06"><span class="section-number-3">7.4.</span> Testing</h3>
 <div class="outline-text-3" id="text-7-4">
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-keyword">print</span>(readSDRF(<span class="org-string">"annotated-projects/PXD003977/PXD003977.sdrf.tsv"</span>,params))
@@ -4316,8 +4329,8 @@ precursor mass tolerance to be ppm, and to be the same for all the samples.
 </div>
 </div>
 </div>
-<div id="outline-container-org3c9dc93" class="outline-3">
-<h3 id="org3c9dc93"><span class="section-number-3">7.5.</span> Updating params</h3>
+<div id="outline-container-orgc34bf0e" class="outline-3">
+<h3 id="orgc34bf0e"><span class="section-number-3">7.5.</span> Updating params</h3>
 <div class="outline-text-3" id="text-7-5">
 <div class="org-src-container">
 <pre class="src src-nextflow"><span class="org-keyword">if</span> (params.sdrf){
@@ -4329,12 +4342,12 @@ precursor mass tolerance to be ppm, and to be the same for all the samples.
 </div>
 </div>
 
-<div id="outline-container-org540678a" class="outline-2">
-<h2 id="org540678a"><span class="section-number-2">8.</span> Putting it together</h2>
+<div id="outline-container-orgd916f8d" class="outline-2">
+<h2 id="orgd916f8d"><span class="section-number-2">8.</span> Putting it together</h2>
 <div class="outline-text-2" id="text-8">
 </div>
-<div id="outline-container-org4748be6" class="outline-3">
-<h3 id="org4748be6"><span class="section-number-3">8.1.</span> gwl</h3>
+<div id="outline-container-orgf327d9b" class="outline-3">
+<h3 id="orgf327d9b"><span class="section-number-3">8.1.</span> gwl</h3>
 <div class="outline-text-3" id="text-8-1">
 <div class="org-src-container">
 <pre class="src src-scheme">(make-workflow
@@ -4348,8 +4361,8 @@ precursor mass tolerance to be ppm, and to be the same for all the samples.
 </div>
 </div>
 </div>
-<div id="outline-container-orgd6f9edc" class="outline-3">
-<h3 id="orgd6f9edc"><span class="section-number-3">8.2.</span> nf</h3>
+<div id="outline-container-org07f2351" class="outline-3">
+<h3 id="org07f2351"><span class="section-number-3">8.2.</span> nf</h3>
 <div class="outline-text-3" id="text-8-2">
 <p>
 according to <code>nextflow/docs/process.rst</code>,
@@ -4401,18 +4414,18 @@ params.outdir = <span class="org-string">"./results"</span>
 </div>
 </div>
 
-<div id="outline-container-org6607104" class="outline-2">
-<h2 id="org6607104"><span class="section-number-2">9.</span> Troubleshooting</h2>
+<div id="outline-container-org763ebca" class="outline-2">
+<h2 id="org763ebca"><span class="section-number-2">9.</span> Troubleshooting</h2>
 <div class="outline-text-2" id="text-9">
 <ul class="org-ul">
-<li><a href="#org653dcd5">Podman specific Issues</a></li>
-<li><a href="#orga5f5505">KeyError: 'HOME' in <code>pyprophet_subsample</code></a></li>
+<li><a href="#org2f475ed">Podman specific Issues</a></li>
+<li><a href="#org742aed4">KeyError: 'HOME' in <code>pyprophet_subsample</code></a></li>
 </ul>
 </div>
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="date">Created: 2025-07-03 Thu 17:04</p>
+<p class="date">Created: 2025-07-24 Thu 16:21</p>
 <p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>

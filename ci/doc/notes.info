@@ -27,6 +27,7 @@ Quick Start
 
 Tutorial
 
+* Requirements::
 * Cloning the directory::
 * Example Data::
 * Convert RAW to mzml::
@@ -39,6 +40,7 @@ About this document
 * Trouble Shooting::
 * Tangling::
 * Building the containers::
+* Making distribution tarball::
 * License::
 
 Preprocessing Data
@@ -153,6 +155,7 @@ File: notes.info,  Node: Tutorial,  Next: Results,  Up: Quick Start
 
 * Menu:
 
+* Requirements::
 * Cloning the directory::
 * Example Data::
 * Convert RAW to mzml::
@@ -160,14 +163,29 @@ File: notes.info,  Node: Tutorial,  Next: Results,  Up: Quick Start
 * Calling gladiator::
 
 
-File: notes.info,  Node: Cloning the directory,  Next: Example Data,  Up: Tutorial
+File: notes.info,  Node: Requirements,  Next: Cloning the directory,  Up: Tutorial
 
-1.1.1 Cloning the directory
+1.1.1 Requirements
+------------------
+
+This tutorial will require you to have on your system:
+   • make (tested with Gnu make 4.4.1)
+   • emacs 27 or greater
+   • coreutils (i.e.  ls,cp, mkdir)
+   • podman or another container solution, such as docker, apptainer
+     (formerly known as singularity), or guix.
+   • git
+   • java 17, 18 or 19.
+
+
+File: notes.info,  Node: Cloning the directory,  Next: Example Data,  Prev: Requirements,  Up: Tutorial
+
+1.1.2 Cloning the directory
 ---------------------------
 
 If you are using the development version of this, you will wnat to clone
-this directory, and ’tangle’ (create the scripts).  This will require
-’make’, emacs 27 or greater, and the coreutils
+this directory, and ’tangle’ (create the scripts).
+
      git clone https://github.com/elolab/gladiator-nf
      cd gladiator-nf
      yes '//' | make tangle
@@ -175,7 +193,7 @@ this directory, and ’tangle’ (create the scripts).  This will require
 
 File: notes.info,  Node: Example Data,  Next: Convert RAW to mzml,  Prev: Cloning the directory,  Up: Tutorial
 
-1.1.2 Example Data
+1.1.3 Example Data
 ------------------
 
 For this example we will use MSV000090837 from , just
@@ -192,7 +210,7 @@ start from the raw for educational purposes.  Lets say Download the data
 
 File: notes.info,  Node: Convert RAW to mzml,  Next: Setting up your experiments config file,  Prev: Example Data,  Up: Tutorial
 
-1.1.3 Convert RAW to mzml
+1.1.4 Convert RAW to mzml
 -------------------------
 
 We will want to convert the raw files to mzml, so we will want to run
@@ -207,7 +225,7 @@ the following command in the container
 
 File: notes.info,  Node: Setting up your experiments config file,  Next: Calling gladiator,  Prev: Convert RAW to mzml,  Up: Tutorial
 
-1.1.4 Setting up your experiments config file
+1.1.5 Setting up your experiments config file
 ---------------------------------------------
 
 Create a config file with the following contents, adjusting as needed.
@@ -233,7 +251,7 @@ Lets name it ‘myconfig.nf’
 
 File: notes.info,  Node: Calling gladiator,  Prev: Setting up your experiments config file,  Up: Tutorial
 
-1.1.5 Calling gladiator
+1.1.6 Calling gladiator
 -----------------------
 
 Note that you will have to quote wildcards, because nextflow’s java
@@ -298,6 +316,7 @@ about org-mode, see <https://orgmode.org/>.
 * Trouble Shooting::
 * Tangling::
 * Building the containers::
+* Making distribution tarball::
 * License::
 
 
@@ -337,27 +356,26 @@ have emacs and gnu make installed, and then run
      make SHELL=guix tangle
 
    The following is a list of all files this document tangles into
-gwl-gladiator.scm
 gladiator.nf
+gwl-gladiator.scm
 diaumpireconfig.txt
 comet_template.txt
 xtandem-template.xml
-tpp-5.2-fix.diff
 irt.txt
-pyprophet-legacy-requirements.txt
-pyprophet-legacy-standalone.dockerfile
-install-R-packages.R
 config/singularity.nf
 config/singularity-local.nf
+config/singularity-guix-local.nf
 config/docker.nf
 config/docker-local.nf
 config/podman.nf
 config/podman-local.nf
+config/guix.nf
 nextflow.config
+ci/guix/manifests/nextflow-trace.scm
 nextflow.tags
 
 
-File: notes.info,  Node: Building the containers,  Next: License,  Prev: Tangling,  Up: About this document
+File: notes.info,  Node: Building the containers,  Next: Making distribution tarball,  Prev: Tangling,  Up: About this document
 
 2.4 Building the containers
 ===========================
@@ -378,9 +396,21 @@ can specify those with make variable ‘GUIX_PACK_FLAGS’.  e.g.
      make SHELL=guix 'GUIX_PACK_FLAGS=--with-patch=tpp=/path/to/my/tpp/patchfile.patch' singularity-containers
 
 
-File: notes.info,  Node: License,  Prev: Building the containers,  Up: About this document
+File: notes.info,  Node: Making distribution tarball,  Next: License,  Prev: Building the containers,  Up: About this document
 
-2.5 License
+2.5 Making distribution tarball
+===============================
+
+You can make a distribution tarball with the tangled files and
+documentaion with
+     make dist
+   or if you have guix on your system
+     make SHELL=guix dist
+
+
+File: notes.info,  Node: License,  Prev: Making distribution tarball,  Up: About this document
+
+2.6 License
 ===========
 
 This program is free software, under GPL3 or later.
@@ -1844,21 +1874,6 @@ point to it with this.
 69         0.7890625
    Why is this much smaller than comet?
 
-   We patch tpp to accept comet 2019015
-
-     diff -Naur release_5-2-0/extern/Makefile release_5-2-0_mod/extern/Makefile
-     --- release_5-2-0/extern/Makefile        2020-07-29 23:43:45.483620066 +0300
-     +++ release_5-2-0_mod/extern/Makefile        2020-07-29 23:47:41.796860274 +0300
-     @@ -339,7 +339,7 @@
-      #
-      # http://comet-ms.sourceforge.net/
-      #
-     -COMET_VER := 2018014
-     +COMET_VER := 2019015
-      COMET_ZIP := $(TPP_EXT)/comet_source_$(COMET_VER).zip
-      COMET_SRC := $(BUILD_SRC)/comet_source_$(COMET_VER)
-      .PHONY: comet comet-source comet-clean
-
 
 File: notes.info,  Node: Joining Comet & Xtandem,  Next: Building Specral Library,  Prev: Xtandem,  Up: Building {Pseudo-}Spectral library from (Pseudo)-Spectra [5/5]
 
@@ -2318,11 +2333,12 @@ a glob/path of your customly generated library.  This should be in a
 format that openms’s TargetedFileConverte understand, so MaxQuant or
 OpenMS works.
 
-   To check, one can manually inspect whether ‘TargetedFileConverter
---in yourlibrary --out speclib.tsv’ looks proper.  Pay special attention
-to the modified peptides field, if this is being parsed correctly.  One
-bug observed by this developer is that this field is repeated after not
-being parsed correctly.  See also
+   To check, one can manually inspect (using the ‘gladiator-guix’
+container), whether ‘TargetedFileConverter -in yourlibrary -out
+speclib.tsv’ looks proper.  Pay special attention to the modified
+peptides field, if this is being parsed correctly.  One bug observed by
+this developer is that this field is repeated after not being parsed
+correctly.  See also
 <https://abibuilder.cs.uni-tuebingen.de/archive/openms/Documentation/release/2.7.0/html/classOpenMS_1_1TransitionTSVFile.html>
 
      // if params.deconvolution method is set
@@ -3557,87 +3573,89 @@ File: notes.info,  Node: Concept Index,  Prev: Variable Index,  Up: Top
 
 Tag Table:
 Node: Top76
-Node: Quick Start2777
-Node: Tutorial3007
-Node: Cloning the directory3248
-Node: Example Data3693
-Node: Convert RAW to mzml4508
-Node: Setting up your experiments config file5258
-Node: Calling gladiator6385
-Node: Results7214
-Node: About this document8720
-Node: Writing Style9279
-Node: Trouble Shooting9738
-Node: Tangling10149
-Node: Building the containers10973
-Node: License11892
-Node: Overview of this pipeline12822
-Node: Preprocessing Data13031
-Node: Picking Peaks13624
-Node: Converting Dia Raw with Msconvert13984
-Node: Analysis [4/4]14388
-Node: Headers14822
-Node: building database15398
-Node: Combining Fasta Files15713
-Node: Adding Decoys17876
-Node: Input DIA files19082
-Node: Creating Swath window files19434
-Node: Branching if user supplied windows20116
-Node: Making truncated-swath-windows and swath-windows from user-supplied swath-windows20903
-Node: Inferring Windows from mzml files22048
-Node: Making the non-overlapping swath-windows26033
-Node: Library Generation27352
-Node: Building {Pseudo-}Spectral library from (Pseudo)-Spectra [5/5]30079
-Node: Using DDA Data31747
-Node: Creating Pseudospectra with DIAumpire32189
-Ref: Problems you might encounter during this step32701
-Ref: Out of Memory in Dia-umpire32758
-Ref: MzmlToMzxml processing error33370
-Ref: Steps that are run33812
-Node: Creating Pseudospectra with diams2pep40145
-Node: Choosing the MS Sequence database search engine Comet/Xtandem43884
-Node: Comet45413
-Node: Xtandem59434
-Node: Joining Comet & Xtandem77418
-Node: Building Specral Library79158
-Ref: Mayu79544
-Ref: Spectrast83481
-Ref: Converting traml into spectrast friendly format84580
-Ref: Running Spectrast86515
-Ref: nf-param-use_irt88384
-Ref: nf-param-irt_traml-file88384
-Node: Building Spectral library from Machine learning90938
-Node: Supplying a custom spectral library97028
-Node: combining various spectral libraries into one98331
-Node: OpenSwathDecoys99093
-Node: Building Dia Matrix101092
-Node: OpenSwathWorkflow101425
-Node: What is the relation between irttxt and iRTAssayLibraryTraML106044
-Node: Pyprophet109809
-Node: Legacy Pyprophet110394
-Node: nonlegacy prypophet112464
-Ref: KeyError 'HOME' in pyprophet_subsample118368
-Node: Choosing between legacy and nonlegacy pyprophet119103
-Node: feature-alignment119535
-Node: Swath2stats121323
-Node: Dependencies124410
-Node: Configuration for backends124897
-Node: Defining the config template125165
-Node: Per backend config files129626
-Node: Backend Specific Issues133225
-Node: Podman specific Issues133437
-Node: SDRF support134177
-Node: comment[file uri]136617
-Node: comment[precursor mass tolerance] comment[fragment mass tolerance]138801
-Node: Utility functions141521
-Node: Testing141911
-Node: Updating params142121
-Node: Putting it together142329
-Node: gwl142502
-Node: nf142724
-Node: Troubleshooting143927
-Node: Variable Index144162
-Node: Concept Index145490
+Node: Quick Start2826
+Node: Tutorial3056
+Node: Requirements3314
+Node: Cloning the directory3756
+Node: Example Data4153
+Node: Convert RAW to mzml4968
+Node: Setting up your experiments config file5718
+Node: Calling gladiator6845
+Node: Results7674
+Node: About this document9180
+Node: Writing Style9771
+Node: Trouble Shooting10230
+Node: Tangling10641
+Node: Building the containers11439
+Node: Making distribution tarball12378
+Node: License12734
+Node: Overview of this pipeline13668
+Node: Preprocessing Data13877
+Node: Picking Peaks14470
+Node: Converting Dia Raw with Msconvert14830
+Node: Analysis [4/4]15234
+Node: Headers15668
+Node: building database16244
+Node: Combining Fasta Files16559
+Node: Adding Decoys18722
+Node: Input DIA files19928
+Node: Creating Swath window files20280
+Node: Branching if user supplied windows20962
+Node: Making truncated-swath-windows and swath-windows from user-supplied swath-windows21749
+Node: Inferring Windows from mzml files22894
+Node: Making the non-overlapping swath-windows26879
+Node: Library Generation28198
+Node: Building {Pseudo-}Spectral library from (Pseudo)-Spectra [5/5]30925
+Node: Using DDA Data32593
+Node: Creating Pseudospectra with DIAumpire33035
+Ref: Problems you might encounter during this step33547
+Ref: Out of Memory in Dia-umpire33604
+Ref: MzmlToMzxml processing error34216
+Ref: Steps that are run34658
+Node: Creating Pseudospectra with diams2pep40991
+Node: Choosing the MS Sequence database search engine Comet/Xtandem44730
+Node: Comet46259
+Node: Xtandem60280
+Node: Joining Comet & Xtandem77675
+Node: Building Specral Library79415
+Ref: Mayu79801
+Ref: Spectrast83738
+Ref: Converting traml into spectrast friendly format84837
+Ref: Running Spectrast86772
+Ref: nf-param-use_irt88641
+Ref: nf-param-irt_traml-file88641
+Node: Building Spectral library from Machine learning91195
+Node: Supplying a custom spectral library97285
+Node: combining various spectral libraries into one98630
+Node: OpenSwathDecoys99392
+Node: Building Dia Matrix101391
+Node: OpenSwathWorkflow101724
+Node: What is the relation between irttxt and iRTAssayLibraryTraML106343
+Node: Pyprophet110108
+Node: Legacy Pyprophet110693
+Node: nonlegacy prypophet112763
+Ref: KeyError 'HOME' in pyprophet_subsample118667
+Node: Choosing between legacy and nonlegacy pyprophet119402
+Node: feature-alignment119834
+Node: Swath2stats121622
+Node: Dependencies124709
+Node: Configuration for backends125196
+Node: Defining the config template125464
+Node: Per backend config files129925
+Node: Backend Specific Issues133524
+Node: Podman specific Issues133736
+Node: SDRF support134476
+Node: comment[file uri]136916
+Node: comment[precursor mass tolerance] comment[fragment mass tolerance]139100
+Node: Utility functions141820
+Node: Testing142210
+Node: Updating params142420
+Node: Putting it together142628
+Node: gwl142801
+Node: nf143023
+Node: Troubleshooting144226
+Node: Variable Index144461
+Node: Concept Index145789
 
 End Tag Table
 
