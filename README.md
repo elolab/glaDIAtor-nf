@@ -4,7 +4,7 @@
 ## Description
 
 glaDIAtor-nf is a workflow for analyzing mass spectrometry data acquired using *data independent acquisition* (DIA) mode.
-You can read how to get started [here](https://htmlpreview.github.io/?https://github.com/elolab/gladiator-nf/blob/master/ci/doc/notes.html#QUICK_START)
+You can read how to get started [here](https://elolab.github.io/glaDIAtor-nf/)
 <!-- or, you know, [here](ci/doc/notes.html#QUICK_START) if you are viewing this, and following links to html files renders them.   -->
 
 This document describes usage of the workflow, for technical documentation see [this program's literate description](./ci/doc/notes.html#QUICK_START), also available as [pdf](ci/doc/notes.pdf) or as its source [org-file](./notes.org).
