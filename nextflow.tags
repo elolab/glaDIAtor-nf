@@ -1,0 +1,15 @@
+--
+  -- The above line is empty so that org-mode doesnt this line
+  -- This is an etags file for nextflow
+  -- this matches a process definition
+/ *process +\([^{ ]+\)/\1/
+  -- this matches outputting into a channel
+/ *\(file\|env\|path\|val\) +.*into *\([^ ]+\)/\2/
+  -- this matches an input or output that uses the same name as the variable in the process body
+/ *\(file\|env\|path\|val\) +\([A-Za-z0-9_.-]+\)$/\2/
+  -- this matches assignment with = 
+/ *\([A-Za-z0-9_.-]+\) *=[^=]/\1/
+  -- this matches assignment with set({channel_name})
+/.*set{\([^}\]+\)}/\1/
+  -- this matches def function
+/ *def *\([A-Za-z0-9_.-]+\)/\1/
