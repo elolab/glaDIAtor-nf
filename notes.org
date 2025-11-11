@@ -2911,6 +2911,7 @@ you can try changing =precursor_mass_tolerance= and =fragment_mass_tolerance=
 earlier upstream.
 
 Additionally you can try setting ==--use_irt= to false, if you are getting a zero-division errors because the input tsvs are empty.
+If this steps suggests disabling realignment you can use the =--no_realignment=true= flag
 
 #+begin_src nextflow
 process feature_alignment
@@ -2921,12 +2922,19 @@ process feature_alignment
     output:
     file outfile into feature_alignment_ch
     script:
-    outfile = "DIA-analysis-results.csv"
-    
+    outfile = "DIA-analysis-results.csv" 
     if (params.use_irt) {
         realign_method = "diRT" 
     } else {
         realign_method = "linear"
+    }
+
+    if(params.no_realignment)
+    {
+	realignment_string = ""
+    } else
+    {
+       realignment_string = "--realign_method $realign_method "
     }
     
     "feature_alignment.py " +
@@ -2940,6 +2948,10 @@ process feature_alignment
 }
 #+end_src
 
+<<nf-param-tric_target_fdr>>
+#+VINDEX: params.tric_target_fdr
+<<nf-param-no_realignment>>
+#+VINDEX: params.no_realignment
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // Target FDR used in TRIC alignment in dirT mode [default 0.01]
 // This was "trig_target_pvalue" in the original python gladiator implementation
@@ -2947,6 +2959,9 @@ params.tric_target_fdr=0.01
 // Maximum FDR for TRIC alignment in dirT mode [default 0.05]
 // This was "trig_max_pvalue" in the original python gladiator implementation
 params.tric_max_fdr=0.05
+// Set this to true if feature_alignment suggests removing --realign_method 
+params.no_realignment = false
+
 #+end_src
 
 *** Swath2stats
