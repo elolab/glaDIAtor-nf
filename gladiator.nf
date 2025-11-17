@@ -245,7 +245,7 @@ if (params.deepdia_min_detectability != null){
 }
 deepdia_irt_model = Channel.fromPath(params.deepdia_irt_model)
 deepdia_speclib = Channel.create()
-deepdia_speclib.set{speclib_tsv_for_decoys}
+   deepdia_speclib.set{speclib_tsv_for_decoys}
 }  // end of deepdia guard
 if (libgen_method_is_enabled("custom", params)){
     Channel.fromPath(params.speclib).set{speclib_tsv_for_decoys}
@@ -1232,11 +1232,18 @@ process feature_alignment
     file outfile into feature_alignment_ch
     script:
     outfile = "DIA-analysis-results.csv"
-    
     if (params.use_irt) {
         realign_method = "diRT" 
     } else {
         realign_method = "linear"
+    }
+
+    if(params.no_realignment)
+    {
+	realignment_string = ""
+    } else
+    {
+       realignment_string = "--realign_method $realign_method "
     }
     
     "feature_alignment.py " +
@@ -1245,7 +1252,8 @@ process feature_alignment
         "--target_fdr $params.tric_target_fdr " +
         "--max_fdr_quality $params.tric_max_fdr " +
         "--in $dscore_csvs " +         // will this break on filenames with spaces
-        " --realign_method $realign_method " + 
+        realignment_string +
+	params.feature_alignment_args + " "
         "--out $outfile"
 }
 // feature-alignment:1 ends here
