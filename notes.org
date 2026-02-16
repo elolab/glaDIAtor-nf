@@ -2944,7 +2944,7 @@ process feature_alignment
         "--max_fdr_quality $params.tric_max_fdr " +
         "--in $dscore_csvs " +         // will this break on filenames with spaces
         realignment_string +
-	params.feature_alignment_args + " "
+        params.feature_alignment_args + " " +
         "--out $outfile"
 }
 #+end_src
