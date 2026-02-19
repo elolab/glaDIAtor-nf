@@ -1,0 +1,21 @@
+precursor_mass_lower = -50
+precursor_mass_upper = 50
+precursor_mass_units = 1
+fragment_mass_tolerance = 20
+fragment_mass_units = 1
+search_enzyme_name = Trypsin
+search_enzyme_cutafter = KR
+search_enzyme_butnotafter = P
+num_enzyme_termini = 2
+allow_multiple_variable_mods_on_residue = 0
+max_variable_mods_per_peptide = 3
+add_C_cysteine = 57.021464
+add_G_glycine = 0.0
+add_P_proline = 0.0
+decoy_prefix = DECOY_
+# DIA mode settings
+data_type = 1
+# Typical variable modifications
+variable_mod_01 = 15.994915 M
+variable_mod_02 = 42.010565 [N-term]
+database_name = /data/LauraEloGroup/glaDIAtor-nf_optim/Tutorial/MSFragger/210820_Human_Ref_Swiss_Can_Decoyed.fasta
