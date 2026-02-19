@@ -14,111 +14,117 @@
 # To contribute improvements to CI/CD templates, please follow the Development guide at:
 # https://docs.gitlab.com/ee/development/cicd/templates.html
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
-variables:
-  GUIX_BUILD_OPTIONS: "--fallback" 
-  MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve=^GUIX_BUILD_OPTIONS --preserve=^SSL_ -- make SHELL=guix
-  
-default:
-  image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.4
-  timeout: 2h
-  cache:
-    key:
-      files:
-        - guix/channels.scm
-        - guix/ci/manifests/emacs.scm
-    paths:
-      - archive/
-  before_script:
-    - guix-daemon-helper --disable-chroot 
-    - test -e archive/signing-key.pub && cat archive/signing-key.pub | guix archive --authorize  || true 
-    - test -e archive/archive.nar && cat archive/archive.nar | guix archive --import  || true
-    - set -o pipefail # make the exit code of a pipe be the first non-zero value
-  # singularsyntax/guix-bootstrap
-stages:          # List of stages for jobs, and their order of executionn
+# variables:
+#   GUIX_BUILD_OPTIONS: "--fallback" 
+#   MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve=^GUIX_BUILD_OPTIONS --preserve=^SSL_ -- make SHELL=guix
+
+# default:
+#   image: $CI_REGISTRY_IMAGE/guix-runner:standalonev1.4
+#   timeout: 2h
+#   cache:
+#     key:
+#       files:
+#         - guix/channels.scm
+#         - guix/ci/manifests/emacs.scm
+#     paths:
+#       - archive/
+#   before_script:
+#     - guix-daemon-helper --disable-chroot 
+#     - test -e archive/signing-key.pub && cat archive/signing-key.pub | guix archive --authorize  || true 
+#     - test -e archive/archive.nar && cat archive/archive.nar | guix archive --import  || true
+#     - set -o pipefail # make the exit code of a pipe be the first non-zero value
+#     # singularsyntax/guix-bootstrap
+
+stages:
   - setup-cache
   - tangle
   - build
+  - "E2E tests"
 
-show-env:
-  stage: .pre
-  script:
-    - ls -lta /var/run/
-    - $MAKECMD environment
-tangle-files:
-  stage: tangle
-  script:
-    - $MAKECMD tangle
-  artifacts:
-    untracked: true
-    name: template-files
-    exclude:
-      - archive/*
+include: 'e2e-tests/e2e-tests-ci.yml'
+
+# show-env:
+#   stage: .pre
+#   script:
+#     - ls -lta /var/run/
+#     - $MAKECMD environment
+
+# tangle-files:
+#   stage: tangle
+#   script:
+#     - $MAKECMD tangle
+#   artifacts:
+#     untracked: true
+#     name: template-files
+#     exclude:
+#       - archive/*
   
-build-cache:
-  stage: setup-cache
-  timeout:  2h
-  allow_failure: true
-  script:
-    - mkdir -p archive
-    - guix archive --generate-key
-    - cp /etc/guix/signing-key.pub archive/
-    - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/emacs.scm ci/guix/manifests/*doc*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
+# build-cache:
+#   stage: setup-cache
+#   timeout:  2h
+#   allow_failure: true
+#   script:
+#     - mkdir -p archive
+#     - guix archive --generate-key
+#     - cp /etc/guix/signing-key.pub archive/
+#     - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/emacs.scm ci/guix/manifests/*doc*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
     
-build-html:       # This job runs in the build stage, which runs first.
-  stage: build
-  artifacts:
-    paths:
-    - notes.html
-  script:
-    - $MAKECMD notes.html
+# build-html:       # This job runs in the build stage, which runs first.
+#   stage: build
+#   artifacts:
+#     paths:
+#     - notes.html
+#   script:
+#     - $MAKECMD notes.html
 
-build-pdf:
-  stage: build
-  timeout: 4h
-  artifacts:
-    paths:
-      - notes.pdf
-  script:
-    - $MAKECMD notes.pdf     
+# build-pdf:
+#   stage: build
+#   timeout: 4h
+#   artifacts:
+#     paths:
+#       - notes.pdf
+#   script:
+#     - $MAKECMD notes.pdf     
 
-build-pyprophet-nonlegacy-container:
-  stage: build
-  timeout: 48h
-  artifacts:
-    when: always
-    paths:
-      - containers/log.txt
-  script:
-    - mkdir -p containers
-    - echo $CI_JOB_TIMEOUT
-    - free 
-    - timeout 47h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE CONTAINER_TAG=$CI_COMMIT_SHORT_SHA docker-containers-push 2>&1 |   tee containers/log.txt | col -b 
+# build-pyprophet-nonlegacy-container:
+#   stage: build
+#   timeout: 48h
+#   artifacts:
+#     when: always
+#     paths:
+#       - containers/log.txt
+#   script:
+#     - mkdir -p containers
+#     - echo $CI_JOB_TIMEOUT
+#     - free 
+#     - timeout 47h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE CONTAINER_TAG=$CI_COMMIT_SHORT_SHA docker-containers-push 2>&1 |   tee containers/log.txt | col -b 
 
-build-pyprophet-container:
-  stage: build
-  timeout: 48h
-  artifacts:
-    when: always
-    paths:
-      - containers/log.txt
-  script:
-    - mkdir -p containers
-    - echo $CI_JOB_TIMEOUT
-    - free 
-    - timeout 47h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE CONTAINER_TAG=$CI_COMMIT_SHORT_SHA docker-containers-push 2>&1 |   tee containers/log.txt | col -b 
-build-main-container:
-  stage: build
-  timeout: 6h
-  artifacts:
-    when: always
-    paths:
-      - containers/log.txt
-  script:
-    # col --no-backspaces replaces ansi escape-codes ^M with the last output
-    - mkdir -p containers
-    # because gitlab creates the cache _before_ git cloning, the tangled files are older than the source; ideally you'd just touch $TANGLED_FILES but then
-    # you'd require git in your path
-    # so here we just pretend notes.org is very old
-    # so that its outputs are always newer than itself.
-    - touch -t 197001010000 notes.org
-    - timeout 5.5h $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" CONTAINER_TAG=$CI_COMMIT_SHORT_SHA DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  tee containers/log.txt | sed 's/.*\x1b\[[0-9;]*[MK]//g' 
+# build-pyprophet-container:
+#   stage: build
+#   timeout: 48h
+#   artifacts:
+#     when: always
+#     paths:
+#       - containers/log.txt
+#   script:
+#     - mkdir -p containers
+#     - echo $CI_JOB_TIMEOUT
+#     - free 
+#     - timeout 47h  $MAKECMD DOCKER_EXECUTABLE=docker GUIX_PACK_FLAGS="--verbosity=1 --cores=1" CONTAINER_NAMES=pyprophet-legacy DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE CONTAINER_TAG=$CI_COMMIT_SHORT_SHA docker-containers-push 2>&1 |   tee containers/log.txt | col -b 
+
+# build-main-container:
+#   stage: build
+#   timeout: 6h
+#   artifacts:
+#     when: always
+#     paths:
+#       - containers/log.txt
+#   script:
+#     # col --no-backspaces replaces ansi escape-codes ^M with the last output
+#     - mkdir -p containers
+#     # because gitlab creates the cache _before_ git cloning, the tangled files are older than the source; ideally you'd just touch $TANGLED_FILES but then
+#     # you'd require git in your path
+#     # so here we just pretend notes.org is very old
+#     # so that its outputs are always newer than itself.
+#     - touch -t 197001010000 notes.org
+#     - timeout 5.5h $MAKECMD DOCKER_EXECUTABLE=docker CONTAINER_NAMES=gladiator DOCKER_LOGIN_FLAGS="-u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY" CONTAINER_TAG=$CI_COMMIT_SHORT_SHA DOCKER_REGISTRY_DIR=$CI_REGISTRY_IMAGE docker-containers-push 2>&1 |  tee containers/log.txt | sed 's/.*\x1b\[[0-9;]*[MK]//g' 

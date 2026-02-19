@@ -1,0 +1,9 @@
+{
+    "search.exclude": {
+        "**/.idea": true,
+        "**/.nextflow": true,
+        "**/.venv": true,
+        "doc/dist": true
+    },
+    "search.useIgnoreFiles": false
+}

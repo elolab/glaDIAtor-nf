@@ -1,0 +1,8 @@
+/.cache
+/.nextflow
+/.nextflow.log*
+/config
+/*.dot
+/results
+/timeline.html
+/work

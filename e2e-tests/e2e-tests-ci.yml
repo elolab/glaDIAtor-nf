@@ -1,0 +1,40 @@
+# Requires "E2E tests" stage to be available
+
+"Build NextFlow image":
+  stage: "E2E tests"
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
+    - docker build -f e2e-tests/e2e-tests.Dockerfile . -t "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+    - docker push "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  image: "docker:29"
+  tags:
+    - docker
+  needs: []
+
+"Quick E2E test":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh singularity
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
+     - singularity
+
+"Quick E2E test (SWATH windows provided)":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh singularity swath-windows-provided
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
+    - singularity
