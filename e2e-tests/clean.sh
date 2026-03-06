@@ -15,8 +15,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 (
   cd "${SCRIPT_DIR}"
 
+  rm __pycache__ -rf
+  rm .cache -rf
   rm .nextflow -rf
   rm .nextflow.log* -f
+  rm .pytest_cache -rf
+  rm .venv -rf
   rm config -rf
   rm results -rf
   rm timeline.html -f

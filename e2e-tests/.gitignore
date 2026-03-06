@@ -1,8 +1,15 @@
 /.cache
 /.nextflow
 /.nextflow.log*
+/.venv
+/**/__pycache__
+/**/.pytest_cache
+/comet_template.txt
 /config
-/*.dot
+/dag.dot
+/diaumpireconfig.txt
+/report.html
 /results
 /timeline.html
 /work
+/xtandem-template.xml

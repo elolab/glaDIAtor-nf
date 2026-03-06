@@ -24,6 +24,10 @@ RUN add-apt-repository ppa:apptainer/ppa -y
 RUN apt update -y
 RUN apt install apptainer -y
 
+# PyTest
+
+RUN apt install python-is-python3 python3-venv -y
+
 # VSCode
 
 RUN apt install git -y
