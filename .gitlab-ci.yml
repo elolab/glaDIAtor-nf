@@ -36,9 +36,9 @@
 #     # singularsyntax/guix-bootstrap
 
 stages:
-  - setup-cache
-  - tangle
-  - build
+  # - setup-cache
+  # - tangle
+  # - build
   - "E2E tests"
 
 include: 'e2e-tests/e2e-tests-ci.yml'

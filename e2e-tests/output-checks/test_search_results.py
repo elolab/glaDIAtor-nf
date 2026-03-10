@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-# from checksum import calculate_sha256_sum
 from nextflow_log import get_processes_locations_map
 from size import assert_size_with_tolerance
 
@@ -17,7 +16,7 @@ def test_comet_search_results_file():
     assert_size_with_tolerance(os.path.getsize(comet_search_results_file), 24904216, 0.01,
         "The size of Comet search results file is {relative_size_change}% of a reference")  # size is consistent when run locally, but changes in the pipeline
 
-    # assert calculate_sha256_sum(comet_search_results_file) == "..."  # checksum changes every run
+    # assert calculate_sha256_sum_pep_xml(comet_search_results_file) == "..."
 
 
 def test_tandem_search_results_file():
@@ -29,9 +28,9 @@ def test_tandem_search_results_file():
     tandem_search_results_file = Path(list(tandem_search_results_files_parent_locations)[0]) / 'interact_xtandem.pep.xml'
 
     assert_size_with_tolerance(os.path.getsize(tandem_search_results_file), 6149964, 0.01,
-        "The size of Tandem search results file is {relative_size_change}% of a reference")  # size is consistent when run locally, but changes in the pipeline
+        "The size of X! Tandem search results file is {relative_size_change}% of a reference")  # size is consistent when run locally, but changes in the pipeline
 
-    # assert calculate_sha256_sum(tandem_search_results_file) == "..."  # checksum changes every run
+    # assert calculate_sha256_sum_pep_xml(tandem_search_results_file) == "..."
 
 
 def test_combined_search_results_file():
@@ -45,4 +44,4 @@ def test_combined_search_results_file():
     assert_size_with_tolerance(os.path.getsize(combined_search_results_file), 32415672, 0.01,
         "The size of combined search results file is {relative_size_change}% of a reference")  # size is consistent when run locally, but changes in the pipeline
 
-    # assert calculate_sha256_sum(combined_search_results_file) == "..."  # checksum changes every run
+    # assert calculate_sha256_sum_pep_xml(combined_search_results_file) == "..."

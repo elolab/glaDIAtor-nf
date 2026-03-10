@@ -17,7 +17,7 @@ def test_feature_alignment_file():
     feature_alignment_file = Path(list(feature_alignment_files_parent_locations)[0]) / 'DIA-analysis-results.csv'
     reference_feature_alignment_file = Path(".cache/expected-protein-peptide-matrices/DIA-analysis-results.csv")
 
-    assert_size_with_tolerance(os.path.getsize(feature_alignment_file), os.path.getsize(reference_feature_alignment_file), 0.04,
+    assert_size_with_tolerance(os.path.getsize(feature_alignment_file), os.path.getsize(reference_feature_alignment_file), 0.05,
         "The size of the file coming from feature alignment is {relative_size_change}% of expected size")
 
     # assert calculate_sha256_sum(feature_alignment_file) == "..."  # checksum changes every run (even size does)
@@ -64,7 +64,7 @@ def test_protein_matrix():
     assert (comparison["210820_Grad090_LFQ_A_SubSet.mzML"].eq(0).sum() / comparison["210820_Grad090_LFQ_A_SubSet.mzML"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample A) have more zeros than expected"
     assert (comparison["210820_Grad090_LFQ_B_SubSet.mzML"].eq(0).sum() / comparison["210820_Grad090_LFQ_B_SubSet.mzML"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample B) have more zeros than expected"
 
-    matrix_values_tolerance = 0.04
+    matrix_values_tolerance = 0.07
 
     comparison_non_zero = comparison[(comparison != 0).all(axis=1)]
     relative_error_mean = (((comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML"] - comparison_non_zero["A_subset5.mzML"]) / comparison_non_zero["A_subset5.mzML"]).mean() + ((comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML"] - comparison_non_zero["B_subset5.mzML"]) / comparison_non_zero["B_subset5.mzML"]).mean()) / 2

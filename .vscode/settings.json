@@ -6,6 +6,7 @@
         "**/.idea": true,
         "**/.nextflow": true,
         "**/.venv": true,
+        "**/.pytest_cache": true,
         "doc/dist": true
     },
     "search.useIgnoreFiles": false

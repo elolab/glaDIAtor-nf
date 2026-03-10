@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-# from checksum import calculate_sha256_sum
+from checksum import calculate_sha256_sum_excluding_lines
 from nextflow_log import get_processes_locations_map
 from size import assert_size_with_tolerance
 
@@ -21,5 +21,9 @@ def test_spectral_library_file():
         message="The size of spectral library file is {relative_size_change}% of expected size"
     )
 
-    # assert os.path.getsize(spectral_library_file) == 50143255  # size is consistent locally, but varies sligtly in the pipelines
-    # assert calculate_sha256_sum(spectral_library_file) == "..."  # checksum changes every run
+    spectral_library_summary = Path(list(spectral_library_files_parent_locations)[0]) / 'SpecLib.sptxt'
+
+    assert calculate_sha256_sum_excluding_lines(spectral_library_summary, [
+        "### IMPORT FROM PepXML",
+        "Comment: "
+    ]) == "1983e4c50feec33249bdeb1f459f1afb47e1fd5b0aaf1a8fc77c088beee5adc0"
