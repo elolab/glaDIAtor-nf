@@ -110,14 +110,14 @@ Note that you will have to quote wildcards, because nextflow's java expects to h
 #+begin_src sh
 # if you are using podman 
 NXF_VER=22.10.1 nextflow -c myconfig.nf \
-	 -c config/podman.nf \
-	 run gladiator.nf \
+	 -c config/containers/podman.nf \
+	 run workflow/gladiator.nf \
 	 --fastafiles='fasta/*.fasta' \
 	 --diafiles='MZML/*.mzML' 
 #+end_src
 
-if you are using singularity, use =config/singularity.nf= in lieu of =config/podman.nf=.
-if you have the guix package manager, you can use =config/guix.nf= .
+if you are using singularity, use =config/containers/singularity.nf= in lieu of =config/containers/podman.nf=.
+if you have the guix package manager, you can use =config/containers/guix.nf= .
 
 You will want to have java / openjdk 17, 18, or 19.
 Java 20 and later will give you a groovy error.
@@ -182,23 +182,23 @@ The following is a list of all files this document tangles into
 #+end_src
 
 #+RESULTS:
-| gladiator.nf                         |
-| gwl-gladiator.scm                    |
-| diaumpireconfig.txt                  |
-| comet_template.txt                   |
-| xtandem-template.xml                 |
-| irt.txt                              |
-| config/singularity.nf                |
-| config/singularity-local.nf          |
-| config/singularity-guix-local.nf     |
-| config/docker.nf                     |
-| config/docker-local.nf               |
-| config/podman.nf                     |
-| config/podman-local.nf               |
-| config/guix.nf                       |
-| nextflow.config                      |
-| ci/guix/manifests/nextflow-trace.scm |
-| nextflow.tags                        |
+| workflow/legacy-gladiator.nf                 |
+| gwl-gladiator.scm                            |
+| diaumpireconfig.txt                          |
+| comet_template.txt                           |
+| xtandem-template.xml                         |
+| irt.txt                                      |
+| config/containers/singularity.nf             |
+| config/containers/singularity-local.nf       |
+| config/containers/singularity-guix-local.nf  |
+| config/containers/docker.nf                  |
+| config/containers/docker-local.nf            |
+| config/containers/podman.nf                  |
+| config/containers/podman-local.nf            |
+| config/containers/guix.nf                    |
+| workflow/nextflow.config                     |
+| containers/guix/manifests/nextflow-trace.scm |
+| nextflow.tags                                |
 
 
 ** Building the containers
@@ -2874,7 +2874,7 @@ And here we write the logic that fills the template
 : https://registry.gitlab.utu.fi/elixirdianf/gladiator-notes/gladiator
 ** Per backend config files
 :PROPERTIES:
-:HEADER-ARGS:nextflow: :mkdirp t :tangle (format  "config/%s.nf" (replace-regexp-in-string "^config-" "" (or (org-element-property :name (org-element-at-point)) ""))) :noweb tangle
+:HEADER-ARGS:nextflow: :mkdirp t :tangle (format  "config/containers/%s.config" (replace-regexp-in-string "^config-" "" (or (org-element-property :name (org-element-at-point)) ""))) :noweb tangle
 :END:
 So here we fill the templates that we defined in the previous section.
 If you are reading this as an org-mode file,
@@ -2950,18 +2950,18 @@ process {
 #+NAME: config-guix
 #+begin_src nextflow
 process {
-    beforeScript="source <(guix time-machine -C $projectDir/ci/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/gladiator.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
+    beforeScript="source <(guix time-machine -C $projectDir/containers/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/gladiator.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
 
     withName: "pyprophet_.*" {
-        beforeScript="source <(guix time-machine -C $projectDir/ci/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/pyprophet.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
+        beforeScript="source <(guix time-machine -C $projectDir/containers/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/pyprophet.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
     }
 
     withName: pyprophet_legacy {
-        beforeScript="source <(guix time-machine -C $projectDir/ci/guix/pyprophet-legacy-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/pyprophet-legacy.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
+        beforeScript="source <(guix time-machine -C $projectDir/containers/guix/pyprophet-legacy-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/pyprophet-legacy.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
     }
 
     withName: "DIAtracer" {
-        beforeScript="source <(guix time-machine -C $projectDir/ci/guix/diatracer-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/diatracer.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
+        beforeScript="source <(guix time-machine -C $projectDir/containers/guix/diatracer-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/diatracer.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
     }
 }
 #+end_src
@@ -3291,7 +3291,7 @@ sbatch --output=$RUNLOGDIR/slurm.log --err=$RUNLOGDIR/slurm.logo nextflow -log $
 #+end_src
 
 Putting it into a file
-#+begin_src scheme :tangle ci/guix/manifests/nextflow-trace.scm :noweb yes
+#+begin_src scheme :tangle containers/guix/manifests/nextflow-trace.scm :noweb yes
 ;;; this defines the list of packages that are needed to
 ;;; run with nextflow -trace options
 (specifications->manifest

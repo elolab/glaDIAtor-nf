@@ -42,11 +42,11 @@ Fetch and unpack the template files to your project folder, or run `make tangle`
 Make sure you have nextflow installed and it is in your path when 
 you run the workflow.
 ```
-NXF_VER=22.10.1 nextflow  -c config/docker.config run gladiator.nf --fastafiles='fasta/*.fasta' --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
+NXF_VER=22.10.1 nextflow  -c config/containers/docker.config run workflow/gladiator.nf --fastafiles='fasta/*.fasta' --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
 ```
 Once the analysis run is completed,
 results can be found in the `--outdir` folder. (See the section `Analysis Results`)
-Here `-c config/docker.config` specifies to use docker with the images from the remote registry, see the section `Container Backends` for more info.
+Here `-c config/containers/docker.config` specifies to use docker with the images from the remote registry, see the section `Container Backends` for more info.
 
 If the dataset has Biognosys irt-peptides, pass `--use_irt=true` to the nextflow invocation.
 
@@ -71,11 +71,11 @@ done
 The DDA-assisted analysis is specified by passing by specifying the dda files with `--ddafiles`.
 For example, one would invoke the program like so:
 ```
-NXF_VER=21.04.3 nextflow -c  config/docker.config run  gladiator.nf --fastafiles='fasta/*.fasta' --ddafiles='mzXML/*.mzXML'  --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
+NXF_VER=21.04.3 nextflow -c  config/containers/docker.config run  workflow/gladiator.nf --fastafiles='fasta/*.fasta' --ddafiles='mzXML/*.mzXML'  --diafiles='mzML/*.mzML'  --precursor_mass_tolerance=50 --fragment_mass_tolerance=0.1 --outdir=./results
 ```
 Once the analysis run is completed,
 results can be found in the `--outdir` folder. (See the section `Analysis Results`)
-Here `-c config/docker.config` specifies to use docker with the images from the remote registry, see the section [Container Backends](#container-backends) for more info.
+Here `-c config/containers/docker.config` specifies to use docker with the images from the remote registry, see the section [Container Backends](#container-backends) for more info.
 
 
 ## Analysis Results
@@ -96,23 +96,23 @@ All intermediate files (like with any other nextflow program) can be found in ne
 Gladiator currently has support for three container backends:
 docker,podman and singularity.
 These can be used with both the registry provided images or local images
-The nextflow config files `config/{docker,podman,singularity}.nf` are set up to 
+The nextflow config files `config/containers/{docker,podman,singularity}.nf` are set up to 
 use the respective backend with images from the registry. 
 
 So in order to use singularity as the container backend, one would invoke nextflow as 
 ```
-NXF_VER=21.04.3 nextflow -c config/singularity.nf run gladiator.nf ...
+NXF_VER=21.04.3 nextflow -c config/containers/singularity.nf run workflow/gladiator.nf ...
 ```
 
 Whereas in order to use podman, one would invoke nextflow as
 ```
-NXF_VER=21.04.3 nextflow -c config/podman.nf run gladiator.nf ... 
+NXF_VER=21.04.3 nextflow -c config/containers/podman.nf run workflow/gladiator.nf ... 
 ```
 
 This is the most convenient way to use the pipeline.
 
-Nextflow config files for local images are provided as `config/{docker,podman,singularity}-local.nf`.
-For singularity this assumes your images are contained in the sub-directory 'containers/',
+Nextflow config files for local images are provided as `config/containers/{docker,podman,singularity}-local.nf`.
+For singularity this assumes your images are contained in the sub-directory 'containers/dist/',
 and  requires the main gladiator image `gladiator.simg`, and the pyprophet image `pyprophet-image.simg` to be located there.
 
 
@@ -131,7 +131,7 @@ Extensive documentation on nextflow usage various grid schedulers or cloud compu
 
 It might also be desirable to launch the head job through your scheduler, for example in the slurm case,
 ```
-NXF_VER=21.04.3 sbatch [slurm specifc paramaters...] nextflow -c config/docker.nf gladiator.nf ... 
+NXF_VER=21.04.3 sbatch [slurm specifc paramaters...] nextflow -c config/containers/docker.nf workflow/gladiator.nf ... 
 ```
 where you might substitute  `[slurm specific parameters]` with e.g. `--time=30h` to give the head job 30 hours.
 

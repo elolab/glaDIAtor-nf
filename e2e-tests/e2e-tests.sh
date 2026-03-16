@@ -111,10 +111,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   if contains "docker" "$@"; then
     [ -z "${container_configuration_switch}" ] || false
-    container_configuration_switch="-c ../config/docker.nf"
+    container_configuration_switch="-c ../config/containers/docker.nf"
   else  # singularity
     [ -z "${container_configuration_switch}" ] || false
-    container_configuration_switch="-c ../config/singularity.nf"
+    container_configuration_switch="-c ../config/containers/singularity.nf"
 
     if [ ! -e .cache/singularity ]; then
       mkdir .cache/singularity
