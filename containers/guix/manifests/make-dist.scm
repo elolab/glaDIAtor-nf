@@ -1,4 +1,4 @@
 (specifications->manifest
- (list 
-  "git-minimal"
-  "tar"))
+  (list
+    "git-minimal"
+    "tar"))

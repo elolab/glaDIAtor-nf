@@ -1,2 +1,2 @@
 (specifications->manifest
- '("texinfo"))
+  '("texinfo"))

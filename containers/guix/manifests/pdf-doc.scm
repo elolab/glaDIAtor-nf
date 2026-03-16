@@ -1,4 +1,4 @@
 (specifications->manifest
- '("emacs-auctex"
-   "texlive"
-   "python-pygments"))
+  '("emacs-auctex"
+    "texlive"
+    "python-pygments"))
