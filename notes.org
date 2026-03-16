@@ -1,5 +1,4 @@
-#+PROPERTY: header-args :exports code :eval no-export 
-#+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm" 
+#+PROPERTY: header-args :exports code :eval no-export
 #+PROPERTY: header-args:nextflow :tangle "workflow/legacy-gladiator.nf" :comments link
 #+PROPERTY: header-args:dot :output-dir img :file-ext (pcase org-export-current-backend ('latex "png") (_ "svg")) :eval yes :exports results
 #+TODO: TODO(t) | DONE(d)
@@ -183,7 +182,6 @@ The following is a list of all files this document tangles into
 
 #+RESULTS:
 | workflow/legacy-gladiator.nf                 |
-| gwl-gladiator.scm                            |
 | diaumpireconfig.txt                          |
 | comet_template.txt                           |
 | xtandem-template.xml                         |
@@ -392,21 +390,6 @@ diatools: doi:10.1021/acs.jproteome.9b00606
       :test 'equal))
 #+end_src
 
-#+RESULTS:
-: ((scheme . scm) (python . py) (D . d) (C++ . cpp) (emacs-lisp . el) (elisp . el))
-#+NAME: gwl-header-block
-#+begin_src scheme :noweb no-export
-(define-module (workflow)
-  #:use-module (gwl workflows)
-  #:use-module (gwl processes)
-  #:use-module (gwl utils)
-  #:use-module (gwl sugar))
-
-<<gwl-vars>>
-#+end_src
-
-
-
 #+NAME: nf-header-block
 #+begin_src nextflow :noweb no-export 
 <<nf-sdrf-handling>>
@@ -488,39 +471,6 @@ Channel.from([
     .map{file(it)}
     .set({fasta_files_ch})
 #+end_src
-#+NAME: gwl-joinfastafiles-deps
-#+begin_src scheme :noweb-ref deps :tangle no
-("join-fasta-files"
- "python"
- "biopython")
-#+end_src
-
-#+NAME: gwl-joinfastafiles
-#+begin_src scheme :noweb no-export
-(define (join-fasta-files fasta-files)
-  (make-process
-   (name "join-fasta-files")
-   (synopsis "Join fasta files into one file")
-   (packages
-    (cdr (quote
-      <<gwl-joinfastafiles-deps>>)))
-   (inputs (files fasta-files))
-   (outputs "joined-fasta.fasta")
-   # python
-{
-<<py-joinfastafiles>>
-join_fasta_files({{inputs}}.split(" "),{{outputs}})
-}))
-#+end_src
-
-#+begin_src scheme :noweb-ref gwl-vars :tangle no
-(define fasta-files
-  '("Q7M135.fasta" "trypsin.fasta"))
-#+end_src
-
-#+begin_src scheme :noweb-ref gwl-proc :tangle no
-(join-fasta-files fasta-files)
-#+end_src
 
 *** Adding Decoys
 #+NAME: nf-buildfastadatabase
@@ -542,24 +492,6 @@ https://github.com/OpenMS/OpenMS.git
 License: BSD-3 clause
 (Not in guix, but uses cmake as build-program,
 should be relatively easy to define)
-#+NAME: gwl-buildfastadatabase
-#+begin_src scheme 
-(define create-database-with-decoys
-  (make-process
-   (name "create-database-with-database")
-   (synopsis "Add decoys to fasta database")
-   (inputs "joined-fasta.fasta")
-   (outputs "DB-with-decoys.fasta")
-   (packages )
-   # sh
-     {
-      DecoyDatabase -in $inputs -out $outputs
-		    })))
-#+end_src
-
-#+begin_src scheme :noweb-ref gwl-proc :tangle no
-create-database-with-decoys
-#+end_src
 
 ** Input DIA files
 Here we redirect the dia files to the
@@ -2745,15 +2677,8 @@ params.swath2stats_strict_checking=true
 
 
 **** Dependencies
-#+NAME: gwl-swath2stats-deps
-#+begin_src scheme :noweb-ref deps :tangle no
-("swath2stats"
- "r-minimal"
- "r-swath2stats")
-#+end_src
 
-
-The above as an R-script
+The swath2stats, r-minimal and r-swath2stats packages as an R-script
 
 #+begin_src R :eval no :tangle no
 #!/usr/bin/env Rscript
@@ -2960,10 +2885,6 @@ process {
     withName: pyprophet_legacy {
         beforeScript = "source <(guix time-machine -C $projectDir/containers/guix/pyprophet-legacy-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/pyprophet-legacy.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
     }
-
-    withName: 'DIAtracer' {
-        beforeScript = "source <(guix time-machine -C $projectDir/containers/guix/diatracer-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/diatracer.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
-    }
 }
 #+end_src
 ** Backend Specific Issues
@@ -3162,16 +3083,7 @@ if (params.sdrf){
 #+end_src
 
 * Putting it together
-** gwl
-#+begin_src scheme :noweb no-export
-(make-workflow
- (name "my-workflow")
- (processes
-  (auto-connect
-   (list
-    <<gwl-proc>>
-    ))))
-#+end_src
+
 ** nf
 according to =nextflow/docs/process.rst=,
 the cache looks at the timestamp for cache-correctness,
@@ -3214,14 +3126,8 @@ For this file
 # compile-command: "cd /data/epouta1/B22003_Elixir_DIA_Nextflow/playground/gladiator-nf && module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf"
 # End:
 
-For the scheme file
-
-#+begin_src scheme
-;; Local Variables;
-;; compile-command: "guix shell guix guile gwl --with-git-url=gwl=git://git.savannah.gnu.org/gwl.git --with-commit=gwl=e233be5cf0e2f9cb37e3daa299f5031bea56ba71 -- guix workflow run -v10 gwl-gladiator.scm
-;; End:
-#+end_src
 For the nextflow file
+
 #+begin_src nextflow
 // Local Variables:
 // compile-command: "module use /appl/user/modulefiles/ && module load nextflow && salloc nextflow run gladiator.nf"
@@ -3349,12 +3255,6 @@ same `major-mode'."
 		      previous-line)
 		     ("nfp" ;; params file
 		      "#+begin_src nextflow :noweb-ref nf-params :tangle no\n\n#+end_src"
-		      previous-line)
-		     ("gwv" ;; variables
-		      "#+begin_src scheme :noweb-ref gwl-vars :tangle no\n\n#+end_src"
-		      previous-line)
-		     ("gwp" ;; processes to be autoconnected
-		      "#+begin_src scheme :noweb-ref gwl-proc :tangle no\n\n#+end_src"
 		      previous-line)
 		     ("wfd"
 		      "#+begin_src scheme :noweb-ref deps :tangle no \n\n#+end_src"
