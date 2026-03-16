@@ -6,8 +6,5 @@ params {
     diafiles = '.cache/dia-spectra/*.mzML'
     fastafiles = '.cache/protein-sequences/*.fasta'
 
-    libgen_method='diaumpire'
-    pyprophet_use_legacy = false
-
     pyprophet_fixed_seed = false
 }
