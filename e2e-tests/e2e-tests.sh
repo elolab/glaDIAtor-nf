@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-options=( "dag" "docker" "singularity" "swath-windows-provided" "timeline" )
+options=( "docker" "dsl2" "latest-nextflow" "profiling" "singularity" "swath-windows-provided" )
 
 contains() {
   local val="$1"; shift
@@ -33,6 +33,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 (
   cd "${SCRIPT_DIR}"
 
+  #
+  # Install PyTest
+
   if [ ! -e .venv ]; then
     python -m venv .venv
   fi
@@ -42,7 +45,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   #
   # Prepare configuration
-
 
   ln -sf ../diaumpireconfig.txt diaumpireconfig.txt
   ln -sf ../xtandem-template.xml xtandem-template.xml
@@ -122,36 +124,55 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   fi
 
   #
-  # Generate execution timeline report
+  # Select DSL2-only NextFlow 25 over of NextFlow 22 that supports both DSL1 and DSL2
   #
-  # switch: timeline
+  # The workflow was developed with 21.04.3, extensively tested by Balázs with 22.10.1, migrated to 25.10.4 for DSL2.
+  #
+  # switch: latest-nextflow
 
-  report_timeline_switch=""
+  NXF_VER="22.10.1"
 
-  if contains "timeline" "$@"; then
-    report_timeline_switch="-with-timeline timeline.html"
-    rm timeline.html -f
+  if contains "latest-nextflow" "$@"; then
+    NXF_VER="25.10.4"
   fi
 
-  # .irt file is compulsory even when not used
+  #
+  # Run DSL2 version of glaDIAtor-nf
+  #
+  # switch: dsl2
+  #
+  # .irt file was compulsory even when not used
 
-  workflow_file="../gladiator.nf"
+  workflow_file="../workflow/legacy-gladiator.nf"
   irt_workaround_switches="--irt_traml_file=ftp://massive-ftp.ucsd.edu/x01/MSV000081829/other/SGS/assays/OpenSWATH_SM4_iRT_AssayLibrary.TraML --use_irt=false"
 
-  #
-  # Generate workflow graph (DAG)
-  #
-  # switch: dag
-
-  generate_dag_switch=""
-
-  if contains "dag" "$@"; then
-    generate_dag_switch="-with-dag dag.dot"
-    rm dag.dot -f
+  if contains "dsl2" "$@"; then
+    workflow_file="../workflow/gladiator.nf"
+    irt_workaround_switches=""
   fi
 
-  NXF_VER="22.10.1" nextflow -c e2e-conf.nf ${container_configuration_switch} \
-      run ${report_timeline_switch} ${generate_dag_switch} "${workflow_file}" ${swath_windows_provided_switch} ${irt_workaround_switches}
+  #
+  # Collect profiling data and generate reports
+  #
+  # * Visualise execution timeline
+  # * Generate resource utilisation summary
+  # * Generate workflow graph (DAG)
+  # * Collect profiling information in .tsv
+  #
+  # switch: profiling
+
+  produce_profiling_reports=""
+
+  if contains "dag" "$@"; then
+    produce_profiling_reports="-with-dag dag.dot -with-report report.html -with-timeline timeline.html -with-trace trace.tsv"
+    rm dag.dot -f
+    rm report.html -f
+    rm timeline.html -f
+    rm trace.tsv -f
+  fi
+
+  NXF_VER="${NXF_VER}" nextflow -c e2e-conf.nf ${container_configuration_switch} \
+      run ${produce_profiling_reports} "${workflow_file}" ${swath_windows_provided_switch} ${irt_workaround_switches} -resume
 
   echo "Checking the output with PyTest"
   pytest .

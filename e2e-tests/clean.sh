@@ -22,7 +22,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   rm .pytest_cache -rf
   rm .venv -rf
   rm config -rf
+  rm dag.dot -f
+  rm report.html -f
   rm results -rf
   rm timeline.html -f
+  rm trace.tsv -f
   rm work -rf
 )

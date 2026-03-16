@@ -14,7 +14,7 @@
 "Quick E2E test":
   stage: "E2E tests"
   script:
-    - ./e2e-tests/e2e-tests.sh singularity
+    - ./e2e-tests/e2e-tests.sh
   cache:
     key: "$CI_COMMIT_REF_SLUG"
     paths:
@@ -28,7 +28,7 @@
 "Quick E2E test (SWATH windows provided)":
   stage: "E2E tests"
   script:
-    - ./e2e-tests/e2e-tests.sh singularity swath-windows-provided
+    - ./e2e-tests/e2e-tests.sh swath-windows-provided
   cache:
     key: "$CI_COMMIT_REF_SLUG"
     paths:
@@ -38,3 +38,45 @@
     - "Build NextFlow image"
   tags:
     - singularity
+
+"Quick E2E test (DSL2)":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh dsl2
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
+     - singularity
+
+"Quick E2E test (DSL2, SWATH windows provided)":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh dsl2 swath-windows-provided
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
+    - singularity
+
+"Quick E2E test (DSL2, latest NextFlow)":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh dsl2 latest-nextflow
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
+     - singularity
