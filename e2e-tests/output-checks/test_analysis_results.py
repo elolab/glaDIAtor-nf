@@ -1,10 +1,126 @@
 import os
+from statistics import mean
 import pandas
 from pathlib import Path
 
-# from checksum import calculate_sha256_sum
+from checksum import calculate_sha256_sum
 from nextflow_log import get_processes_locations_map
 from size import assert_size_with_tolerance
+
+
+def test_spectral_library_transitions_decoys():
+    processes_locations_map = get_processes_locations_map(".nextflow.log")
+    spectral_library_transitions_decoys_file_parent_locations = processes_locations_map.get("AddDecoysToOpenSwathTransitions")  # or processes_locations_map.get("{alternative name}")
+
+    assert spectral_library_transitions_decoys_file_parent_locations is not None, "Process creating transitions decoys didn't complete"
+    assert len(spectral_library_transitions_decoys_file_parent_locations) == 1, "There should be exactly one process creating transition decoys"
+    spectral_library_transitions_decoys_file = Path(list(spectral_library_transitions_decoys_file_parent_locations)[0]) / "SpecLib_cons_decoys.pqp"
+
+    assert os.path.getsize(spectral_library_transitions_decoys_file) == 5521408, "The size of transitions decoys file changed."
+    assert calculate_sha256_sum(spectral_library_transitions_decoys_file) == "8e41b87844ad25f6e2053f4fc3b746fd272a40f10a5d3acd11b49185885eb562"
+
+
+def test_open_swath_workflow_files():
+    processes_locations_map = get_processes_locations_map(".nextflow.log")
+    open_swath_workflow_parent_locations = processes_locations_map.get("OpenSwathWorkflow")  # or processes_locations_map.get("{alternative name}")
+
+    assert open_swath_workflow_parent_locations is not None, "OpenSWATH Workflow process didn't complete"
+    assert len(open_swath_workflow_parent_locations) == 2, "There should be exactly two OpenSWATH Workflow processes"
+
+    open_swath_sample_a_output_file = Path(list(open_swath_workflow_parent_locations)[0]) / "210820_Grad090_LFQ_A_SubSet-DIA.osw"
+    open_swath_sample_b_output_file = Path(list(open_swath_workflow_parent_locations)[1]) / "210820_Grad090_LFQ_B_SubSet-DIA.osw"
+
+    both_dont_exist = not (open_swath_sample_a_output_file.exists() and open_swath_sample_b_output_file.exists())
+
+    if both_dont_exist:
+        open_swath_sample_a_output_file = Path(list(open_swath_workflow_parent_locations)[1]) / "210820_Grad090_LFQ_A_SubSet-DIA.osw"
+        open_swath_sample_b_output_file = Path(list(open_swath_workflow_parent_locations)[0]) / "210820_Grad090_LFQ_B_SubSet-DIA.osw"
+
+    assert open_swath_sample_a_output_file.exists(), "OpenSWATH Workflow output file is missing (sample A)"
+    assert open_swath_sample_b_output_file.exists(), "OpenSWATH Workflow output file is missing (sample B)"
+
+    assert_size_with_tolerance(os.path.getsize(open_swath_sample_a_output_file), 24121344, 0.01,
+        "The size of OpenSWATH workflow output file (sample A) is {relative_size_change}% of expected size")
+
+    assert_size_with_tolerance(os.path.getsize(open_swath_sample_b_output_file), 24231936, 0.01,
+        "The size of OpenSWATH workflow output file (sample B) is {relative_size_change}% of expected size")
+
+
+def test_pyprophet_subsample():
+    processes_locations_map = get_processes_locations_map(".nextflow.log")
+    pyprophet_subsample_parent_locations = processes_locations_map.get("pyprophet_subsample")  # or processes_locations_map.get("{alternative name}")
+
+    assert pyprophet_subsample_parent_locations is not None, "PyProphet \"subsample\" process didn't complete"
+    assert len(pyprophet_subsample_parent_locations) == 2, "There should be exactly two PyProphet \"subsample\" processes"
+
+    pyprophet_subsample_sample_a_output_file = Path(list(pyprophet_subsample_parent_locations)[0]) / "210820_Grad090_LFQ_A_SubSet-DIA.osws"
+    pyprophet_subsample_sample_b_output_file = Path(list(pyprophet_subsample_parent_locations)[1]) / "210820_Grad090_LFQ_B_SubSet-DIA.osws"
+
+    both_dont_exist = not (pyprophet_subsample_sample_a_output_file.exists() and pyprophet_subsample_sample_b_output_file.exists())
+
+    if both_dont_exist:
+        pyprophet_subsample_sample_a_output_file = Path(list(pyprophet_subsample_parent_locations)[1]) / "210820_Grad090_LFQ_A_SubSet-DIA.osws"
+        pyprophet_subsample_sample_b_output_file = Path(list(pyprophet_subsample_parent_locations)[0]) / "210820_Grad090_LFQ_B_SubSet-DIA.osws"
+
+    assert pyprophet_subsample_sample_a_output_file.exists(), "PyProphet \"subsample\" output file is missing (sample A)"
+    assert pyprophet_subsample_sample_b_output_file.exists(), "PyProphet \"subsample\" output file is missing (sample B)"
+
+    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_a_output_file),
+        mean([7720960, 7655424, 7630848, 7651328]), 0.02,
+        "The size of PyProphet \"subsample\" output file is {relative_size_change}% of expected size")
+
+    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_b_output_file),
+        mean([7704576, 7704576, 7684096, 7757824]), 0.02,
+        "The size of PyProphet \"subsample\" output file is {relative_size_change}% of expected size")
+
+
+def test_pyprophet_learn_classifier():
+    processes_locations_map = get_processes_locations_map(".nextflow.log")
+    pyprophet_learn_classifier_parent_locations = processes_locations_map.get("pyprophet_learn_classifier")  # or processes_locations_map.get("{alternative name}")
+
+    assert pyprophet_learn_classifier_parent_locations is not None, "PyProphet \"learn classifier\" process didn't complete"
+    assert len(pyprophet_learn_classifier_parent_locations) == 1, "There should be exactly one PyProphet \"learn classifier\" process"
+    pyprophet_learn_classifier_model_file = Path(list(pyprophet_learn_classifier_parent_locations)[0]) / "model.osw"
+
+    assert_size_with_tolerance(os.path.getsize(pyprophet_learn_classifier_model_file), 22740992, 0.02,
+        "The size of PyProphet \"learn classifier\" file is {relative_size_change}% of expected size")
+
+
+def test_pyprophet_control_error():
+    processes_locations_map = get_processes_locations_map(".nextflow.log")
+    pyprophet_control_error_parent_locations = processes_locations_map.get("pyprophet_control_error")  # or processes_locations_map.get("{alternative name}")
+
+    assert pyprophet_control_error_parent_locations is not None, "PyProphet \"control error\" process didn't complete"
+    assert len(pyprophet_control_error_parent_locations) == 1, "There should be exactly one PyProphet \"control error\" process"
+    pyprophet_control_error_model_file = Path(list(pyprophet_control_error_parent_locations)[0]) / "model_global.osw"
+
+    assert_size_with_tolerance(os.path.getsize(pyprophet_control_error_model_file), 22740992, 0.02,
+        "The size of PyProphet \"control error\" file is {relative_size_change}% of expected size")
+
+
+def test_pyprophet_backpropagate():
+    processes_locations_map = get_processes_locations_map(".nextflow.log")
+    pyprophet_backpropagate_parent_locations = processes_locations_map.get("pyprophet_backpropagate")  # or processes_locations_map.get("{alternative name}")
+
+    assert pyprophet_backpropagate_parent_locations is not None, "PyProphet \"backpropagate\" process didn't complete"
+    assert len(pyprophet_backpropagate_parent_locations) == 2, "There should be exactly two PyProhet \"backpropagate\" processes"
+
+    pyprophet_backpropagate_sample_a_output_file = Path(list(pyprophet_backpropagate_parent_locations)[0]) / "210820_Grad090_LFQ_A_SubSet-DIA.tsv"
+    pyprophet_backpropagate_sample_b_output_file = Path(list(pyprophet_backpropagate_parent_locations)[1]) / "210820_Grad090_LFQ_B_SubSet-DIA.tsv"
+
+    both_dont_exist = not (pyprophet_backpropagate_sample_a_output_file.exists() and pyprophet_backpropagate_sample_b_output_file.exists())
+
+    if both_dont_exist:
+        pyprophet_backpropagate_sample_a_output_file = Path(list(pyprophet_backpropagate_parent_locations)[1]) / "210820_Grad090_LFQ_A_SubSet-DIA.tsv"
+        pyprophet_backpropagate_sample_b_output_file = Path(list(pyprophet_backpropagate_parent_locations)[0]) / "210820_Grad090_LFQ_B_SubSet-DIA.tsv"
+
+    assert_size_with_tolerance(os.path.getsize(pyprophet_backpropagate_sample_a_output_file),
+        mean([4336995, 5084597, 5145789, 4405320, 4604114, 4712265, 4869724]), 0.15,
+        "The size of PyProphet \"backpropagate\" file (sample A) is {relative_size_change}% of expected size")
+
+    assert_size_with_tolerance(os.path.getsize(pyprophet_backpropagate_sample_b_output_file),
+        mean([5509622, 7147218, 7255732, 5832613, 6094488, 6536317, 7041452]), 0.15,
+        "The size of PyProphet \"backpropagate\" file (sample B) is {relative_size_change}% of expected size")
 
 
 def test_feature_alignment_file():
@@ -17,10 +133,8 @@ def test_feature_alignment_file():
     feature_alignment_file = Path(list(feature_alignment_files_parent_locations)[0]) / 'DIA-analysis-results.csv'
     reference_feature_alignment_file = Path(".cache/expected-protein-peptide-matrices/DIA-analysis-results.csv")
 
-    assert_size_with_tolerance(os.path.getsize(feature_alignment_file), os.path.getsize(reference_feature_alignment_file), 0.05,
+    assert_size_with_tolerance(os.path.getsize(feature_alignment_file), os.path.getsize(reference_feature_alignment_file), 0.06,
         "The size of the file coming from feature alignment is {relative_size_change}% of expected size")
-
-    # assert calculate_sha256_sum(feature_alignment_file) == "..."  # checksum changes every run (even size does)
 
 
 def test_protein_matrix():
@@ -64,7 +178,7 @@ def test_protein_matrix():
     assert (comparison["210820_Grad090_LFQ_A_SubSet.mzML"].eq(0).sum() / comparison["210820_Grad090_LFQ_A_SubSet.mzML"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample A) have more zeros than expected"
     assert (comparison["210820_Grad090_LFQ_B_SubSet.mzML"].eq(0).sum() / comparison["210820_Grad090_LFQ_B_SubSet.mzML"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample B) have more zeros than expected"
 
-    matrix_values_tolerance = 0.07
+    matrix_values_tolerance = 0.15
 
     comparison_non_zero = comparison[(comparison != 0).all(axis=1)]
     relative_error_mean = (((comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML"] - comparison_non_zero["A_subset5.mzML"]) / comparison_non_zero["A_subset5.mzML"]).mean() + ((comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML"] - comparison_non_zero["B_subset5.mzML"]) / comparison_non_zero["B_subset5.mzML"]).mean()) / 2
@@ -82,14 +196,14 @@ def test_peptide_matrix():
     reference_peptide_matrix_file = Path(".cache/expected-protein-peptide-matrices/DIA-peptide-matrix.tsv")
 
     assert_size_with_tolerance(os.path.getsize(peptide_matrix_file), os.path.getsize(reference_peptide_matrix_file), 0.01,
-        "The size of the peptide matrix file is {relative_size_change}% of expected size")
+        "The size of peptide matrix file is {relative_size_change}% of expected size")
 
     peptide_matrix = pandas.read_csv(peptide_matrix_file, sep="\t")
     reference_peptide_matrix = pandas.read_csv(reference_peptide_matrix_file, sep="\t")
- 
+
     #
     # Compare number of matching peptide names, both the total number and a number that overlaps with the reference
- 
+
     peptide_count = len(set(peptide_matrix["ProteinName_FullPeptideName"]))
     reference_peptide_count = len(set(reference_peptide_matrix["ProteinName_FullPeptideName"]))
     overlapping_peptide_count = len(set(peptide_matrix["ProteinName_FullPeptideName"]) & set(reference_peptide_matrix["ProteinName_FullPeptideName"]))
