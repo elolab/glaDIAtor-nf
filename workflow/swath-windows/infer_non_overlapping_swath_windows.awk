@@ -1,7 +1,7 @@
 BEGIN {OFS="	"}
 function max(a,b){
     if(a > b)
-	return a
+        return a
     return b
 }
 NR==1 {
@@ -14,8 +14,8 @@ NR==1 {
 {
     if (prev_upper > $2)
     {
-	print "There is a a window thats a subwindow of the previous window"
-	exit 1
+        print "There is a window inside the previous window."
+        exit 1
     }
     print(max($1,prev_upper),$2)
     prev_upper=$2
