@@ -1,30 +1,18 @@
 podman.enabled=true
 process {
-   container='localhost/gladiator-guix'
-   withName: 'DeepDIA.*' {
-      container='localhost/deepdia'
-   }
-   
-   // for nonlegacy pyprophet processes
-   withName: 'pyprophet_.*' {
-      container='localhost/pyprophet'
-   }
+    container='localhost/gladiator-guix'
 
-   // because this is the more specific rule
-   // we apply it last, so that it overrides the 'pyprophet_.*' rule if
-   // this rule also applies
+    withName: 'pyprophet_.*' {
+       container='localhost/pyprophet'
+    }
+
     withName: pyprophet_legacy {
-	container='localhost/pyprophet-legacy'
-   }
-   // for perl-diamspep
-   withName: 'DIAMS2PEP_.*'{
-   // there is really no good single letter here
-   	container='localhost/diams2pep'
-   }
+        container='localhost/pyprophet-legacy'
+    }
 }
 
 process {
     withName: 'pyprophet_.*' {
-	containerOptions= '--env HOME="$PWD"'
+        containerOptions= '--env HOME="$PWD"'
     }
 }

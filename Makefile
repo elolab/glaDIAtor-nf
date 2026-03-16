@@ -62,7 +62,7 @@ CONTAINER_TAG=
 .PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment html info dist
 # If you want to push only some of the containers to the registry
 # set CONTAINER_NAMES on the command line to that subset.
-CONTAINER_NAMES:=pyprophet-legacy gladiator-guix pyprophet deepdia diams2pep
+CONTAINER_NAMES:=pyprophet-legacy gladiator-guix pyprophet
 singularity-containers: $(patsubst %,containers/%.simg,$(CONTAINER_NAMES))
 docker-containers: $(patsubst %,containers/%.tar,$(CONTAINER_NAMES))
 
@@ -124,17 +124,6 @@ containers/pyprophet-legacy.simg containers/pyprophet-legacy.tar: ci/guix/pyprop
 containers/pyprophet.simg containers/pyprophet.tar: MANIFESTS=
 containers/pyprophet.simg containers/pyprophet.tar: PACKAGES=guix coreutils bash-minimal
 containers/pyprophet.simg containers/pyprophet.tar: ci/guix/channels.scm ci/guix/manifests/pyprophet.scm ci/guix/manifests/nextflow-trace.scm
-	mkdir -p $(@D)
-	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
-containers/deepdia.simg containers/deepdia.tar: MANIFESTS=
-containers/deepdia.simg containers/deepdia.tar: PACKAGES=guix coreutils bash-minimal
-containers/deepdia.simg containers/deepdia.tar: ci/guix/deepdia-channels.scm ci/guix/manifests/deepdia.scm ci/guix/manifests/nextflow-trace.scm
-	mkdir -p $(@D)
-	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
-
-containers/diams2pep.simg containers/diams2pep.tar: MANIFESTS=
-containers/diams2pep.simg containers/diams2pep.tar: PACKAGES=guix coreutils bash-minimal
-containers/diams2pep.simg containers/diams2pep.tar: ci/guix/diams2pep-channels.scm ci/guix/manifests/diams2pep.scm ci/guix/manifests/nextflow-trace.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 

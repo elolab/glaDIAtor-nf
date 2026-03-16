@@ -1,6 +1,6 @@
 #+PROPERTY: header-args :exports code :eval no-export 
 #+PROPERTY: header-args:scheme :tangle "gwl-gladiator.scm" 
-#+PROPERTY: header-args:nextflow :tangle "gladiator.nf" :comments link
+#+PROPERTY: header-args:nextflow :tangle "workflow/legacy-gladiator.nf" :comments link
 #+PROPERTY: header-args:dot :output-dir img :file-ext (pcase org-export-current-backend ('latex "png") (_ "svg")) :eval yes :exports results
 #+TODO: TODO(t) | DONE(d)
 #+OPTIONS: ^:{} todo:nil H:20
@@ -776,15 +776,13 @@ Here we make the distinction between deconvolution methods and other library gen
 The following is a list of the methods we support,
 #+NAME: nf-existing-libgen-methods
 #+begin_src nextflow :tangle no
-[ "dda","custom", "deepdia", "diaumpire","diams2pep"]
+[ "dda", "custom", "diaumpire" ]
 #+end_src
 
 And you can adjust the following parameter 
 #+begin_src nextflow :noweb-ref nf-params :tangle no :noweb yes
 // one or more of <<nf-existing-libgen-methods>> seperated by commas
-// will default to "dda" if ddafiles are supplied
-// othewise to "deepdia"
-params.libgen_method = null
+params.libgen_method = "diaumpire"
 #+end_src
 
 
@@ -801,7 +799,7 @@ def libgen_methods_get_existing (){
 }
 
 def libgen_method_any_pseudospectra_method_is_enabled(params){
-    def pseudospectra_methods = ["diams2pep","diaumpire"]
+    def pseudospectra_methods = [ "diaumpire" ]
     return pseudospectra_methods.inject(false) { acc, val -> acc || libgen_method_is_enabled(val, params)}
 }
 
@@ -1109,124 +1107,7 @@ diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 #+begin_src nextflow :noweb-ref nf-vars 
 } // end of diaumpire guard
 #+end_src
-**** Creating Pseudospectra with diams2pep
-https://github.com/SS2proteome/DIA-MS2pep
-doi:10.52601/bpr.2022.220011
 
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-// fragment tolarance for diam2spep in ppm
-// (other tools require it in dalton)
-params.diams2pep_fragment_tolerance = null
-#+end_src
-#+begin_src nextflow :noweb-ref nf-deconvolution-handling :tangle no
-if(libgen_method_is_enabled("diams2pep",params)){
-    deconvolution_methods += [output: { diams2pep_pseudospectra},
-			      input: { diams2pep_input_mzml}]
-}
-#+end_src
-
-#+begin_src nextflow :noweb-ref nf-vars 
-if(libgen_method_is_enabled("diams2pep",params)){
-#+end_src
-
-Do we need msconvert to convert to a friendly mzml file?
-According to DIA-MS2PEP's readme we need
-#+begin_example conf
-mzML=true
-zlib=true
-mz64=true
-inten64=true
-simAsSpectra=true
-filter=”peakPicking vendor msLevel=1-2"
-#+end_example
-
-
-trying with filter "cwt" because we don't ship vendors.
-#+begin_src nextflow
-process convert_for_DIAMS2PEP {
-    input:
-    file mzml from diams2pep_input_mzml
-    output:
-    // there is no good way in nextflow that makes a UUUID that persists across -resume things
-    // task.hash is forgotten in resume, as is task.id.
-    tuple val("${mzml.baseName}"), path(ofile) into diams2pep_mgf_mzml, diams2pep_window_mzml, diams2pep_for_pseudo_mzml
-    script:
-    ofile="converted/${mzml.baseName}.mzML"
-    """
-    mkdir -p converted
-    msconvert --mzML --mz64 --zlib --inten64 --simAsSpectra --filter "peakPicking cwt msLevel=1-2" --outdir converted $mzml
-    """
-}
-#+end_src
-
-#+begin_src nextflow
-process convert_mgf_for_DIAMS2PEP {
-    input:
-    tuple val(hash), path(mzml) from diams2pep_mgf_mzml
-    output:
-    tuple val(hash), path("${mzml.baseName}.mgf") into diams2pep_mgf
-    
-    """
-    msconvert --mgf $mzml
-    """
-}
-#+end_src
-
-
-=DIA_acquistion_window_generator.pl= is _not_ a typo, this is how it is in the original repo.
-#+begin_src nextflow 
-process DIAMS2PEP_window {
-    input:
-    tuple val(hash), path(mzml) from  diams2pep_window_mzml
-    output:
-    tuple val(hash), path("${mzml}.DIA_acquisition_window.txt") into diams2pep_window
-    
-    """
-    DIA_acquistion_window_generator.pl $mzml
-    """
-}
-#+end_src
-
-
-Looking at the source, this creates an mgf file for every window that was detected.
-which would not be known before running =DIA_acquisition_window_generator.pl=
-# Is there a way to join them again?
-# see http://web.archive.org/web/20211130025352/http://www.matrixscience.com/help/data_file_help.html
-# 
-=DIA_pesudo_MS2.pl=.pl= is _not_ a typo, this is how it is in the original repo
-#+begin_src nextflow
-if(params.diams2pep_fragment_tolerance == null)
-    raise RunTimeError("DIAMSM2PEP enabled but no diams2pep_fragment_tolerance specified.")
-process DIAMS2PEP_generate_pseudo {
-    input:
-    tuple val(hash), path(mzml), path(mgf), path(acq_window) from diams2pep_for_pseudo_mzml.join(diams2pep_mgf).join(diams2pep_window)
-    val tolerance from Channel.value(params.diams2pep_fragment_tolerance)
-    output:
-    file "mgf-output/*.mgf" into diams2pep_pseudospectra_mgf mode flatten
-    """
-    mkdir -p mgf-output
-    DIA_pesudo_MS2_multiforks.pl ${mzml.baseName} mgf-output $tolerance ${task.cpus}
-    """
-}
-#+end_src
-
-#+begin_src nextflow 
-// this will use the default container because we need msconvert
-process MgfToMzml_DIAMS2PEP {
-    input:
-    file mgf from diams2pep_pseudospectra_mgf
-    output:
-    file "*.mzXML" into diams2pep_pseudospectra
-    """
-    msconvert --mzXML $mgf
-    """
-}
-#+end_src
-
-
-#+begin_src nextflow :noweb-ref nf-vars 
-} // end of diams2pep guard
-#+end_src
 **** Choosing the MS Sequence database search engine: Comet/Xtandem
 :LOGBOOK:
 CLOCK: [2022-06-10 Fri 10:20]--[2022-06-10 Fri 11:00] =>  0:40
@@ -2115,8 +1996,8 @@ LFLQFGAQGSPFLK  98.0897
 #+begin_src nextflow :noweb-ref nf-params :tangle no
 // white-space-delimited file of peptide-sequences and internal retention times
 // whether or not to use the retention-
-params.use_irt=true
-params.irt_traml_file = "iRTAssayLibrary.TraML"
+params.use_irt = false
+params.irt_traml_file = null  // .TraML
  #+end_src
  
 Here we forward declary  =consensus_pseudospectra_openswath_library_tsv=
@@ -2178,199 +2059,7 @@ consensus_pseudospectra_openswath_library_tsv
 # Here we intententionally do not set tangle to "no"
 # so we leave it to be tangled to the default tangle destinitation
 # in addition to having noweb ref
-# so that this statement goes to both 
-
-*** Building Spectral library from Machine learning
-:PROPERTIES:
-:ID:       0052ce0b-566c-4a13-9a72-a4e19e7eece0
-:CUSTOM_ID: section-deepdia
-:END:
-[[https://github.com/lmsac/DeepDIA][DeepDIA]] can predict the spectral library from peptide lists
-See also its documentation
-https://github.com/lmsac/DeepDIA/raw/master/README.md
-https://github.com/lmsac/DeepDIA/raw/master/docs/predict_detectability.md
-doi:10.1038/s41467-019-13866-z
-
-#+begin_src nextflow :noweb-ref nf-vars :noweb strip-export
-<<nf-pagebreak>>
-if(libgen_method_is_enabled("deepdia",params))  { 
-#+end_src
-
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-params._deepdia_url = "https://github.com/lmsac/DeepDIA/raw/c5ad2aa50218fcdfd1d441714702e605fdb00bb3"
-// float or null
-// if null, do not use minimum detectability filtering
-// if a float, filter
-params.deepdia_min_detectability = null
-params.deepdia_detectability_model = "${params._deepdia_url}/data/models/detectability/epoch_004.hdf5"
-#+end_src
-
-
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-// list tuples in the form of
-// [charge, model, peptidelist]
-params.deepdia_ms2_entries = [
-    ["2",
-     "${params._deepdia_url}/data/models/charge2/epoch_035.hdf5",
-     ],
-    ["3",
-     "${params._deepdia_url}/data/models/charge3/epoch_034.hdf5",
-     ]]
-#+end_src
-
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-Channel
-    .from(params.deepdia_ms2_entries)
-    .map( {
-	    charge, model ->
-	    tuple(charge, file(model))})
-    .set{deepdia_ms2_models}
-#+end_src
-
-
-#+begin_src nextflow
-process DeepDIADigestProtein
-{
-    input:
-    file joined_fasta from joined_fasta_database_ch
-    output:
-    file deepdia_peptide_list
-    script:
-    deepdia_peptide_list="deepdia_peptide_list.csv"
-    """
-    digest_proteins.py --in $joined_fasta --out $deepdia_peptide_list --no-group_duplicated
-    """
-}
-#+end_src
-
-If we do detectability filtering we mix the filtered peptides with the models,
-otherwise the unfiltered.
-
-#+begin_src nextflow  :noweb-ref nf-vars :tangle no 
-deepdia_peptide_list = Channel.create()
-if (params.deepdia_min_detectability != null){
-    deepdia_peptide_list.set{deepdia_prefilt_peptide_list}
-    deepdia_filtered_peptide_list = Channel.create()
-    deepdia_filtered_peptide_list
-	.tap{deepdia_peptides_for_retention_pred}
-	.tap{deepdia_peptides_for_library}
-	.combine(deepdia_ms2_models)
-	.set{deepdia_ms2_inputs_ch}
-} else {
-    deepdia_peptide_list
-    	.tap{deepdia_peptides_for_retention_pred}
-	.tap{deepdia_peptides_for_library}
-    	.combine(deepdia_ms2_models)
-	.set{deepdia_ms2_inputs_ch}
-}
-#+end_src
-
-So here we predict detectability of peptides and filter by them, if requested
-#+begin_src nextflow
-if (params.deepdia_min_detectability != null){
-    // we seperate these two so that --resume allows for easy tweaking of --minimum-detectability
-    process DeepDIATrainDetectibility {
-	memory '64 GB'
-	input:
-	file model from Channel.fromPath(params.deepdia_detectability_model)
-	file deepdia_prefilt_peptide_list
-	output:
-	set file(deepdia_detectability_prediction), file(deepdia_prefilt_peptide_list) into deepdia_detectability
-	script:
-	deepdia_detectability_prediction="${deepdia_prefilt_peptide_list.baseName}.detectability.csv"
-	"predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $deepdia_detectability_prediction"
-    }
-    
-    process DeepDIAMinimumDetectabilityFiltering
-    {
-	input:
-	set file(detectability_prediction), file(prefilt_peptide_list) from deepdia_detectability
-	val min_detectability from Channel.value(params.deepdia_min_detectability)
-	output:
-	file deepdia_filtered_peptide_list
-	script:
-	deepdia_filtered_peptide_list="deepdia_filtered_peptide_list.csv"
-	"""
-	filter_peptide_by_detectability.py --peptide $prefilt_peptide_list --detect $detectability_prediction --min_detectability $min_detectability --out ${deepdia_filtered_peptide_list}
-	"""
-    }
-}
-
-#+end_src
-
-Then we predict the ms2 
-
-#+begin_src nextflow
-process DeepDIAPredictCharge {
-    memory '64 GB'
-    input:
-    set file(peptides),charge,file(model)  from deepdia_ms2_inputs_ch
-    output:
-    file deepdia_ions
-    script:
-    deepdia_ions="predictions.charge.${charge}.ions.json"
-    """
-    predict_ms2.py --charge $charge --in $peptides --model $model --out $deepdia_ions
-    """
-}
-#+end_src
-
-#+begin_src nextflow :noweb-ref nf-params :tangle no
-params.deepdia_irt_model =
-    "${params._deepdia_url}/data/models/irt/epoch_082.hdf5"
-// params.deepdia_peptides =
-//     "${params._deepdia_url}/data/peptides/Pan_human.peptide.csv"
-#+end_src
-
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-deepdia_irt_model = Channel.fromPath(params.deepdia_irt_model)
-deepdia_speclib = Channel.create()
-#+end_src
-
-
-#+begin_src nextflow
-process DeepDIAPredictRetention {
-    memory '32 GB'
-    input:
-    file deepdia_irt_model
-    file deepdia_peptides_for_retention_pred
-    output:
-    file predicted_rt
-    script:
-    predicted_rt="prediction.irt.csv"
-    """
-    predict_rt.py --in $deepdia_peptides_for_retention_pred --model $deepdia_irt_model --out $predicted_rt
-    """
-}
-#+end_src
-
-
-#+begin_src nextflow
-process DeepDIAPredictionsToLibrary {
-    memory '32 GB'
-    input:
-    file predicted_rt
-    file ions from deepdia_ions.toSortedList()
-    file deepdia_peptides_for_library
-    output:
-    file deepdia_speclib
-    script:
-    deepdia_speclib="speclib.tsv"
-    """
-    build_assays_from_prediction.py --peptide ${deepdia_peptides_for_library} --rt ${predicted_rt} --ions ${ions} --out prediction.assay.pickle
-    convert_assays_to_openswath.py --in prediction.assay.pickle --out ${deepdia_speclib}
-    """
-}
-#+end_src
-
-
-#+begin_src nextflow :noweb-ref nf-vars :tangle no
-   deepdia_speclib.set{speclib_tsv_for_decoys}
-#+end_src
-
-#+begin_src nextflow :noweb-ref nf-vars
-}  // end of deepdia guard
-#+end_src
+# so that this statement goes to both
 
 *** Supplying a custom spectral library
 You can also supply a custom spectral library by setting ==--speclib= to a glob/path
@@ -2418,16 +2107,12 @@ params.oswdg_min_decoy_fraction = null
 
 #+begin_src nextflow :noweb-ref nf-vars :tangle no
 if(params.oswdg_min_decoy_fraction != null) { 
-    Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args} 
-} else if (libgen_method_is_enabled("deepdia",params)){
- Channel.value("-min_decoy_fraction 0.0").set{oswdg_args}
+    Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args}
 } else {
   Channel.value("").set{oswdg_args}
 }
 #+end_src
-#+VINDEX: deepdia
-With [[#section-deepdia][deepDIA]] method used there  seems to be some problems with generating decoys,
-so we set =-min_decoy_fraction= to  =0.0= in this case.
+
 #+begin_src nextflow
 process AddDecoysToOpenSwathTransitions {
     input:
@@ -2471,17 +2156,13 @@ params.osw_use_cache = false
 params.osw_extra_flags =  ""
 #+end_src
 
-#+VINDEX: deepdia
-The transitions size is larger if the deconvolution method is [[#section-deepdia][deepDIA]],
-which will consume more memory.
-
 to use ~-out_osw~, ~-tr~ needs to be a pqp file,
 #+VINDEX: params.irt_traml_file
 If we are using legacy pyprophet we will need to create a tsv
 #+NAME: nf-openswathworkflow-for-pyprophet-legacy
 #+begin_src nextflow :tangle no 
 process OpenSwathWorkflow_legacy {
-	memory { 16.GB * (libgen_method_is_enabled("deepdia",params) ? 2 : 1 )}
+	memory '16.GB'
 	input:
 	file dia_mzml_file from dia_mzml_files_ch.osw
 	// file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
@@ -2519,7 +2200,7 @@ openswath_osw_indirect_ch = Channel.create()
 openswath_osw_indirect_ch.multiMap{ it ->
     pyprophet_subsample: pyprophet_score  : it}.set{openswath_osw_ch}
 process OpenSwathWorkflow {
-    memory { 16.GB * (libgen_method_is_enabled("deepdia",params) ? 2 : 1 )}
+    memory '16.GB'
     input:
     file dia_mzml_file from dia_mzml_files_ch.osw
     // file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
@@ -2884,7 +2565,7 @@ and you are using podman or docker,  you will want to add to your config file th
 #+begin_src nextflow :tangle no
 process {
     withName: 'pyprophet_.*' {
-	containerOptions= '--env HOME="$PWD"'
+        containerOptions= '--env HOME="$PWD"'
     }}
 #+end_src
 
@@ -3099,27 +2780,15 @@ and the pyprophet legacy container to be used (~%P~).
 #+begin_example nextflow
 %p.enabled=true
 process {
-   container='%G'
-   withName: 'DeepDIA.*' {
-      container='%D'
-   }
-   
-   // for nonlegacy pyprophet processes
-   withName: 'pyprophet_.*' {
-      container='%N'
-   }
+    container='%G'
 
-   // because this is the more specific rule
-   // we apply it last, so that it overrides the 'pyprophet_.*' rule if
-   // this rule also applies
+    withName: 'pyprophet_.*' {
+       container='%N'
+    }
+
     withName: pyprophet_legacy {
-	container='%P'
-   }
-   // for perl-diamspep
-   withName: 'DIAMS2PEP_.*'{
-   // there is really no good single letter here
-   	container='%V'
-   }
+        container='%P'
+    }
 }
 #+end_example
 
@@ -3182,20 +2851,10 @@ And here we write the logic that fills the template
 		     ,(construct-container-uri gladiator-image
 					       program-name-key
 					       locality))
-		 (?D .
-		     ,(construct-container-uri "deepdia"
-					       program-name-key
-					       locality))
 		 (?N .
 		     ,(construct-container-uri "pyprophet"
 					       program-name-key
 					       locality))
-		 (?V .
-		     ,(construct-container-uri
-		       "diams2pep"
-		       program-name-key
-		       locality))
-					       
 		 (?P .
 		     ,(construct-container-uri
 		       "pyprophet-legacy"
@@ -3239,7 +2898,7 @@ which does not exist in the container, which will result in the error described 
 #+begin_src nextflow :tangle no
 process {
     withName: 'pyprophet_.*' {
-	containerOptions= '--env HOME="$PWD"'
+        containerOptions= '--env HOME="$PWD"'
     }
 }
 #+end_src
@@ -3291,31 +2950,19 @@ process {
 #+NAME: config-guix
 #+begin_src nextflow
 process {
-   beforeScript="source <(guix time-machine -C $projectDir/ci/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/gladiator.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
-   withName: "DeepDIA.*" {
-      beforeScript="source <(guix time-machine -C $projectDir/ci/guix/deepdia-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/deepdia.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
-   }
-   
-   // for nonlegacy pyprophet processes
-   withName: "pyprophet_.*" {
-      beforeScript="source <(guix time-machine -C $projectDir/ci/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/pyprophet.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
-   }
+    beforeScript="source <(guix time-machine -C $projectDir/ci/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/gladiator.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
 
-   // because this is the more specific rule
-   // we apply it last, so that it overrides the "pyprophet_.*" rule if
-   // this rule also applies
+    withName: "pyprophet_.*" {
+        beforeScript="source <(guix time-machine -C $projectDir/ci/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/pyprophet.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
+    }
+
     withName: pyprophet_legacy {
-	beforeScript="source <(guix time-machine -C $projectDir/ci/guix/pyprophet-legacy-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/pyprophet-legacy.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
-   }
-   // for perl-diamspep
-   withName: "DIAMS2PEP_.*"{
-   // there is really no good single letter here
-   	beforeScript="source <(guix time-machine -C $projectDir/ci/guix/diams2pep-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/diams2pep.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
-   }
+        beforeScript="source <(guix time-machine -C $projectDir/ci/guix/pyprophet-legacy-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/pyprophet-legacy.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
+    }
 
-   withName: "DIAtracer" {
-     beforeScript="source <(guix time-machine -C $projectDir/ci/guix/diatracer-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/diatracer.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
-   }
+    withName: "DIAtracer" {
+        beforeScript="source <(guix time-machine -C $projectDir/ci/guix/diatracer-channels.scm -- shell --search-paths -m $projectDir/ci/guix/manifests/diatracer.scm -m $projectDir/ci/guix/manifests/nextflow-trace.scm)"
+    }
 }
 #+end_src
 ** Backend Specific Issues
@@ -3555,7 +3202,7 @@ params.outdir = "./results"
 
 
 
-#+begin_src nextflow :tangle nextflow.config :noweb no-export
+#+begin_src nextflow :tangle workflow/nextflow.config :noweb no-export
 <<nf-params>>
 #+end_src
 

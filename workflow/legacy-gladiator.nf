@@ -131,11 +131,11 @@ if (params.sdrf){
 }
 // returns all libgen methods that we supplor
 def libgen_methods_get_existing (){
-    return [ "dda","custom", "deepdia", "diaumpire","diams2pep"]
+    return [ "dda","custom", "diaumpire" ]
 }
 
 def libgen_method_any_pseudospectra_method_is_enabled(params){
-    def pseudospectra_methods = ["diams2pep","diaumpire"]
+    def pseudospectra_methods = [ "diaumpire" ]
     return pseudospectra_methods.inject(false) { acc, val -> acc || libgen_method_is_enabled(val, params)}
 }
 
@@ -180,10 +180,6 @@ if(libgen_method_is_enabled("diaumpire",params)){
     deconvolution_methods += [output: {diaumpire_pseudospectra_ch},
 			      input:  {dia_mzml_files_for_diaumpire_ch}]
 }
-if(libgen_method_is_enabled("diams2pep",params)){
-    deconvolution_methods += [output: { diams2pep_pseudospectra},
-			      input: { diams2pep_input_mzml}]
-}
 deconv_input_chs = deconvolution_methods*.input.findAll({it != null})
 if(deconv_input_chs){
     Channel
@@ -211,49 +207,16 @@ if(libgen_method_is_enabled("diaumpire",params)){
 // so that this is a singleton channel
 diaumpireconfig_ch = Channel.fromPath(params.diaumpireconfig)
 } // end of diaumpire guard
-if(libgen_method_is_enabled("diams2pep",params)){
-} // end of diams2pep guard
 max_missed_cleavages = Channel.value(params.max_missed_cleavages)
 consensus_pseudospectra_openswath_library_tsv = Channel.create()
 consensus_pseudospectra_openswath_library_tsv
     .set{speclib_tsv_for_decoys}
 } // end of dda convolution / pseudo spectra convolution guard.
-/*
- */
-if(libgen_method_is_enabled("deepdia",params))  { 
-Channel
-    .from(params.deepdia_ms2_entries)
-    .map( {
-	    charge, model ->
-	    tuple(charge, file(model))})
-    .set{deepdia_ms2_models}
-deepdia_peptide_list = Channel.create()
-if (params.deepdia_min_detectability != null){
-    deepdia_peptide_list.set{deepdia_prefilt_peptide_list}
-    deepdia_filtered_peptide_list = Channel.create()
-    deepdia_filtered_peptide_list
-	.tap{deepdia_peptides_for_retention_pred}
-	.tap{deepdia_peptides_for_library}
-	.combine(deepdia_ms2_models)
-	.set{deepdia_ms2_inputs_ch}
-} else {
-    deepdia_peptide_list
-    	.tap{deepdia_peptides_for_retention_pred}
-	.tap{deepdia_peptides_for_library}
-    	.combine(deepdia_ms2_models)
-	.set{deepdia_ms2_inputs_ch}
-}
-deepdia_irt_model = Channel.fromPath(params.deepdia_irt_model)
-deepdia_speclib = Channel.create()
-   deepdia_speclib.set{speclib_tsv_for_decoys}
-}  // end of deepdia guard
 if (libgen_method_is_enabled("custom", params)){
     Channel.fromPath(params.speclib).set{speclib_tsv_for_decoys}
 }
 if(params.oswdg_min_decoy_fraction != null) { 
-    Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args} 
-} else if (libgen_method_is_enabled("deepdia",params)){
- Channel.value("-min_decoy_fraction 0.0").set{oswdg_args}
+    Channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}").set{oswdg_args}
 } else {
   Channel.value("").set{oswdg_args}
 }
@@ -504,86 +467,6 @@ process DiaUmpireMgfToMzxml {
 // [[file:notes.org::*Steps that are run][Steps that are run:8]]
 } // end of diaumpire guard
 // Steps that are run:8 ends here
-
-// [[file:notes.org::*Creating Pseudospectra with diams2pep][Creating Pseudospectra with diams2pep:3]]
-if(libgen_method_is_enabled("diams2pep",params)){
-// Creating Pseudospectra with diams2pep:3 ends here
-
-// [[file:notes.org::*Creating Pseudospectra with diams2pep][Creating Pseudospectra with diams2pep:4]]
-process convert_for_DIAMS2PEP {
-    input:
-    file mzml from diams2pep_input_mzml
-    output:
-    // there is no good way in nextflow that makes a UUUID that persists across -resume things
-    // task.hash is forgotten in resume, as is task.id.
-    tuple val("${mzml.baseName}"), path(ofile) into diams2pep_mgf_mzml, diams2pep_window_mzml, diams2pep_for_pseudo_mzml
-    script:
-    ofile="converted/${mzml.baseName}.mzML"
-    """
-    mkdir -p converted
-    msconvert --mzML --mz64 --zlib --inten64 --simAsSpectra --filter "peakPicking cwt msLevel=1-2" --outdir converted $mzml
-    """
-}
-// Creating Pseudospectra with diams2pep:4 ends here
-
-// [[file:notes.org::*Creating Pseudospectra with diams2pep][Creating Pseudospectra with diams2pep:5]]
-process convert_mgf_for_DIAMS2PEP {
-    input:
-    tuple val(hash), path(mzml) from diams2pep_mgf_mzml
-    output:
-    tuple val(hash), path("${mzml.baseName}.mgf") into diams2pep_mgf
-    
-    """
-    msconvert --mgf $mzml
-    """
-}
-// Creating Pseudospectra with diams2pep:5 ends here
-
-// [[file:notes.org::*Creating Pseudospectra with diams2pep][Creating Pseudospectra with diams2pep:6]]
-process DIAMS2PEP_window {
-    input:
-    tuple val(hash), path(mzml) from  diams2pep_window_mzml
-    output:
-    tuple val(hash), path("${mzml}.DIA_acquisition_window.txt") into diams2pep_window
-    
-    """
-    DIA_acquistion_window_generator.pl $mzml
-    """
-}
-// Creating Pseudospectra with diams2pep:6 ends here
-
-// [[file:notes.org::*Creating Pseudospectra with diams2pep][Creating Pseudospectra with diams2pep:7]]
-if(params.diams2pep_fragment_tolerance == null)
-    raise RunTimeError("DIAMSM2PEP enabled but no diams2pep_fragment_tolerance specified.")
-process DIAMS2PEP_generate_pseudo {
-    input:
-    tuple val(hash), path(mzml), path(mgf), path(acq_window) from diams2pep_for_pseudo_mzml.join(diams2pep_mgf).join(diams2pep_window)
-    val tolerance from Channel.value(params.diams2pep_fragment_tolerance)
-    output:
-    file "mgf-output/*.mgf" into diams2pep_pseudospectra_mgf mode flatten
-    """
-    mkdir -p mgf-output
-    DIA_pesudo_MS2_multiforks.pl ${mzml.baseName} mgf-output $tolerance ${task.cpus}
-    """
-}
-// Creating Pseudospectra with diams2pep:7 ends here
-
-// [[file:notes.org::*Creating Pseudospectra with diams2pep][Creating Pseudospectra with diams2pep:8]]
-// this will use the default container because we need msconvert
-process MgfToMzml_DIAMS2PEP {
-    input:
-    file mgf from diams2pep_pseudospectra_mgf
-    output:
-    file "*.mzXML" into diams2pep_pseudospectra
-    """
-    msconvert --mzXML $mgf
-    """
-}
-// Creating Pseudospectra with diams2pep:8 ends here
-
-// [[file:notes.org::*Creating Pseudospectra with diams2pep][Creating Pseudospectra with diams2pep:9]]
-} // end of diams2pep guard
-// Creating Pseudospectra with diams2pep:9 ends here
 
 // [[file:notes.org::*Comet][Comet:3]]
 process MakeCometConfig {
@@ -893,111 +776,6 @@ process Spectrast2OpenSwathTsv {
 } // end of dda convolution / pseudo spectra convolution guard.
 // End of {Pseudo-,}Spectral section:2 ends here
 
-// [[file:notes.org::#section-deepdia][Building Spectral library from Machine learning:1]]
-/*
- */
-if(libgen_method_is_enabled("deepdia",params))  {
-// Building Spectral library from Machine learning:1 ends here
-
-// [[file:notes.org::#section-deepdia][Building Spectral library from Machine learning:5]]
-process DeepDIADigestProtein
-{
-    input:
-    file joined_fasta from joined_fasta_database_ch
-    output:
-    file deepdia_peptide_list
-    script:
-    deepdia_peptide_list="deepdia_peptide_list.csv"
-    """
-    digest_proteins.py --in $joined_fasta --out $deepdia_peptide_list --no-group_duplicated
-    """
-}
-// Building Spectral library from Machine learning:5 ends here
-
-// [[file:notes.org::#section-deepdia][Building Spectral library from Machine learning:7]]
-if (params.deepdia_min_detectability != null){
-    // we seperate these two so that --resume allows for easy tweaking of --minimum-detectability
-    process DeepDIATrainDetectibility {
-	memory '64 GB'
-	input:
-	file model from Channel.fromPath(params.deepdia_detectability_model)
-	file deepdia_prefilt_peptide_list
-	output:
-	set file(deepdia_detectability_prediction), file(deepdia_prefilt_peptide_list) into deepdia_detectability
-	script:
-	deepdia_detectability_prediction="${deepdia_prefilt_peptide_list.baseName}.detectability.csv"
-	"predict_detectability.py --in $deepdia_prefilt_peptide_list --model $model --out $deepdia_detectability_prediction"
-    }
-    
-    process DeepDIAMinimumDetectabilityFiltering
-    {
-	input:
-	set file(detectability_prediction), file(prefilt_peptide_list) from deepdia_detectability
-	val min_detectability from Channel.value(params.deepdia_min_detectability)
-	output:
-	file deepdia_filtered_peptide_list
-	script:
-	deepdia_filtered_peptide_list="deepdia_filtered_peptide_list.csv"
-	"""
-	filter_peptide_by_detectability.py --peptide $prefilt_peptide_list --detect $detectability_prediction --min_detectability $min_detectability --out ${deepdia_filtered_peptide_list}
-	"""
-    }
-}
-// Building Spectral library from Machine learning:7 ends here
-
-// [[file:notes.org::#section-deepdia][Building Spectral library from Machine learning:8]]
-process DeepDIAPredictCharge {
-    memory '64 GB'
-    input:
-    set file(peptides),charge,file(model)  from deepdia_ms2_inputs_ch
-    output:
-    file deepdia_ions
-    script:
-    deepdia_ions="predictions.charge.${charge}.ions.json"
-    """
-    predict_ms2.py --charge $charge --in $peptides --model $model --out $deepdia_ions
-    """
-}
-// Building Spectral library from Machine learning:8 ends here
-
-// [[file:notes.org::#section-deepdia][Building Spectral library from Machine learning:11]]
-process DeepDIAPredictRetention {
-    memory '32 GB'
-    input:
-    file deepdia_irt_model
-    file deepdia_peptides_for_retention_pred
-    output:
-    file predicted_rt
-    script:
-    predicted_rt="prediction.irt.csv"
-    """
-    predict_rt.py --in $deepdia_peptides_for_retention_pred --model $deepdia_irt_model --out $predicted_rt
-    """
-}
-// Building Spectral library from Machine learning:11 ends here
-
-// [[file:notes.org::#section-deepdia][Building Spectral library from Machine learning:12]]
-process DeepDIAPredictionsToLibrary {
-    memory '32 GB'
-    input:
-    file predicted_rt
-    file ions from deepdia_ions.toSortedList()
-    file deepdia_peptides_for_library
-    output:
-    file deepdia_speclib
-    script:
-    deepdia_speclib="speclib.tsv"
-    """
-    build_assays_from_prediction.py --peptide ${deepdia_peptides_for_library} --rt ${predicted_rt} --ions ${ions} --out prediction.assay.pickle
-    convert_assays_to_openswath.py --in prediction.assay.pickle --out ${deepdia_speclib}
-    """
-}
-// Building Spectral library from Machine learning:12 ends here
-
-// [[file:notes.org::#section-deepdia][Building Spectral library from Machine learning:14]]
-}  // end of deepdia guard
-// Building Spectral library from Machine learning:14 ends here
-
 // [[file:notes.org::*OpenSwathDecoys][OpenSwathDecoys:3]]
 process AddDecoysToOpenSwathTransitions {
     input:
@@ -1020,7 +798,7 @@ process AddDecoysToOpenSwathTransitions {
 if (params.pyprophet_use_legacy){
     openswath_transitions_ch.into{openswath_transitions_ch_for_legacy}
  process OpenSwathWorkflow_legacy {
- 	memory { 16.GB * (libgen_method_is_enabled("deepdia",params) ? 2 : 1 )}
+ 	memory '16.GB'
  	input:
  	file dia_mzml_file from dia_mzml_files_ch.osw
  	// file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
@@ -1052,7 +830,7 @@ if (params.pyprophet_use_legacy){
   openswath_osw_indirect_ch.multiMap{ it ->
       pyprophet_subsample: pyprophet_score  : it}.set{openswath_osw_ch}
   process OpenSwathWorkflow {
-      memory { 16.GB * (libgen_method_is_enabled("deepdia",params) ? 2 : 1 )}
+      memory '16.GB'
       input:
       file dia_mzml_file from dia_mzml_files_ch.osw
       // file openswath_transitions from Channel.fromPath("data_from_original/bruderer-pwiz-no-dda/SpecLib_cons_decoy.TraML").first()
