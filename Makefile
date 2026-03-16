@@ -120,9 +120,6 @@ containers/dist/gladiator-guix.simg containers/dist/gladiator-guix.tar: containe
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S /bin/bash=bin/bash -S /usr=. --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
-# If we are using docker as the docker execatuble,
-# set the pacakges for docker tars to docker packages
-# and some coreutils for cleaning up after us
 # the %.tar files are 'docker-archives'
 # the %-fs.tar files are filesystem archives
 ifneq ($(findstring docker,$(DOCKER_EXECUTABLE)),)
@@ -135,18 +132,6 @@ containers/dist/%.tar: PACKAGES=podman coreutils
 containers/dist/%-fs.tar: PACKAGES=podman coreutils
 docker-containers-push: PACKAGES=podman coreutils
 endif
-
-# we launch the docker daemon and clean it up later
-# see https://stackoverflow.com/questions/31024268/starting-and-closing-applications-in-makefile
-# $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) returns:
-# - `/bin/sudo` if DOCKER_EXECUTABLE="/bin/sudo docker"  ...
-# - `sudo` if DOCKER_EXECUTABLE="sudo docker"
-# - `` (i.e empty string) if DOCKER_EXECUTABLE="docker"
-containers/dist/%.tar: MANIFESTS=
-containers/dist/%.tar: %.dockerfile $(tangled-files) | $(if $(findstring docker,$(DOCKER_EXECUTABLE)),dockerd.pid)
-	$(DOCKER_EXECUTABLE) build --tag $(*F) --file=$< .
-	mkdir -p $(@D)
-	$(DOCKER_EXECUTABLE) save $(*F) -o $@
 
 # The following turns a docker image tarball into a filesystem tarball
 # so that they can be converted into a squashfs container.
@@ -192,10 +177,3 @@ environment:
 TAGS: MANIFESTS=containers/guix/manifests/emacs.scm
 TAGS: nextflow.tags $(wildcard *.org)
 	etags --regex=@$< $(wordlist 2,$(words $^),$^) --output=$@
-
-dockerd.pid: MANIFESTS=
-dockerd.pid: PACKAGES=docker containerd coreutils
-dockerd.pid:
-	test -e /var/run/docker.sock && touch dockerd.pid || $(filter %sudo sudo,$(DOCKER_EXECUTABLE)) dockerd --iptables=false -G `id -gn` & echo $$! > dockerd.pid
-	# waiting for docker to come live
-	for ((i=0;i<300;i++)); do sleep 1; test -e /var/run/docker.pid && break || test -e /var/run/docker.sock && break; done
