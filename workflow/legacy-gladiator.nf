@@ -131,7 +131,7 @@ if (params.sdrf){
 }
 // returns all libgen methods that we supplor
 def libgen_methods_get_existing (){
-    return [ "dda","custom", "diaumpire" ]
+    return [ "dda", "custom", "diaumpire" ]
 }
 
 def libgen_method_any_pseudospectra_method_is_enabled(params){

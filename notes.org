@@ -2778,16 +2778,17 @@ and the pyprophet legacy container to be used (~%P~).
 
 #+NAME: container-config-template
 #+begin_example nextflow
-%p.enabled=true
+%p.enabled = true
+
 process {
-    container='%G'
+    container = '%G'
 
     withName: 'pyprophet_.*' {
-       container='%N'
+       container = '%N'
     }
 
     withName: pyprophet_legacy {
-        container='%P'
+        container = '%P'
     }
 }
 #+end_example
@@ -2815,7 +2816,7 @@ And here we write the logic that fills the template
       ("local"
        ("singularity"
 	("access-protocol" . "file://")
-	("registry" . "containers/")
+	("registry" . "containers/dist/")
 	("container-suffix" . ".simg"))
        ("docker"
 	("access-protocol" . "")
@@ -2885,7 +2886,7 @@ This block is whats common between singularity
 #+NAME: singularity-general-options
 #+begin_src nextflow :tangle no
 singularity.runOptions = '-B $TMPDIR:/tmp'
-singularity.autoMounts=true
+singularity.autoMounts = true
 #+end_src
 
 
@@ -2898,7 +2899,7 @@ which does not exist in the container, which will result in the error described 
 #+begin_src nextflow :tangle no
 process {
     withName: 'pyprophet_.*' {
-        containerOptions= '--env HOME="$PWD"'
+        containerOptions = '--env HOME="$PWD"'  // otherwise pyprophet_subsample command fails with: KeyError(key) from None KeyError: 'HOME'
     }
 }
 #+end_src
@@ -2950,18 +2951,18 @@ process {
 #+NAME: config-guix
 #+begin_src nextflow
 process {
-    beforeScript="source <(guix time-machine -C $projectDir/containers/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/gladiator.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
+    beforeScript = "source <(guix time-machine -C $projectDir/containers/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/gladiator.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
 
-    withName: "pyprophet_.*" {
-        beforeScript="source <(guix time-machine -C $projectDir/containers/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/pyprophet.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
+    withName: 'pyprophet_.*' {
+        beforeScript = "source <(guix time-machine -C $projectDir/containers/guix/gladiator-guix-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/pyprophet.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
     }
 
     withName: pyprophet_legacy {
-        beforeScript="source <(guix time-machine -C $projectDir/containers/guix/pyprophet-legacy-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/pyprophet-legacy.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
+        beforeScript = "source <(guix time-machine -C $projectDir/containers/guix/pyprophet-legacy-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/pyprophet-legacy.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
     }
 
-    withName: "DIAtracer" {
-        beforeScript="source <(guix time-machine -C $projectDir/containers/guix/diatracer-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/diatracer.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
+    withName: 'DIAtracer' {
+        beforeScript = "source <(guix time-machine -C $projectDir/containers/guix/diatracer-channels.scm -- shell --search-paths -m $projectDir/containers/guix/manifests/diatracer.scm -m $projectDir/containers/guix/manifests/nextflow-trace.scm)"
     }
 }
 #+end_src
