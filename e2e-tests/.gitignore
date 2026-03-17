@@ -4,12 +4,10 @@
 /.venv
 /**/__pycache__
 /**/.pytest_cache
-/comet_template.txt
 /config
 /dag.dot
-/diaumpireconfig.txt
 /report.html
 /results
 /timeline.html
+/trace.tsv
 /work
-/xtandem-template.xml

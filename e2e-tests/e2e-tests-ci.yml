@@ -23,6 +23,34 @@
   needs:
     - "Build NextFlow image"
   tags:
+    - singularity
+
+"Quick E2E test (older NextFlow)":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh legacy-nextflow
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
+    - singularity
+
+"Quick E2E test (DSL1)":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh dsl1 legacy-nextflow
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
      - singularity
 
 "Quick E2E test (SWATH windows provided)":
@@ -39,24 +67,10 @@
   tags:
     - singularity
 
-"Quick E2E test (DSL2)":
+"Quick E2E test (SWATH windows provided, DSL1)":
   stage: "E2E tests"
   script:
-    - ./e2e-tests/e2e-tests.sh dsl2
-  cache:
-    key: "$CI_COMMIT_REF_SLUG"
-    paths:
-      - e2e-tests/.cache
-  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
-  needs:
-    - "Build NextFlow image"
-  tags:
-     - singularity
-
-"Quick E2E test (DSL2, SWATH windows provided)":
-  stage: "E2E tests"
-  script:
-    - ./e2e-tests/e2e-tests.sh dsl2 swath-windows-provided
+    - ./e2e-tests/e2e-tests.sh dsl1 legacy-nextflow swath-windows-provided
   cache:
     key: "$CI_COMMIT_REF_SLUG"
     paths:
@@ -67,10 +81,10 @@
   tags:
     - singularity
 
-"Quick E2E test (DSL2, latest NextFlow)":
+"Quick E2E test (spectral library provided)":
   stage: "E2E tests"
   script:
-    - ./e2e-tests/e2e-tests.sh dsl2 latest-nextflow
+    - ./e2e-tests/e2e-tests.sh spectral-library-provided
   cache:
     key: "$CI_COMMIT_REF_SLUG"
     paths:
@@ -79,4 +93,18 @@
   needs:
     - "Build NextFlow image"
   tags:
-     - singularity
+    - singularity
+
+"Quick E2E test (spectral library provided, DSL1)":
+  stage: "E2E tests"
+  script:
+    - ./e2e-tests/e2e-tests.sh spectral-library-provided dsl1 legacy-nextflow
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - e2e-tests/.cache
+  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+  needs:
+    - "Build NextFlow image"
+  tags:
+    - singularity

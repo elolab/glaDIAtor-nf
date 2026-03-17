@@ -14,17 +14,23 @@ def show_difference_multiple(expected, given, message):
 
 
 expected_process_names_variants = {
-    "DSL1 glaDIAtor-nf": [
+    "DSL1": [
         'AddDecoysToOpenSwathTransitions', 'BuildFastaDatabase', 'CombineSearchResults', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'CreateSpectrastIrtFile', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'FindMinimumPeptideProbability', 'GeneratePseudoSpectra', 'GeneratePseudoSpectra', 'InferNonOverlappingSwathWindows', 'InferSwathWindows', 'JoinFastaFiles', 'MakeCometConfig', 'MakeXtandemConfig', 'MzmlToMzxml', 'MzmlToMzxml', 'OpenSwathWorkflow', 'OpenSwathWorkflow', 'Spectrast2OpenSwathTsv', 'SpectrastCreateSpecLib', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XinteractComet', 'XinteractXTandem', 'feature_alignment', 'pyprophet_apply_classifier', 'pyprophet_apply_classifier', 'pyprophet_backpropagate', 'pyprophet_backpropagate', 'pyprophet_control_error', 'pyprophet_learn_classifier', 'pyprophet_reduce', 'pyprophet_reduce', 'pyprophet_subsample', 'pyprophet_subsample', 'swath2stats'
     ],
-    "DSL1 glaDIAtor-nf (SWATH windows provided)": [
+    "DSL1 (SWATH windows provided)": [
         'AddDecoysToOpenSwathTransitions', 'BuildFastaDatabase', 'CombineSearchResults', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'CreateSpectrastIrtFile', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'FindMinimumPeptideProbability', 'GeneratePseudoSpectra', 'GeneratePseudoSpectra', 'InferNonOverlappingSwathWindows', 'JoinFastaFiles', 'MakeCometConfig', 'MakeXtandemConfig', 'MzmlToMzxml', 'MzmlToMzxml', 'OpenSwathWorkflow', 'OpenSwathWorkflow', 'RegularizeUserSwathWindow', 'Spectrast2OpenSwathTsv', 'SpectrastCreateSpecLib', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XinteractComet', 'XinteractXTandem', 'feature_alignment', 'pyprophet_apply_classifier', 'pyprophet_apply_classifier', 'pyprophet_backpropagate', 'pyprophet_backpropagate', 'pyprophet_control_error', 'pyprophet_learn_classifier', 'pyprophet_reduce', 'pyprophet_reduce', 'pyprophet_subsample', 'pyprophet_subsample', 'swath2stats'
     ],
-    "DSL2 glaDIAtor-nf": [
+    "DSL2": [
         'AddDecoysToOpenSwathTransitions', 'BuildFastaDatabase', 'CombineSearchResults', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'FindMinimumPeptideProbability', 'GeneratePseudoSpectra', 'GeneratePseudoSpectra', 'InferNonOverlappingSwathWindows', 'InferSwathWindows', 'JoinFastaFiles', 'MakeCometConfig', 'MakeXtandemConfig', 'MzmlToMzxml', 'MzmlToMzxml', 'OpenSwathWorkflow', 'OpenSwathWorkflow', 'Spectrast2OpenSwathTsv', 'SpectrastCreateSpecLib', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XinteractComet', 'XinteractXTandem', 'feature_alignment', 'pyprophet_apply_classifier', 'pyprophet_apply_classifier', 'pyprophet_backpropagate', 'pyprophet_backpropagate', 'pyprophet_control_error', 'pyprophet_learn_classifier', 'pyprophet_reduce', 'pyprophet_reduce', 'pyprophet_subsample', 'pyprophet_subsample', 'swath2stats'
     ],
-    "DSL2 glaDIAtor-nf (SWATH windows provided)": [
+    "DSL2 (SWATH windows provided)": [
         'AddDecoysToOpenSwathTransitions', 'BuildFastaDatabase', 'CombineSearchResults', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'Comet', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'DiaUmpireMgfToMzxml', 'FindMinimumPeptideProbability', 'GeneratePseudoSpectra', 'GeneratePseudoSpectra', 'InferNonOverlappingSwathWindows', 'JoinFastaFiles', 'MakeCometConfig', 'MakeXtandemConfig', 'MzmlToMzxml', 'MzmlToMzxml', 'OpenSwathWorkflow', 'OpenSwathWorkflow', 'RegularizeUserSwathWindow', 'Spectrast2OpenSwathTsv', 'SpectrastCreateSpecLib', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XTandem', 'XinteractComet', 'XinteractXTandem', 'feature_alignment', 'pyprophet_apply_classifier', 'pyprophet_apply_classifier', 'pyprophet_backpropagate', 'pyprophet_backpropagate', 'pyprophet_control_error', 'pyprophet_learn_classifier', 'pyprophet_reduce', 'pyprophet_reduce', 'pyprophet_subsample', 'pyprophet_subsample', 'swath2stats'
+    ],
+    "Spectral library provided": [
+        'AddDecoysToOpenSwathTransitions', 'BuildFastaDatabase', 'InferNonOverlappingSwathWindows', 'InferSwathWindows', 'JoinFastaFiles', 'OpenSwathWorkflow', 'OpenSwathWorkflow', 'feature_alignment', 'pyprophet_apply_classifier', 'pyprophet_apply_classifier', 'pyprophet_backpropagate', 'pyprophet_backpropagate', 'pyprophet_control_error', 'pyprophet_learn_classifier', 'pyprophet_reduce', 'pyprophet_reduce', 'pyprophet_subsample', 'pyprophet_subsample', 'swath2stats'
+    ],
+    "Spectral library and SWATH windows provided": [
+        'AddDecoysToOpenSwathTransitions', 'BuildFastaDatabase', 'InferNonOverlappingSwathWindows', 'JoinFastaFiles', 'OpenSwathWorkflow', 'OpenSwathWorkflow', 'RegularizeUserSwathWindow', 'feature_alignment', 'pyprophet_apply_classifier', 'pyprophet_apply_classifier', 'pyprophet_backpropagate', 'pyprophet_backpropagate', 'pyprophet_control_error', 'pyprophet_learn_classifier', 'pyprophet_reduce', 'pyprophet_reduce', 'pyprophet_subsample', 'pyprophet_subsample', 'swath2stats'
     ]
 }
 

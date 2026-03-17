@@ -4,10 +4,6 @@ include { DiaUmpireMgfToMzxml } from './input-spectra/dia_umpire_mgf_to_mzxml.nf
 include { GeneratePseudoSpectra } from './input-spectra/generate_pseudo_spectra.nf'
 include { MzmlToMzxml } from './input-spectra/mzml_to_mzxml.nf'
 
-include { libgen_method_is_enabled } from './params.nf'
-include { libgen_methods_get_existing } from './params.nf'
-include { libgen_methods_validate_params } from './params.nf'
-
 include { BuildFastaDatabase } from './protein-sequences/build_fasta_database.nf'
 include { JoinFastaFiles } from './protein-sequences/join_fasta_files.nf'
 
@@ -40,6 +36,13 @@ include { SpectrastCreateSpecLib } from './spectral-library/spectrast_create_spe
 include { InferNonOverlappingSwathWindows } from './swath-windows/infer_non_overlapping_swath_windows.nf'
 include { InferSwathWindows } from './swath-windows/infer_swath_windows.nf'
 include { RegularizeUserSwathWindow } from './swath-windows/regularize_user_swath_window.nf'
+
+def ensureList(param) {
+    if (!param) { return [] }
+    if (param instanceof String) { return param.split(",") }
+
+    return param
+}
 
 workflow {
     //
@@ -97,112 +100,114 @@ workflow {
     truncated_swath_windows_ch = InferNonOverlappingSwathWindows(swath_windows_file_ch, infer_non_overlapping_swath_windows_awk_script)
 
     //
-    // Library generation
-    //
-    // The default way of glaDIAtor-nf to generate spectral library is through deconvolution of DIA data by DIA-Umpire.
-    // DDA data can be also used directly when available.
-
-    libgen_methods_validate_params(params)
-
-    dda_files_ch = channel.empty()
-    diaumpire_pseudospectra_ch = channel.empty()
-
-    if (libgen_method_is_enabled("dda", params)) {
-        dda_files_ch = channel.fromPath(params.ddafiles)
-    }
-
-    if (libgen_method_is_enabled("diaumpire", params)) {
-        dia_mzml_files_for_diaumpire_ch = channel.fromPath(params.diafiles)
-        diaumpire_config_ch = channel.fromPath(params.diaumpireconfig)
-
-        dia_mzxml_files_for_diaumpire_ch = MzmlToMzxml(dia_mzml_files_for_diaumpire_ch)
-
-        diaumpire_pseudospectra_mgf_ch = GeneratePseudoSpectra(
-            dia_mzxml_files_for_diaumpire_ch,
-            diaumpire_config_ch.combine(dia_mzxml_files_for_diaumpire_ch).map { it -> it[0] }
-        ).flatten()  // single .mzXML gives multiple .mgf files
-
-        diaumpire_pseudospectra_ch = DiaUmpireMgfToMzxml(diaumpire_pseudospectra_mgf_ch)
-    }
-
-    deconv_spectra_ch = dda_files_ch.concat(diaumpire_pseudospectra_ch)
-
-    //
-    // MS/MS spectra vs sequences database search engines
-    //
-    // Comet and X! Tandem
-
-    max_missed_cleavages_val = channel.value(params.max_missed_cleavages)
-
-    // Comet
-
-    comet_template_ch = channel.fromPath(params.comet_template)
-    comet_config_ch = MakeCometConfig(max_missed_cleavages_val, joined_fasta_with_decoys_ch, comet_template_ch)
-
-    (comet_pepxml_ch, xinteract_comet_mzxml_ch) = Comet(
-        comet_config_ch.combine(deconv_spectra_ch).map { it -> it[0] },
-        deconv_spectra_ch,
-        joined_fasta_with_decoys_ch.combine(deconv_spectra_ch).map { it -> it[0] }
-    )
-
-    comet_search_results_ch = XinteractComet(comet_pepxml_ch.toSortedList(), joined_fasta_with_decoys_ch, xinteract_comet_mzxml_ch.toSortedList())
-
-    // X! Tandem
-
-    xtandem_template_ch = channel.fromPath(params.xtandem_template)
-    xtandem_config_ch = MakeXtandemConfig(xtandem_template_ch, joined_fasta_with_decoys_ch, max_missed_cleavages_val)
-
-    taxonomy_template = channel.fromPath("${workflow.projectDir}/search/tandem/taxonomy-template.xml")
-    xtandem_input_template = channel.fromPath("${workflow.projectDir}/search/tandem/xtandem-input-template.xml")
-
-    (xtandem_pepxml_ch, xinteract_xtandem_mzxml_ch) = XTandem(
-        deconv_spectra_ch,
-        xtandem_config_ch.combine(deconv_spectra_ch).map { it -> it[0] },
-        taxonomy_template.combine(deconv_spectra_ch).map { it -> it[0] },
-        xtandem_input_template.combine(deconv_spectra_ch).map { it -> it[0] },
-        joined_fasta_with_decoys_ch.combine(deconv_spectra_ch).map { it -> it[0] }
-    )
-
-    xtandem_search_results_ch = XinteractXTandem(
-        xtandem_pepxml_ch.collect(),
-        joined_fasta_with_decoys_ch,
-        xinteract_xtandem_mzxml_ch.collect()
-    )
-
-    // Combine search results
-
-    if (params.search_engines.size() > 1) {  
-        combined_search_results_ch = CombineSearchResults(xtandem_search_results_ch, comet_search_results_ch)
-    } else if (params.search_engines.contains("comet")) {
-        combined_search_results_ch = comet_search_results_ch
-    } else if (params.search_engines.contains("xtandem")) {
-        combined_search_results_ch = xtandem_search_results_ch
-    } else {
-        combined_search_results_ch = channel.empty()
-    }
-
-    //
     // Spectral library
     //
+    // The default behavior of glaDIAtor-nf is to build spectral library from DIA data with DIA-Umpire through deconvolution.
+    // Optionally DDA spectra can be used together or instead of deconvoluted DIA spectra.
+    //
+    // Alternatively a spectral library can be provided. This disables library generation.
 
-    minimum_peptide_probability_val = FindMinimumPeptideProbability(combined_search_results_ch, joined_fasta_with_decoys_ch, max_missed_cleavages_val).map { it -> it.text.trim() }
-
-    if (params.use_irt) {
-        irt_traml_ch = channel.fromPath(params.irt_traml_file)
-        create_spectrast_irt_file_awk_script = channel.fromPath("${workflow.projectDir}/spectral-library/create_spectrast_irt_file.awk")
-
-        irt_txt_ch = CreateSpectrastIrtFile(irt_traml_ch, create_spectrast_irt_file_awk_script)
+    if (ensureList(params.libgen_method).contains('custom')) {
+        speclib_tsv_for_decoys = channel.fromPath(params.speclib)
     } else {
-        irt_txt_ch = channel.fromPath("${workflow.projectDir}/dummy")
-    }
+        dda_files_ch = channel.empty()
+        diaumpire_pseudospectra_ch = channel.empty()
 
-    consensus_lib_sptxt_ch = SpectrastCreateSpecLib(irt_txt_ch, combined_search_results_ch, joined_fasta_with_decoys_ch, minimum_peptide_probability_val)
+        if (ensureList(params.libgen_method).contains('dda')) {
+            dda_files_ch = channel.fromPath(params.ddafiles)
+        }
+
+        if (ensureList(params.libgen_method).contains('diaumpire')) {
+            dia_mzml_files_for_diaumpire_ch = channel.fromPath(params.diafiles)
+            diaumpire_config_ch = channel.fromPath(params.diaumpireconfig)
+
+            dia_mzxml_files_for_diaumpire_ch = MzmlToMzxml(dia_mzml_files_for_diaumpire_ch)
+
+            diaumpire_pseudospectra_mgf_ch = GeneratePseudoSpectra(
+                dia_mzxml_files_for_diaumpire_ch,
+                diaumpire_config_ch.combine(dia_mzxml_files_for_diaumpire_ch).map { it -> it[0] }
+            ).flatten()  // single .mzXML gives multiple .mgf files
+
+            diaumpire_pseudospectra_ch = DiaUmpireMgfToMzxml(diaumpire_pseudospectra_mgf_ch)
+        }
+
+        deconv_spectra_ch = dda_files_ch.concat(diaumpire_pseudospectra_ch)
+
+        //
+        // MS/MS spectra vs sequences database search engines
+        //
+        // Comet and X! Tandem
+
+        max_missed_cleavages_val = channel.value(params.max_missed_cleavages)
+
+        // Comet
+
+        comet_template_ch = channel.fromPath(params.comet_template)
+        comet_config_ch = MakeCometConfig(max_missed_cleavages_val, joined_fasta_with_decoys_ch, comet_template_ch)
+
+        (comet_pepxml_ch, xinteract_comet_mzxml_ch) = Comet(
+            comet_config_ch.combine(deconv_spectra_ch).map { it -> it[0] },
+            deconv_spectra_ch,
+            joined_fasta_with_decoys_ch.combine(deconv_spectra_ch).map { it -> it[0] }
+        )
+
+        comet_search_results_ch = XinteractComet(comet_pepxml_ch.toSortedList(), joined_fasta_with_decoys_ch, xinteract_comet_mzxml_ch.toSortedList())
+
+        // X! Tandem
+
+        xtandem_template_ch = channel.fromPath(params.xtandem_template)
+        xtandem_config_ch = MakeXtandemConfig(xtandem_template_ch, joined_fasta_with_decoys_ch, max_missed_cleavages_val)
+
+        taxonomy_template = channel.fromPath("${workflow.projectDir}/search/tandem/taxonomy-template.xml")
+        xtandem_input_template = channel.fromPath("${workflow.projectDir}/search/tandem/xtandem-input-template.xml")
+
+        (xtandem_pepxml_ch, xinteract_xtandem_mzxml_ch) = XTandem(
+            deconv_spectra_ch,
+            xtandem_config_ch.combine(deconv_spectra_ch).map { it -> it[0] },
+            taxonomy_template.combine(deconv_spectra_ch).map { it -> it[0] },
+            xtandem_input_template.combine(deconv_spectra_ch).map { it -> it[0] },
+            joined_fasta_with_decoys_ch.combine(deconv_spectra_ch).map { it -> it[0] }
+        )
+
+        xtandem_search_results_ch = XinteractXTandem(
+            xtandem_pepxml_ch.collect(),
+            joined_fasta_with_decoys_ch,
+            xinteract_xtandem_mzxml_ch.collect()
+        )
+
+        // Combine search results
+
+        if (params.search_engines.size() > 1) {  
+            combined_search_results_ch = CombineSearchResults(xtandem_search_results_ch, comet_search_results_ch)
+        } else if (params.search_engines.contains("comet")) {
+            combined_search_results_ch = comet_search_results_ch
+        } else if (params.search_engines.contains("xtandem")) {
+            combined_search_results_ch = xtandem_search_results_ch
+        } else {
+            combined_search_results_ch = channel.empty()
+        }
+
+        //
+        // Build spectral library
+
+        minimum_peptide_probability_val = FindMinimumPeptideProbability(combined_search_results_ch, joined_fasta_with_decoys_ch, max_missed_cleavages_val).map { it -> it.text.trim() }
+
+        if (params.use_irt) {
+            irt_traml_ch = channel.fromPath(params.irt_traml_file)
+            create_spectrast_irt_file_awk_script = channel.fromPath("${workflow.projectDir}/spectral-library/create_spectrast_irt_file.awk")
+
+            irt_txt_ch = CreateSpectrastIrtFile(irt_traml_ch, create_spectrast_irt_file_awk_script)
+        } else {
+            irt_txt_ch = channel.fromPath("${workflow.projectDir}/dummy")
+        }
+
+        consensus_lib_sptxt_ch = SpectrastCreateSpecLib(irt_txt_ch, combined_search_results_ch, joined_fasta_with_decoys_ch, minimum_peptide_probability_val)
+        speclib_tsv_for_decoys = Spectrast2OpenSwathTsv(swath_windows_file_ch, consensus_lib_sptxt_ch)
+    }
 
     //
     // Quantification
     //
-
-    speclib_tsv_for_decoys = Spectrast2OpenSwathTsv(swath_windows_file_ch, consensus_lib_sptxt_ch)
 
     if(params.oswdg_min_decoy_fraction != null) { 
         oswdg_args = channel.value("-min_decoy_fraction ${params.oswdg_min_decoy_fraction}")

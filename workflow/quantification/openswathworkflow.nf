@@ -1,5 +1,3 @@
-include { libgen_method_is_enabled } from '../params.nf'
-
 process OpenSwathWorkflow {
     memory { 16.GB }
 

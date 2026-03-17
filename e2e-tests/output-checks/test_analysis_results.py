@@ -16,8 +16,8 @@ def test_spectral_library_transitions_decoys():
     assert len(spectral_library_transitions_decoys_file_parent_locations) == 1, "There should be exactly one process creating transition decoys"
     spectral_library_transitions_decoys_file = Path(list(spectral_library_transitions_decoys_file_parent_locations)[0]) / "SpecLib_cons_decoys.pqp"
 
-    assert os.path.getsize(spectral_library_transitions_decoys_file) == 5521408, "The size of transitions decoys file changed."
-    assert calculate_sha256_sum(spectral_library_transitions_decoys_file) == "8e41b87844ad25f6e2053f4fc3b746fd272a40f10a5d3acd11b49185885eb562"
+    assert os.path.getsize(spectral_library_transitions_decoys_file) in [5521408, 5517312], "The size of transitions decoys file changed."
+    assert calculate_sha256_sum(spectral_library_transitions_decoys_file) in ["8e41b87844ad25f6e2053f4fc3b746fd272a40f10a5d3acd11b49185885eb562", "f3fde3c8286612c3b919cf45b5bbd33b70ad5a529ae666a8d456be01f5f81e24"]
 
 
 def test_open_swath_workflow_files():
