@@ -1,19 +1,11 @@
-# This file is a template, and might need editing before it works on your project.
-# This is a sample GitLab CI/CD configuration file that should run without any modifications.
-# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
-# it uses echo commands to simulate the pipeline execution.
-#
-# A pipeline is composed of independent jobs that run scripts, grouped into stages.
-# Stages run in sequential order, but jobs within stages run in parallel.
-#
-# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
-#
-# You can copy and paste this template into a new `.gitlab-ci.yml` file.
-# You should not add this template to an existing `.gitlab-ci.yml` file by using the `include:` keyword.
-#
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/ee/development/cicd/templates.html
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+stages:
+  # - setup-cache
+  # - build
+  - "E2E tests"
+
+include:
+  - 'e2e-tests/e2e-tests-ci.yml'
+
 # variables:
 #   GUIX_BUILD_OPTIONS: "--fallback" 
 #   MAKECMD: guix time-machine --channels=ci/guix/channels.scm -- shell make guix --pure --preserve=^GUIX_BUILD_OPTIONS --preserve=^SSL_ -- make SHELL=guix
@@ -25,7 +17,6 @@
 #     key:
 #       files:
 #         - guix/channels.scm
-#         - guix/ci/manifests/emacs.scm
 #     paths:
 #       - archive/
 #   before_script:
@@ -33,33 +24,14 @@
 #     - test -e archive/signing-key.pub && cat archive/signing-key.pub | guix archive --authorize  || true 
 #     - test -e archive/archive.nar && cat archive/archive.nar | guix archive --import  || true
 #     - set -o pipefail # make the exit code of a pipe be the first non-zero value
-#     # singularsyntax/guix-bootstrap
-
-stages:
-  # - setup-cache
-  # - tangle
-  # - build
-  - "E2E tests"
-
-include: 'e2e-tests/e2e-tests-ci.yml'
 
 # show-env:
 #   stage: .pre
 #   script:
 #     - ls -lta /var/run/
 #     - $MAKECMD environment
-
-# tangle-files:
-#   stage: tangle
-#   script:
-#     - $MAKECMD tangle
-#   artifacts:
-#     untracked: true
-#     name: template-files
-#     exclude:
-#       - archive/*
   
-# build-cache:
+# "Build cache":
 #   stage: setup-cache
 #   timeout:  2h
 #   allow_failure: true
@@ -68,23 +40,6 @@ include: 'e2e-tests/e2e-tests-ci.yml'
 #     - guix archive --generate-key
 #     - cp /etc/guix/signing-key.pub archive/
 #     - guix archive --export --recursive `guix time-machine --channels=ci/guix/channels.scm -- shell $(printf " --manifest=%s" ci/guix/manifests/emacs.scm ci/guix/manifests/*doc*.scm) -- sh -c 'echo $GUIX_ENVIRONMENT'` > archive/archive.nar
-    
-# build-html:       # This job runs in the build stage, which runs first.
-#   stage: build
-#   artifacts:
-#     paths:
-#     - notes.html
-#   script:
-#     - $MAKECMD notes.html
-
-# build-pdf:
-#   stage: build
-#   timeout: 4h
-#   artifacts:
-#     paths:
-#       - notes.pdf
-#   script:
-#     - $MAKECMD notes.pdf     
 
 # build-pyprophet-nonlegacy-container:
 #   stage: build

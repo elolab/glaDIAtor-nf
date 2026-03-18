@@ -1,19 +1,7 @@
-# This makefile automates container generation
-# and file tangling.
-# The following section (delimited by  (page breaks)
-# are variables you can set as the user.
+# This makefile automates container generation.
 # 
 # if you set SHELL=guix,
 # this makefile will use guix time-machine & guix-shell to take care of dependencies
-# To make e.g the docs, invoke as 
-# $ make doc
-# to _not_ use guix
-# with guix invoke like so
-# $ make SHELL=guix doc
-# but even better
-# $ guix time-machine -C containers/guix/channels.scm -- shell --container --share=/var/guix/daemon-socket/socket  make guix nss-certs --network -- make SHELL=guix doc
-# or as 
-# $ guix time-machine -C containers/guix/channels.scm -- shell --pure --preserve='^SSL_'  make guix -- make SHELL=guix doc
 
 DOCKER_EXECUTABLE=podman
 
@@ -43,7 +31,7 @@ endif
 # Pass CONTAINER_TAG=`git rev-parse --short HEAD` to make the tag the current commit ref,
 CONTAINER_TAG=
 
-.PHONY: doc tangle all singularity-containers docker-containers docker-containers-push environment html info dist
+.PHONY: all singularity-containers docker-containers docker-containers-push
 
 # If you want to push only some of the containers to the registry
 # set CONTAINER_NAMES on the command line to that subset.
@@ -53,70 +41,22 @@ docker-containers: $(patsubst %,containers/dist/%.tar,$(CONTAINER_NAMES))
 
 all: singularity-containers docker-containers
 
-html: ci/doc/notes.html
-doc: ci/doc/notes.html ci/doc/notes.pdf
-info: ci/doc/notes.info
-
-EMACSCMD=emacs --batch --eval "(setq enable-local-variables :all user-full-name \"\")" --eval "(require 'ob-dot)" 
-
-# temporarily set manifests to use to emacs.scm so that we can find what files the org-file tangles out to
-MANIFESTS=containers/guix/manifests/emacs.scm
-tangled-files:=$(shell $(EMACSCMD)  --file=notes.org --eval  "(princ (mapconcat (lambda (x) (file-relative-name (car x))) (with-output-to-temp-buffer \"ignored-messages\" (let ((inhibit-message t)) (org-babel-tangle-collect-blocks))) \"\n\"))")
-MANIFESTS=
-tangle: $(tangled-files)
-
-.INTERMEDIATE: dockerd.pid
-
-%.html: MANIFESTS = containers/guix/manifests/emacs.scm containers/guix/manifests/html-doc.scm
-%.html: %.org .dir-locals.el 
-	$(EMACSCMD) --file $< -f org-html-export-to-html
-
-dist: gladiator-nf.tar
-
-gladiator-nf.tar: MANIFESTS=containers/guix/manifests/make-dist.scm
-gladiator-nf.tar: $(tangled-files) ci/doc/notes.html ci/doc/notes.info ci/doc/notes.pdf
-	git archive -o $@ HEAD
-	tar -f $@ --delete ci/doc/notes.html ci/doc/notes.info ci/doc/notes.pdf
-	tar -f $@ --append $^
-
-ci/doc/%.html:  %.org .dir-locals.el ci/doc/make-doc.el
-	$(EMACSCMD) --load ./ci/doc/make-doc.el  $< $@
-
-%.info: MANIFESTS= containers/guix/manifests/emacs.scm containers/guix/manifests/texinfo-doc.scm
-ci/doc/%.info:  %.org .dir-locals.el ci/doc/make-doc.el
-	$(EMACSCMD) --load ./ci/doc/make-doc.el  $< $@
-
-%.pdf: MANIFESTS = containers/guix/manifests/emacs.scm containers/guix/manifests/pdf-doc.scm
-
-%.pdf: %.org .dir-locals.el
-	$(EMACSCMD) --file $< -f org-latex-export-to-pdf
-
-ci/doc/%.pdf:  %.org .dir-locals.el ci/doc/make-doc.el
-	$(EMACSCMD) --load ./ci/doc/make-doc.el  $< $@
-
-
-# the & indicate that a single invocation generates all
-# see (info "(make) Multiple Targets") section _Grouped Targets"
-$(tangled-files) &: MANIFESTS=containers/guix/manifests/emacs.scm
-$(tangled-files) &: notes.org
-	$(EMACSCMD) --file $< -f org-babel-tangle
-
 containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: MANIFESTS=
 containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: PACKAGES=guix coreutils bash-minimal
-containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: containers/guix/pyprophet-legacy-channels.scm containers/guix/manifests/pyprophet-legacy.scm containers/guix/manifests/nextflow-trace.scm
+containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: containers/guix/pyprophet-legacy-channels.scm containers/guix/manifests/pyprophet-legacy.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
 containers/dist/pyprophet.simg containers/dist/pyprophet.tar: MANIFESTS=
 containers/dist/pyprophet.simg containers/dist/pyprophet.tar: PACKAGES=guix coreutils bash-minimal
-containers/dist/pyprophet.simg containers/dist/pyprophet.tar: containers/guix/channels.scm containers/guix/manifests/pyprophet.scm containers/guix/manifests/nextflow-trace.scm
+containers/dist/pyprophet.simg containers/dist/pyprophet.tar: containers/guix/channels.scm containers/guix/manifests/pyprophet.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
 # For some reason, -S /usr/bin/env=bin/env doesnt work for squashfs,
 # but linking -S /usr=. (so to the profile dir) does work, so /usr/bin/env  exist this way.
 containers/dist/gladiator-guix.simg containers/dist/gladiator-guix.tar: PACKAGES=guix coreutils bash-minimal
-containers/dist/gladiator-guix.simg containers/dist/gladiator-guix.tar: containers/guix/gladiator-guix-channels.scm containers/guix/manifests/gladiator.scm containers/guix/manifests/nextflow-trace.scm
+containers/dist/gladiator-guix.simg containers/dist/gladiator-guix.tar: containers/guix/gladiator-guix-channels.scm containers/guix/manifests/gladiator.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S /bin/bash=bin/bash -S /usr=. --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
@@ -169,11 +109,3 @@ docker-containers-push: docker-containers | $(if $(findstring docker,$(DOCKER_EX
 	$(DOCKER_EXECUTABLE) tag $$LOADED_IMAGENAME $$TARGET_IMAGENAME &&  \
 	$(DOCKER_EXECUTABLE) push $$TARGET_IMAGENAME && ,\
 	$(CONTAINER_NAMES)) :
-
-environment: PACKAGES=coreutils
-environment:
-	env
-
-TAGS: MANIFESTS=containers/guix/manifests/emacs.scm
-TAGS: nextflow.tags $(wildcard *.org)
-	etags --regex=@$< $(wordlist 2,$(words $^),$^) --output=$@
