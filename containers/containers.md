@@ -2,7 +2,7 @@
 
 ## Building locally
 
-Containers are available from the public registry, but you can also build them yourself. The containers are defined by Guix manifests, and guix is needed to build them
+Containers are available from the public registry, but you can also build them yourself. The containers are defined by Guix manifests, and Guix is needed to build them
 
 ::::{tab-set}
 :::{tab-item} Ubuntu 24.04 LTS

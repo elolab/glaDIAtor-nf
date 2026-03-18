@@ -7,7 +7,7 @@
 
 ## Software dependencies
 
-* NextFlow 22.10.1 (>= 22.10)
+* NextFlow 25.10.4 (>= 22.10)
 * Java 17 (>= 17, <= 25)
 
 Experimental spectra in proprietary formats need to be converted to .mzML or .mzXML with tools like [ProteoWizard msconvert](https://hub.docker.com/r/proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses) 3.0.21354.

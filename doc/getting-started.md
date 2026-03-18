@@ -4,7 +4,8 @@
 
 Required software dependencies
 
-* NextFlow 25.10.4, together with Java >= 17, <= 25
+* NextFlow 25.10.4, together with Java >= 17, <= 25  
+  (older NextFlow down to 22.10 should also work)
 * Apptainer, Podman, Docker, Singularity or Guix
 
 ::::{tab-set}
@@ -63,7 +64,7 @@ mkdir protein-sequences
 wget --directory-prefix=protein-sequences 'ftp://massive-ftp.ucsd.edu:/v05/MSV000090837/sequence/fasta/*.fasta'
 ```
 
-Only one pair of technical replicates (`10820_Grad090_LFQ_A_01.raw` and `210820_Grad090_LFQ_B_01.raw`) is selected from [`MSV000090837`](https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?task=07dff4c92f134519af9ed8a5f1d7b6c0) dataset to lower the storage and processing requirements. .mzML format is also available but .raw is used to demontstrate the conversion.
+Only one pair of technical replicates (`10820_Grad090_LFQ_A_01.raw` and `210820_Grad090_LFQ_B_01.raw`) is selected from [MSV000090837](https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?task=07dff4c92f134519af9ed8a5f1d7b6c0) dataset to lower the storage and processing requirements. .mzML format is also available but .raw is used to demontstrate the conversion.
 
 (convertion-to-mzml-and-peak-picking)=
 ### Conversion to mzML and peak picking
@@ -139,7 +140,7 @@ Paste following to a new file, it can be called `gladiator-config.nf`
 ```sh
 gladiator_location="../gladiator-nf"
 
-NXF_VER="22.10.1" nextflow -c gladiator-config.nf -c "${gladiator_location}/config/containers/docker.config" \
+NXF_VER="25.10.4" nextflow -c gladiator-config.nf -c "${gladiator_location}/config/containers/docker.config" \
     run "${gladiator_location}/workflow/gladiator.nf" --diafiles='dia-spectra/*.mzML' --fastafiles='protein-sequences/*.fasta'
 ```
 :::
@@ -148,7 +149,7 @@ NXF_VER="22.10.1" nextflow -c gladiator-config.nf -c "${gladiator_location}/conf
 ```sh
 gladiator_location="../gladiator-nf"
 
-NXF_VER="22.10.1" nextflow -c gladiator-config.nf -c "${gladiator_location}/config/containers/podman.config" \
+NXF_VER="25.10.4" nextflow -c gladiator-config.nf -c "${gladiator_location}/config/containers/podman.config" \
     run "${gladiator_location}/workflow/gladiator.nf" --diafiles='dia-spectra/*.mzML' --fastafiles='protein-sequences/*.fasta'
 ```
 :::
@@ -157,7 +158,7 @@ NXF_VER="22.10.1" nextflow -c gladiator-config.nf -c "${gladiator_location}/conf
 ```sh
 gladiator_location="../gladiator-nf"
 
-NXF_VER="22.10.1" nextflow -c gladiator-config.nf -c "${gladiator_location}/config/containers/singularity.config" \
+NXF_VER="25.10.4" nextflow -c gladiator-config.nf -c "${gladiator_location}/config/containers/singularity.config" \
     run "${gladiator_location}/workflow/gladiator.nf" --diafiles='dia-spectra/*.mzML' --fastafiles='protein-sequences/*.fasta'
 ```
 :::
