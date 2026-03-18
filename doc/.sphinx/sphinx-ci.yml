@@ -1,0 +1,28 @@
+# Requires "Deploy" stage to be available
+
+"Build Sphinx image":
+  stage: "Deploy"
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
+    - docker build -f doc/.sphinx/sphinx.Dockerfile . -t "${CI_REGISTRY_IMAGE}/sphinx:latest"
+    - docker push "${CI_REGISTRY_IMAGE}/sphinx:latest"
+  image: "docker:29"
+  tags:
+    - docker
+  needs: []
+
+"Deploy documentation":
+  stage: "Deploy"
+  script:
+    - doc/.sphinx/build.sh
+  pages:
+    publish: doc/dist
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - doc/.sphinx/.venv
+  image: "${CI_REGISTRY_IMAGE}/sphinx:latest"
+  needs:
+    - "Build Sphinx image"
+  # rules:
+  #   - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH

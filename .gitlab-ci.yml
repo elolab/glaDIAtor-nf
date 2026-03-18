@@ -2,9 +2,11 @@ stages:
   # - setup-cache
   # - build
   - "E2E tests"
+  - "Deploy"
 
 include:
   - 'e2e-tests/e2e-tests-ci.yml'
+  - 'doc/.sphinx/sphinx-ci.yml'
 
 # variables:
 #   GUIX_BUILD_OPTIONS: "--fallback" 
