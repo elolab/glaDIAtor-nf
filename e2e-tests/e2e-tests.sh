@@ -160,7 +160,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   NXF_VER="25.10.4"
 
   if contains "legacy-nextflow" "$@"; then
-    NXF_VER="22.10.1"
+    NXF_VER="22.10.7"
   fi
 
   #
@@ -171,10 +171,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   # Enables workarounds:
   # * '.irt' file was compulsory even when not used.
   # * 'params.libgen_method' is no longer a string.
+  # * Locations of configuration files of DIA-Umpire, X! Tandem and Comet are resolved in runtime in DSL2 version.
+  #   DSL1 version still needs hardcoded paths.
 
   workflow_file="../workflow/gladiator.nf"
   irt_workaround_switches=""
   libgen_method_workaround_switch=""
+  config_files_workaround_switches=""
 
   if contains "dsl1" "$@"; then
     workflow_file="../workflow/legacy-gladiator.nf"
@@ -183,6 +186,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     if ! contains "spectral-library-provided" "$@"; then
       libgen_method_workaround_switch="--libgen_method=diaumpire"
     fi
+
+    config_files_workaround_switches="--diaumpireconfig=config/diaumpire.params --comet_template=config/comet.params --xtandem_template=config/xtandem.xml"
   fi
 
   #
@@ -206,7 +211,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   fi
 
   NXF_VER="${NXF_VER}" nextflow -c e2e-conf.nf ${container_configuration_switch} \
-      run ${produce_profiling_reports} "${workflow_file}" ${swath_windows_provided_switch} ${spectral_library_provided_switch} ${irt_workaround_switches} ${libgen_method_workaround_switch}
+      run ${produce_profiling_reports} "${workflow_file}" ${swath_windows_provided_switch} ${spectral_library_provided_switch} ${irt_workaround_switches} ${libgen_method_workaround_switch} ${config_files_workaround_switches}
 
   echo "Checking the output with PyTest"
 
