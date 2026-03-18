@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Subset preparation
 
 Scripts collected here were used to generate small `mzML` files, to be used to perform e2e test with **glaDIAtor-nf**.
