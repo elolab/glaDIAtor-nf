@@ -119,7 +119,7 @@ workflow {
 
         if (ensureList(params.libgen_method).contains('diaumpire')) {
             dia_mzml_files_for_diaumpire_ch = channel.fromPath(params.diafiles)
-            diaumpire_config_ch = channel.fromPath(params.diaumpireconfig)
+            diaumpire_config_ch = channel.fromPath(params.diaumpireconfig ? params.diaumpireconfig : "${workflow.projectDir}/../config/diaumpire.params")
 
             dia_mzxml_files_for_diaumpire_ch = MzmlToMzxml(dia_mzml_files_for_diaumpire_ch)
 
@@ -142,7 +142,7 @@ workflow {
 
         // Comet
 
-        comet_template_ch = channel.fromPath(params.comet_template)
+        comet_template_ch = channel.fromPath(params.comet_template ? params.comet_template : "${workflow.projectDir}/../config/comet.params")
         comet_config_ch = MakeCometConfig(max_missed_cleavages_val, joined_fasta_with_decoys_ch, comet_template_ch)
 
         (comet_pepxml_ch, xinteract_comet_mzxml_ch) = Comet(
@@ -155,7 +155,7 @@ workflow {
 
         // X! Tandem
 
-        xtandem_template_ch = channel.fromPath(params.xtandem_template)
+        xtandem_template_ch = channel.fromPath(params.xtandem_template ? params.xtandem_template : "${workflow.projectDir}/../config/xtandem.xml")
         xtandem_config_ch = MakeXtandemConfig(xtandem_template_ch, joined_fasta_with_decoys_ch, max_missed_cleavages_val)
 
         taxonomy_template = channel.fromPath("${workflow.projectDir}/search/tandem/taxonomy-template.xml")
