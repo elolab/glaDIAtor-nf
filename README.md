@@ -38,7 +38,7 @@ mkdir protein-sequences
 wget --directory-prefix=protein-sequences 'ftp://massive-ftp.ucsd.edu:/v05/MSV000090837/sequence/fasta/*.fasta'
 
 gladiator_location="../gladiator-nf"
-gladiator_container_type="docker"  # docker, podman, singularity or guix
+gladiator_container_type="singularity"  # docker, podman, singularity or guix
 
 nextflow -config "${gladiator_location}/config/containers/${gladiator_container_type}.config" \
     run "${gladiator_location}/workflow/gladiator.nf" \

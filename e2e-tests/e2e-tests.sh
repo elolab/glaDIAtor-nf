@@ -168,8 +168,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   #
   # switch: dsl1
   #
-  # .irt file was compulsory even when not used
-  # params.libgen_method is no longer a string
+  # Enables workarounds:
+  # * '.irt' file was compulsory even when not used.
+  # * 'params.libgen_method' is no longer a string.
 
   workflow_file="../workflow/gladiator.nf"
   irt_workaround_switches=""
