@@ -43,20 +43,20 @@ all: singularity-containers docker-containers
 
 containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: MANIFESTS=
 containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: PACKAGES=guix coreutils bash-minimal
-containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: containers/guix/pyprophet-legacy-channels.scm containers/guix/manifests/pyprophet-legacy.scm
+containers/dist/pyprophet-legacy.simg containers/dist/pyprophet-legacy.tar: containers/guix/pyprophet-legacy-channels.scm containers/guix/manifests/pyprophet-legacy.scm containers/guix/manifests/nextflow-trace.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
 containers/dist/pyprophet.simg containers/dist/pyprophet.tar: MANIFESTS=
 containers/dist/pyprophet.simg containers/dist/pyprophet.tar: PACKAGES=guix coreutils bash-minimal
-containers/dist/pyprophet.simg containers/dist/pyprophet.tar: containers/guix/channels.scm containers/guix/manifests/pyprophet.scm
+containers/dist/pyprophet.simg containers/dist/pyprophet.tar: containers/guix/channels.scm containers/guix/manifests/pyprophet.scm containers/guix/manifests/nextflow-trace.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S/bin/bash=bin/bash --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
 # For some reason, -S /usr/bin/env=bin/env doesnt work for squashfs,
 # but linking -S /usr=. (so to the profile dir) does work, so /usr/bin/env  exist this way.
 containers/dist/gladiator-guix.simg containers/dist/gladiator-guix.tar: PACKAGES=guix coreutils bash-minimal
-containers/dist/gladiator-guix.simg containers/dist/gladiator-guix.tar: containers/guix/gladiator-guix-channels.scm containers/guix/manifests/gladiator.scm
+containers/dist/gladiator-guix.simg containers/dist/gladiator-guix.tar: containers/guix/gladiator-guix-channels.scm containers/guix/manifests/gladiator.scm containers/guix/manifests/nextflow-trace.scm
 	mkdir -p $(@D)
 	cp `guix time-machine -C $< -- pack $(GUIX_PACK_FLAGS) -S /bin/bash=bin/bash -S /usr=. --format=$(if $(filter %.tar,$@),docker,squashfs) $(patsubst %,--manifest=%,$(wordlist 2,$(words $^),$^))` $@
 
