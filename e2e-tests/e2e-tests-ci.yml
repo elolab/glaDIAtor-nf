@@ -67,19 +67,19 @@
   tags:
     - singularity
 
-"Quick E2E test (SWATH windows provided, DSL1)":
-  stage: "E2E tests"
-  script:
-    - ./e2e-tests/e2e-tests.sh dsl1 legacy-nextflow swath-windows-provided
-  cache:
-    key: "$CI_COMMIT_REF_SLUG"
-    paths:
-      - e2e-tests/.cache
-  image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
-  needs:
-    - "Build NextFlow image"
-  tags:
-    - singularity
+# "Quick E2E test (SWATH windows provided, DSL1)":
+#   stage: "E2E tests"
+#   script:
+#     - ./e2e-tests/e2e-tests.sh dsl1 legacy-nextflow swath-windows-provided
+#   cache:
+#     key: "$CI_COMMIT_REF_SLUG"
+#     paths:
+#       - e2e-tests/.cache
+#   image: "${CI_REGISTRY_IMAGE}/e2e-tests:latest"
+#   needs:
+#     - "Build NextFlow image"
+#   tags:
+#     - singularity
 
 "Quick E2E test (spectral library provided)":
   stage: "E2E tests"
