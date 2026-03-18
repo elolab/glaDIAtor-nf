@@ -7,12 +7,12 @@ params {
     pyprophet_subsample_ratio = null  // when set to null, it resolves to subsample ratio of 1 / {number of samples}
 
     // DIA-Umpire, Comet and X! Tandem configuration can be customized by making copies
-    // of 'config/diaumpire.params', 'config/comet.params' or 'config/xtandem.params'.
+    // of 'config/diaumpire.params', 'config/comet.params' or 'config/xtandem.xml'.
     //
     // The custom files are not used until their location is specified, for example:
     //
     //   diaumpireconfig = "./diaumpire.params"
     //   comet_template = "./comet.params"
-    //   xtandem_template = "./xtandem.params"
+    //   xtandem_template = "./xtandem.xml"
 }
 ```
