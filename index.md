@@ -1,5 +1,13 @@
 # glaDIAtor-nf
 
+:::{toctree}
+:maxdepth: 2
+
+doc/getting-started.md
+doc/user-guide/index.md
+doc/development/index.md
+:::
+
 ## Licenses
 
 glaDIAtor-nf workflow is licensed under {octicon}`law` [GPL 3](https://github.com/elolab/glaDIAtor-nf/blob/master/LICENSE).
