@@ -1,8 +1,28 @@
-{
-	"name": "Existing Dockerfile",
-	"build": {
-		"context": "..",
-		"dockerfile": "../e2e-tests/e2e-tests.Dockerfile"
-	},
-	"privileged": true
-}
+// Configurations below allow VSCode to enter selected CI environment.
+// Enable one of the configurations and call _Reopen in Container_.
+
+// {
+//   "name": "E2E tests",
+//   "build": {
+//     "context": "..",
+//     "dockerfile": "../e2e-tests/e2e-tests.Dockerfile"
+//   },
+//   "privileged": true
+// }
+
+// {
+//   "name": "Sphinx",
+//   "build": {
+//     "context": "..",
+//     "dockerfile": "../doc/.sphinx/sphinx.Dockerfile"
+//   },
+//   "customizations": {
+//     "vscode": {
+//       "extensions": [
+//         "executablebookproject.myst-highlight",
+//         "ritwickdey.liveserver",
+//         "xrimson.bibtex-tidy"
+//       ]
+//     }
+//   }
+// }

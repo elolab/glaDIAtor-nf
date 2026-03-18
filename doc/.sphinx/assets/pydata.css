@@ -1,0 +1,7 @@
+.bd-main .bd-content .bd-article-container {
+  max-width: 100em;  /* default is 60em, 100% is possible */
+}
+
+.bd-page-width {
+  max-width: 118em;  /* default is 88rem, 100% is possible */
+}

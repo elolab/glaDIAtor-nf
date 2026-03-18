@@ -1,4 +1,16 @@
 {
+    "bibtex-tidy.options": {
+        "blankLines": true,
+        "curly": true,
+        "enclosingBraces": true,
+        "sort": ["-year", "author", "title"],
+        "sortFields": true
+    },
+    "liveServer.settings.root": "/doc/dist",
+    "myst.preview.extensions": [
+        "dollarmath",
+        "colon_fence"
+    ],
     "python.testing.cwd": "${workspaceFolder}/e2e-tests",
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,

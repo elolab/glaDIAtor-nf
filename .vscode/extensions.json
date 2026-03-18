@@ -1,5 +1,8 @@
 {
     "recommendations": [
-        "ms-vscode-remote.remote-containers"
+        "executablebookproject.myst-highlight",
+        "ms-vscode-remote.remote-containers",
+        "ritwickdey.liveserver",
+        "xrimson.bibtex-tidy"
     ]
 }
