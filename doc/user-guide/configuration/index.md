@@ -81,20 +81,6 @@ nextflow -c gladiator-config.nf ...
 
   **default:** `null`
 
-<!--
-### How to customize peptide search parameters of the spectral/pseudo-spectral library
-
-The default parameters are for a nanoflow HPLC system (Easy-nLC1200, Thermo Fisher Scientific) coupled to a Q Exactive HF mass spectrometer (Thermo Fisher Scientific) equipped with a nano-electrospray ionization source.
-
-Below is the summary of the default settings of that machine:
-
-* Precursor mass tolerance: 10 ppm
-* Fragment ion tolerance: 0.02 Da
-* Cleavage site: Trypsin_P
-* Fixed modification: Carbamidomethyl (C)
-* Variable modification: Oxidation (M)
--->
-
 ## Fine-tuning
 
 Make a copy of `config/diaumpire.params`, `config/comet.params` or `config/xtandem.xml` to customize the configuration of related components.
