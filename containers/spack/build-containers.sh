@@ -22,9 +22,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     ./comet/build-apptainer.sh
   fi
 
-  echo -n "Docker: "
-  cat ./comet/build-docker/image_name.txt
-
-  echo -n "Apptainer: "
-  ls ./comet/build-apptainer/*.sif
+  echo "Comet"
+  echo "  Docker: "
+  echo "    withName: Comet { container = 'localhost/$(cat ./comet/build-docker/image_name.txt)' }"
+  echo "  Apptainer: "
+  echo "    withName: Comet { container = 'file://../containers/spack/$(ls comet/build-apptainer/*.sif)' }"
 )
