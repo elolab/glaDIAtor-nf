@@ -2,7 +2,15 @@
 
 ## Building locally
 
-Containers are available from the public registry, but you can also build them yourself. The containers are defined by Guix manifests, and Guix is needed to build them
+Required containers are available from Docker Hub, but they can be also built locally.
+
+### Spack
+
+```bash
+containers/spack/build.sh
+```
+
+### Guix
 
 ::::{tab-set}
 :::{tab-item} Ubuntu 24.04 LTS
