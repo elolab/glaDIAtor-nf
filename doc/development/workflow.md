@@ -24,7 +24,7 @@ Following software packages are used internally
   * [OpenSwathDecoyGenerator](https://openms.de/documentation/TOPP_OpenSwathDecoyGenerator.html) – adds decoy transitions to the spectral library
 * [ProteoWizard](https://github.com/ProteoWizard/pwiz) msconvert 3.0.22088 – performs conversion between .mgf, .mzML and .mzXML.
 * [Trans-Proteomic Pipeline (TPP)](http://www.tppms.org) 6.1.9
-  * [Comet 2022.01](https://uwpr.github.io/Comet/releases/release_202201.html)
+  * [Comet 2022.01.0](https://uwpr.github.io/Comet/releases/release_202201.html)
   * [X! Tandem](https://www.thegpm.org/tandem) 2017.02.01.4
   * InteractParser – combines multiple files produced by Comet and X! Tandem
   * InterProphetParser – combines results from Comet and X! Tandem
