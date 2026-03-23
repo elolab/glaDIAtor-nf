@@ -35,7 +35,7 @@ SE.MS2SN = 1.1
 #Signal extraction: minimum signal intensity filter
 # for Thermo data, filtering is usually not necessary. Set SE.EstimateBG to false and SE.MinMSIntensity and SE.MinMSMSIntensity to a low value, e.g. 1
 # for older Q Exactive data, or when too many MS1 features are extracted, set SE.EstimateBG to yes (or apply SE.MinMSIntensity and SE.MinMSMSIntensity values based on BatMass visualization)
-SE.EstimateBG = false
+SE.EstimateBG = true
 SE.MinMSIntensity = 1
 SE.MinMSMSIntensity = 1
 

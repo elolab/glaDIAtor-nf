@@ -13,7 +13,7 @@ def test_comet_search_results_file():
     assert len(comet_search_results_files_parent_locations) == 1, "There should be exactly one process that produces final results from Comet"
     comet_search_results_file = Path(list(comet_search_results_files_parent_locations)[0]) / 'interact_comet.pep.xml'
 
-    assert_size_with_tolerance(os.path.getsize(comet_search_results_file), 24904216, 0.01,
+    assert_size_with_tolerance(os.path.getsize(comet_search_results_file), 19672284, 0.01,
         "The size of Comet search results file is {relative_size_change}% of a reference")  # size is consistent when run locally, but changes in the pipeline
 
     # assert calculate_sha256_sum_pep_xml(comet_search_results_file) == "..."
@@ -27,7 +27,7 @@ def test_tandem_search_results_file():
     assert len(tandem_search_results_files_parent_locations) == 1, "There should be exactly one process that produces final results from X! Tandem"
     tandem_search_results_file = Path(list(tandem_search_results_files_parent_locations)[0]) / 'interact_xtandem.pep.xml'
 
-    assert_size_with_tolerance(os.path.getsize(tandem_search_results_file), 6149964, 0.01,
+    assert_size_with_tolerance(os.path.getsize(tandem_search_results_file), 4993578, 0.01,
         "The size of X! Tandem search results file is {relative_size_change}% of a reference")  # size is consistent when run locally, but changes in the pipeline
 
     # assert calculate_sha256_sum_pep_xml(tandem_search_results_file) == "..."
@@ -41,7 +41,7 @@ def test_combined_search_results_file():
     assert len(combined_search_results_files_parent_locations) == 1, "There should be exactly one process that produces final search results"
     combined_search_results_file = Path(list(combined_search_results_files_parent_locations)[0]) / 'lib_iprophet.peps.xml'
 
-    assert_size_with_tolerance(os.path.getsize(combined_search_results_file), 32415672, 0.01,
+    assert_size_with_tolerance(os.path.getsize(combined_search_results_file), 25518941, 0.01,
         "The size of combined search results file is {relative_size_change}% of a reference")  # size is consistent when run locally, but changes in the pipeline
 
     # assert calculate_sha256_sum_pep_xml(combined_search_results_file) == "..."

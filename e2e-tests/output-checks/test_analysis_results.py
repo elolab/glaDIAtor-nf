@@ -16,8 +16,8 @@ def test_spectral_library_transitions_decoys():
     assert len(spectral_library_transitions_decoys_file_parent_locations) == 1, "There should be exactly one process creating transition decoys"
     spectral_library_transitions_decoys_file = Path(list(spectral_library_transitions_decoys_file_parent_locations)[0]) / "SpecLib_cons_decoys.pqp"
 
-    assert os.path.getsize(spectral_library_transitions_decoys_file) in [5521408, 5517312], "The size of transitions decoys file changed."
-    assert calculate_sha256_sum(spectral_library_transitions_decoys_file) in ["8e41b87844ad25f6e2053f4fc3b746fd272a40f10a5d3acd11b49185885eb562", "f3fde3c8286612c3b919cf45b5bbd33b70ad5a529ae666a8d456be01f5f81e24"]
+    assert os.path.getsize(spectral_library_transitions_decoys_file) == 4149248, "The size of transitions decoys file changed."  # 4145152
+    assert calculate_sha256_sum(spectral_library_transitions_decoys_file) == "11f3dbd5fcc1e021b1706d815d00e917416c0fb323a1f41d2ab7dd0e396ad87b"
 
 
 def test_open_swath_workflow_files():
@@ -39,10 +39,10 @@ def test_open_swath_workflow_files():
     assert open_swath_sample_a_output_file.exists(), "OpenSWATH Workflow output file is missing (sample A)"
     assert open_swath_sample_b_output_file.exists(), "OpenSWATH Workflow output file is missing (sample B)"
 
-    assert_size_with_tolerance(os.path.getsize(open_swath_sample_a_output_file), 24121344, 0.01,
+    assert_size_with_tolerance(os.path.getsize(open_swath_sample_a_output_file), 17997824, 0.01,
         "The size of OpenSWATH workflow output file (sample A) is {relative_size_change}% of expected size")
 
-    assert_size_with_tolerance(os.path.getsize(open_swath_sample_b_output_file), 24231936, 0.01,
+    assert_size_with_tolerance(os.path.getsize(open_swath_sample_b_output_file), 18014208, 0.01,
         "The size of OpenSWATH workflow output file (sample B) is {relative_size_change}% of expected size")
 
 
@@ -65,12 +65,10 @@ def test_pyprophet_subsample():
     assert pyprophet_subsample_sample_a_output_file.exists(), "PyProphet \"subsample\" output file is missing (sample A)"
     assert pyprophet_subsample_sample_b_output_file.exists(), "PyProphet \"subsample\" output file is missing (sample B)"
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_a_output_file),
-        mean([7720960, 7655424, 7630848, 7651328]), 0.02,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_a_output_file), mean([5713920]), 0.02,
         "The size of PyProphet \"subsample\" output file is {relative_size_change}% of expected size")
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_b_output_file),
-        mean([7704576, 7704576, 7684096, 7757824]), 0.02,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_b_output_file), mean([5677056]), 0.02,
         "The size of PyProphet \"subsample\" output file is {relative_size_change}% of expected size")
 
 
@@ -82,7 +80,7 @@ def test_pyprophet_learn_classifier():
     assert len(pyprophet_learn_classifier_parent_locations) == 1, "There should be exactly one PyProphet \"learn classifier\" process"
     pyprophet_learn_classifier_model_file = Path(list(pyprophet_learn_classifier_parent_locations)[0]) / "model.osw"
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_learn_classifier_model_file), 22740992, 0.02,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_learn_classifier_model_file), mean([16990208]), 0.02,
         "The size of PyProphet \"learn classifier\" file is {relative_size_change}% of expected size")
 
 
@@ -94,7 +92,7 @@ def test_pyprophet_control_error():
     assert len(pyprophet_control_error_parent_locations) == 1, "There should be exactly one PyProphet \"control error\" process"
     pyprophet_control_error_model_file = Path(list(pyprophet_control_error_parent_locations)[0]) / "model_global.osw"
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_control_error_model_file), 22740992, 0.02,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_control_error_model_file), mean([16990208]), 0.02,
         "The size of PyProphet \"control error\" file is {relative_size_change}% of expected size")
 
 
@@ -114,12 +112,10 @@ def test_pyprophet_backpropagate():
         pyprophet_backpropagate_sample_a_output_file = Path(list(pyprophet_backpropagate_parent_locations)[1]) / "210820_Grad090_LFQ_A_SubSet-DIA.tsv"
         pyprophet_backpropagate_sample_b_output_file = Path(list(pyprophet_backpropagate_parent_locations)[0]) / "210820_Grad090_LFQ_B_SubSet-DIA.tsv"
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_backpropagate_sample_a_output_file),
-        mean([4336995, 5084597, 5145789, 4405320, 4604114, 4712265, 4869724]), 0.15,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_backpropagate_sample_a_output_file), mean([4736616]), 0.05,
         "The size of PyProphet \"backpropagate\" file (sample A) is {relative_size_change}% of expected size")
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_backpropagate_sample_b_output_file),
-        mean([5509622, 7147218, 7255732, 5832613, 6094488, 6536317, 7041452]), 0.15,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_backpropagate_sample_b_output_file), mean([5587238]), 0.05,
         "The size of PyProphet \"backpropagate\" file (sample B) is {relative_size_change}% of expected size")
 
 
@@ -133,7 +129,7 @@ def test_feature_alignment_file():
     feature_alignment_file = Path(list(feature_alignment_files_parent_locations)[0]) / 'DIA-analysis-results.csv'
     reference_feature_alignment_file = Path(".cache/expected-protein-peptide-matrices/DIA-analysis-results.csv")
 
-    assert_size_with_tolerance(os.path.getsize(feature_alignment_file), os.path.getsize(reference_feature_alignment_file), 0.06,
+    assert_size_with_tolerance(os.path.getsize(feature_alignment_file), os.path.getsize(reference_feature_alignment_file), 0.05,
         "The size of the file coming from feature alignment is {relative_size_change}% of expected size")
 
 
@@ -171,17 +167,16 @@ def test_protein_matrix():
     #
     # Compare values per protein, per sample
 
-    comparison = protein_matrix.merge(reference_protein_matrix, on=['ProteinName'])[["210820_Grad090_LFQ_A_SubSet.mzML", "210820_Grad090_LFQ_B_SubSet.mzML", "A_subset5.mzML", "B_subset5.mzML"]].sort_index(axis=1)
-
+    comparison = protein_matrix.merge(reference_protein_matrix, on=['ProteinName'])[["210820_Grad090_LFQ_A_SubSet.mzML_x", "210820_Grad090_LFQ_B_SubSet.mzML_x", "210820_Grad090_LFQ_A_SubSet.mzML_y", "210820_Grad090_LFQ_B_SubSet.mzML_y"]].sort_index(axis=1)
     acceptable_zeros_percentage = 0.03
 
-    assert (comparison["210820_Grad090_LFQ_A_SubSet.mzML"].eq(0).sum() / comparison["210820_Grad090_LFQ_A_SubSet.mzML"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample A) have more zeros than expected"
-    assert (comparison["210820_Grad090_LFQ_B_SubSet.mzML"].eq(0).sum() / comparison["210820_Grad090_LFQ_B_SubSet.mzML"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample B) have more zeros than expected"
+    assert (comparison["210820_Grad090_LFQ_A_SubSet.mzML_x"].eq(0).sum() / comparison["210820_Grad090_LFQ_A_SubSet.mzML_x"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample A) have more zeros than expected"
+    assert (comparison["210820_Grad090_LFQ_B_SubSet.mzML_x"].eq(0).sum() / comparison["210820_Grad090_LFQ_B_SubSet.mzML_x"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample B) have more zeros than expected"
 
-    matrix_values_tolerance = 0.15
+    matrix_values_tolerance = 0.05
 
     comparison_non_zero = comparison[(comparison != 0).all(axis=1)]
-    relative_error_mean = (((comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML"] - comparison_non_zero["A_subset5.mzML"]) / comparison_non_zero["A_subset5.mzML"]).mean() + ((comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML"] - comparison_non_zero["B_subset5.mzML"]) / comparison_non_zero["B_subset5.mzML"]).mean()) / 2
+    relative_error_mean = (((comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_x"] - comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_y"]) / comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_y"]).mean() + ((comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_x"] - comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_y"]) / comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_y"]).mean()) / 2
     assert relative_error_mean <= matrix_values_tolerance, f"The values in protein matrix differ from the reference, relative error mean {round(relative_error_mean * 100, 2)}%"  # this has potential to crash with zeros among values
 
 

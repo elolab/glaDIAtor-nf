@@ -17,7 +17,7 @@ def test_spectral_library_file():
     spectral_library_file_size = os.path.getsize(spectral_library_file)
 
     assert_size_with_tolerance(
-        spectral_library_file_size, reference_size=50143255, size_tolerance=0.01,
+        spectral_library_file_size, reference_size=34102009, size_tolerance=0.01,
         message="The size of spectral library file is {relative_size_change}% of expected size"
     )
 
@@ -26,7 +26,7 @@ def test_spectral_library_file():
     assert calculate_sha256_sum_excluding_lines(spectral_library_summary, [
         "### IMPORT FROM PepXML",
         "Comment: "
-    ]) == "1983e4c50feec33249bdeb1f459f1afb47e1fd5b0aaf1a8fc77c088beee5adc0"
+    ]) == "de2ca63a6b78fb53a15cd493255e9698ad2ce8c67f32bc5b001aad89f0c3d270"
 
 
 def test_spectral_library_tsv_file():
@@ -37,5 +37,5 @@ def test_spectral_library_tsv_file():
     assert len(spectral_library_tsv_file_parent_locations) == 1, "There should be exactly one process creating spectral library"
     spectral_library_tsv_file = Path(list(spectral_library_tsv_file_parent_locations)[0]) / "SpecLib_cons_openswath.tsv"
 
-    assert os.path.getsize(spectral_library_tsv_file) == 4910440, "The size of spectral library .tsv file changed."
-    assert calculate_sha256_sum(spectral_library_tsv_file) == "ed4d651b293bea6042abbeed9a55c6b456f73319a074a63e3c40bfce1e2a022f"
+    assert os.path.getsize(spectral_library_tsv_file) == 3709748, "The size of spectral library .tsv file changed."
+    assert calculate_sha256_sum(spectral_library_tsv_file) == "f0de1fe92693eca9e8cc0bae357bb847670289cac066a18b86cd7da44b33a694"

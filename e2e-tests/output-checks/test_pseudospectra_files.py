@@ -23,33 +23,19 @@ def test_protein_sequences_file():
     mgfs_sha256_sums = { str(mgf).split("/")[-1]: calculate_sha256_sum(mgf) for mgf in mgfs }
 
     assert (mgfs_sizes == {
-        '210820_Grad090_LFQ_A_SubSet_Q1.mgf': 34118454,
-        '210820_Grad090_LFQ_A_SubSet_Q2.mgf': 54889313,
-        '210820_Grad090_LFQ_A_SubSet_Q3.mgf': 46850393,
-        '210820_Grad090_LFQ_B_SubSet_Q1.mgf': 36570735,
-        '210820_Grad090_LFQ_B_SubSet_Q2.mgf': 57920294,
-        '210820_Grad090_LFQ_B_SubSet_Q3.mgf': 47095893
-    } or mgfs_sizes == {
-        '210820_Grad090_LFQ_A_SubSet_Q1.mgf': 34118454,
-        '210820_Grad090_LFQ_A_SubSet_Q2.mgf': 54889313,
-        '210820_Grad090_LFQ_A_SubSet_Q3.mgf': 46850393,
-        '210820_Grad090_LFQ_B_SubSet_Q1.mgf': 36570735,
-        '210820_Grad090_LFQ_B_SubSet_Q2.mgf': 57925529,
-        '210820_Grad090_LFQ_B_SubSet_Q3.mgf': 47095893
+        '210820_Grad090_LFQ_A_SubSet_Q1.mgf': 22096869,
+        '210820_Grad090_LFQ_A_SubSet_Q2.mgf': 35680476,
+        '210820_Grad090_LFQ_A_SubSet_Q3.mgf': 29449361,
+        '210820_Grad090_LFQ_B_SubSet_Q1.mgf': 23372512,
+        '210820_Grad090_LFQ_B_SubSet_Q2.mgf': 36848427,
+        '210820_Grad090_LFQ_B_SubSet_Q3.mgf': 29760442
     }), "Sizes of the pseudospectra files changed"
 
     assert (mgfs_sha256_sums == {
-        '210820_Grad090_LFQ_A_SubSet_Q1.mgf': '5b46a4d381bb2f3f72ec7467c64993e933b713da8cd2dbd5de3e697ace3da102',
-        '210820_Grad090_LFQ_A_SubSet_Q2.mgf': '60534c8e478d18c052ed952b58970c0567409d88c0065f3dc08c6fa25fe0f7d0',
-        '210820_Grad090_LFQ_A_SubSet_Q3.mgf': '51ac2698fdcb5fa99376624744297ddefdb92c301a7067411814255019f9a9dd',
-        '210820_Grad090_LFQ_B_SubSet_Q1.mgf': '556a9b6f20d9ce3379d4b278cb5845a4638dd47669316612273e792ea264bd70',
-        '210820_Grad090_LFQ_B_SubSet_Q2.mgf': '03c281ed913e8b8f1104238c62a67e14a51f7fca9c9dc2d534ff8faed0c212ba',
-        '210820_Grad090_LFQ_B_SubSet_Q3.mgf': 'acfebba7465a48675f990f7b822d365d87d67be5bcf468f7c909d03d46e5a7ca'
-    } or mgfs_sha256_sums == {
-        '210820_Grad090_LFQ_A_SubSet_Q1.mgf': '5b46a4d381bb2f3f72ec7467c64993e933b713da8cd2dbd5de3e697ace3da102',
-        '210820_Grad090_LFQ_A_SubSet_Q2.mgf': '60534c8e478d18c052ed952b58970c0567409d88c0065f3dc08c6fa25fe0f7d0',
-        '210820_Grad090_LFQ_A_SubSet_Q3.mgf': '51ac2698fdcb5fa99376624744297ddefdb92c301a7067411814255019f9a9dd',
-        '210820_Grad090_LFQ_B_SubSet_Q1.mgf': '556a9b6f20d9ce3379d4b278cb5845a4638dd47669316612273e792ea264bd70',
-        '210820_Grad090_LFQ_B_SubSet_Q2.mgf': '0055d7417bcfb430e4d763da36c2e8445f7bbb159eaf522ae9c7c172c74b4dbf',
-        '210820_Grad090_LFQ_B_SubSet_Q3.mgf': 'acfebba7465a48675f990f7b822d365d87d67be5bcf468f7c909d03d46e5a7ca'
+        '210820_Grad090_LFQ_A_SubSet_Q1.mgf': '59bb2d30f54e4ebc5eae48f81bd8a146a76a5bacc20ef2a4b954e0de545d0f0d',
+        '210820_Grad090_LFQ_A_SubSet_Q2.mgf': 'ae9d72b158d0453646110ab4748f8958abf0639589179749ad47158b4d582291',
+        '210820_Grad090_LFQ_A_SubSet_Q3.mgf': 'c67fbdb7423d067a797f8bf8874980ca7ff00c6cc0e967b3251d9663ca6a18c8',
+        '210820_Grad090_LFQ_B_SubSet_Q1.mgf': '99d95349a1618f4d8d90e5123c76352edef8f2f43528abf0ac36b56a6e63d859',
+        '210820_Grad090_LFQ_B_SubSet_Q2.mgf': '7de333075eb4741bf52f1e272e1be6b39917e387357e532bfe4c843dd857604b',
+        '210820_Grad090_LFQ_B_SubSet_Q3.mgf': '9818f7d15093240b96fa09033b561cbbcefa23e48e9d210d7eded9771346c4b7'
     }), "Checksums of the pseudospectra files changed"
