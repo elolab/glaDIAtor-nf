@@ -90,7 +90,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   if [ ! -e .cache/spectral-library ]; then
     mkdir .cache/spectral-library
 
-    wget -nv -O ".cache/spectral-library/SpecLib_cons_openswath.tsv" https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fspeclib%2Fbg_estimated%2FSpecLib_cons_openswath.tsv&dl=1
+    wget -nv -O ".cache/spectral-library/SpecLib_cons_openswath.tsv" "https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fspeclib%2Fbg_estimated%2FSpecLib_cons_openswath.tsv&dl=1"
   fi
 
   #
@@ -213,12 +213,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   NXF_VER="${NXF_VER}" nextflow -c e2e-conf.nf ${container_configuration_switch} \
       run ${produce_profiling_reports} "${workflow_file}" ${swath_windows_provided_switch} ${spectral_library_provided_switch} ${irt_workaround_switches} ${libgen_method_workaround_switch} ${config_files_workaround_switches}
+      # hint: add -resume and delete work directory related to Spectrast2OpenSwathTsv process to start from the middle
 
   echo "Checking the output with PyTest"
 
   if contains "spectral-library-provided" "$@"; then
     pytest -k "not test_protein_sequences_file" --ignore output-checks/test_search_results.py --ignore output-checks/test_spectral_library_files.py
   else
-    pytest .
+    pytest
   fi
 )
