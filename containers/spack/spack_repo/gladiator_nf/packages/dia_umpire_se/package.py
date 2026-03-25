@@ -43,7 +43,7 @@ class DiaUmpireSe(Package):
 
             build_gradle.filter(
                 r"implementation project\(':DIA-Umpire'\)",
-                f"implementation project(':DIA-Umpire')\n    implementation name: \"{batmass_jars[0].rstrip(".jar")}\""
+                f"implementation project(':DIA-Umpire')\n    implementation name: \"{batmass_jars[0].rstrip('.jar')}\""
             )
 
         with working_dir("DIA_Umpire_SE"):

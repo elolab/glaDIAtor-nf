@@ -4,12 +4,6 @@
 
 Required containers are available from Docker Hub, but they can be also built locally.
 
-### Spack
-
-```bash
-containers/spack/build.sh
-```
-
 ### Guix
 
 ::::{tab-set}
@@ -28,3 +22,31 @@ or more specific
 make SHELL=guix singularity-containers
 make SHELL=guix docker-containers
 ```
+
+### Spack
+
+```bash
+containers/spack/build.sh
+```
+
+Spack packages and containers are used for profiling and testing of new features.  
+They are currently not used by the production workflow.
+
+:::{hint}
+Packages that go to containers can be also installed on host system, which is convenient for profiling
+
+```sh
+containers/spack/setup-spack.sh
+```
+
+```sh
+source containers/spack/activate-spack.bash
+spack install dia-umpire-se@2.3.4
+```
+
+```sh
+source containers/spack/activate-spack.bash
+spack load dia-umpire-se
+psrecord --include-children 'DIA_Umpire_SE example.mzML dia-umpire.params' --log activity.csv --plot plot.png
+```
+:::

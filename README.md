@@ -52,7 +52,7 @@ head results/*.{csv,tsv}
 
 * [Getting started](https://elolab.github.io/glaDIAtor-nf/doc/getting-started.html)
 * [User guide](https://elolab.github.io/glaDIAtor-nf/doc/user-guide/index.html)
-  * [Input and output](https://elolab.github.io/glaDIAtor-nf/doc/user-guide/input-and-output.html)
+  * [Input and output](https://elolab.github.io/glaDIAtor-nf/doc/user-guide/input-output.html)
   * [Configuration](https://elolab.github.io/glaDIAtor-nf/doc/user-guide/configuration/index.html)
 
 ## License

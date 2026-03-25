@@ -20,11 +20,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 (
   cd "${SCRIPT_DIR}"
 
-  if [ ! -e spack ]; then
-    git -c advice.detachedHead=false clone --depth 1 --branch v1.1.1 https://github.com/spack/spack.git spack
-  fi
-
-  source spack/share/spack/setup-env.sh
+  ./setup-spack.sh
+  source ./activate-spack.bash
 
   build_location="${container_type}/${package_name}/${package_version}"
 
