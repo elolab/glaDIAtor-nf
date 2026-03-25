@@ -177,7 +177,7 @@ def test_protein_matrix():
 
     comparison_non_zero = comparison[(comparison != 0).all(axis=1)]
     relative_error_mean = (((comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_x"] - comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_y"]) / comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_y"]).mean() + ((comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_x"] - comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_y"]) / comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_y"]).mean()) / 2
-    assert relative_error_mean <= matrix_values_tolerance, f"The values in protein matrix differ from the reference, relative error mean {round(relative_error_mean * 100, 2)}%"  # this has potential to crash with zeros among values
+    assert relative_error_mean <= matrix_values_tolerance, f"The values in protein matrix differ from the reference, relative error mean {round(relative_error_mean * 100, 2)}%"
 
 
 def test_peptide_matrix():

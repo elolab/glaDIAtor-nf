@@ -1,7 +1,4 @@
-#Number of threads
-# set to the number of cores available
-# In the original gladiator, this was set by replicing this all caps 
-Thread = 4
+Thread = @PROCESS_THREAD_COUNT@
 
 #Precursor-fragments grouping parameters
 RPmax = 25

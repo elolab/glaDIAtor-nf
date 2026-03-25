@@ -41,7 +41,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   fi
 
   source .venv/bin/activate
-  pip install -r requirements.txt
+  pip install -r requirements.txt > /dev/null
 
   #
   # Prepare configuration
@@ -90,7 +90,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   if [ ! -e .cache/spectral-library ]; then
     mkdir .cache/spectral-library
 
-    wget -nv -O ".cache/spectral-library/SpecLib_cons_openswath.tsv" https://seafile.utu.fi/seafhttp/f/53d648a714f54efd88d8/?op=view
+    wget -nv -O ".cache/spectral-library/SpecLib_cons_openswath.tsv" https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fspeclib%2Fbg_estimated%2FSpecLib_cons_openswath.tsv&dl=1
   fi
 
   #
@@ -99,12 +99,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   if [ ! -e .cache/expected-protein-peptide-matrices ]; then
     mkdir .cache/expected-protein-peptide-matrices
 
-    wget -nv -O ".cache/expected-protein-peptide-matrices/DIA-analysis-results.csv" "https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fdia%2FDIA-analysis-results.csv&dl=1"
+    wget -nv -O ".cache/expected-protein-peptide-matrices/DIA-analysis-results.csv" "https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fdia%2Fbg_estimated%2FDIA-analysis-results.csv&dl=1"
     sed -i s/A_subset5.mzML/210820_Grad090_LFQ_A_SubSet.mzML/ .cache/expected-protein-peptide-matrices/DIA-analysis-results.csv
     sed -i s/B_subset5.mzML/210820_Grad090_LFQ_B_SubSet.mzML/ .cache/expected-protein-peptide-matrices/DIA-analysis-results.csv
 
-    wget -nv -O ".cache/expected-protein-peptide-matrices/DIA-peptide-matrix.tsv" "https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fdia%2FDIA-peptide-matrix.tsv&dl=1"
-    wget -nv -O ".cache/expected-protein-peptide-matrices/DIA-protein-matrix.tsv" "https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fdia%2FDIA-protein-matrix.tsv&dl=1"
+    wget -nv -O ".cache/expected-protein-peptide-matrices/DIA-peptide-matrix.tsv" "https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fdia%2Fbg_estimated%2FDIA-peptide-matrix.tsv&dl=1"
+    wget -nv -O ".cache/expected-protein-peptide-matrices/DIA-protein-matrix.tsv" "https://seafile.utu.fi/d/537124ec634347088a1a/files/?p=%2Fexample_glaDIAtor_run%2Fdia%2Fbg_estimated%2FDIA-protein-matrix.tsv&dl=1"
   fi
 
   #
@@ -202,7 +202,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   produce_profiling_reports=""
 
-  if contains "dag" "$@"; then
+  if contains "profiling" "$@"; then
     produce_profiling_reports="-with-dag dag.dot -with-report report.html -with-timeline timeline.html -with-trace trace.tsv"
     rm dag.dot -f
     rm report.html -f

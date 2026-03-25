@@ -8,7 +8,7 @@ The package is designed to run both on workstations and HPC clusters, built with
 
 * NextFlow 25.10.4 (>= 22.10 should work)
 * Java 25 (>= 17 should work)
-* Working installation of Docker, Podman, Apptainer, Singularity or Guix.
+* Working installation of Apptainer, Singularity, Podman, Docker or Guix.
 
 ## Get the glaDIAtor-nf
 

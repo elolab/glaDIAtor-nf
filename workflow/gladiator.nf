@@ -122,16 +122,19 @@ workflow {
             diaumpire_config_ch = channel.fromPath(params.diaumpireconfig ? params.diaumpireconfig : "${workflow.projectDir}/../config/diaumpire.params")
 
             dia_mzxml_files_for_diaumpire_ch = MzmlToMzxml(dia_mzml_files_for_diaumpire_ch)
+            dia_mzxml_sample_count = dia_mzxml_files_for_diaumpire_ch.toList().size()
 
             diaumpire_pseudospectra_mgf_ch = GeneratePseudoSpectra(
                 dia_mzxml_files_for_diaumpire_ch,
-                diaumpire_config_ch.combine(dia_mzxml_files_for_diaumpire_ch).map { it -> it[0] }
+                diaumpire_config_ch.combine(dia_mzxml_files_for_diaumpire_ch).map { it -> it[0] },
+                dia_mzxml_sample_count
             ).flatten()  // single .mzXML gives multiple .mgf files
 
             diaumpire_pseudospectra_ch = DiaUmpireMgfToMzxml(diaumpire_pseudospectra_mgf_ch)
         }
 
-        deconv_spectra_ch = dda_files_ch.concat(diaumpire_pseudospectra_ch)
+        // Deconvoluted DIA pseudospectra and input DDA spectra
+        spectra_files_ch = dda_files_ch.concat(diaumpire_pseudospectra_ch)
 
         //
         // MS/MS spectra vs sequences database search engines
@@ -143,12 +146,13 @@ workflow {
         // Comet
 
         comet_template_ch = channel.fromPath(params.comet_template ? params.comet_template : "${workflow.projectDir}/../config/comet.params")
-        comet_config_ch = MakeCometConfig(max_missed_cleavages_val, joined_fasta_with_decoys_ch, comet_template_ch)
+        spectra_files_count = spectra_files_ch.toList().size()
+        comet_config_ch = MakeCometConfig(max_missed_cleavages_val, joined_fasta_with_decoys_ch, comet_template_ch, spectra_files_count)
 
         (comet_pepxml_ch, xinteract_comet_mzxml_ch) = Comet(
-            comet_config_ch.combine(deconv_spectra_ch).map { it -> it[0] },
-            deconv_spectra_ch,
-            joined_fasta_with_decoys_ch.combine(deconv_spectra_ch).map { it -> it[0] }
+            comet_config_ch.combine(spectra_files_ch).map { it -> it[0] },
+            spectra_files_ch,
+            joined_fasta_with_decoys_ch.combine(spectra_files_ch).map { it -> it[0] }
         )
 
         comet_search_results_ch = XinteractComet(comet_pepxml_ch.toSortedList(), joined_fasta_with_decoys_ch, xinteract_comet_mzxml_ch.toSortedList())
@@ -156,17 +160,17 @@ workflow {
         // X! Tandem
 
         xtandem_template_ch = channel.fromPath(params.xtandem_template ? params.xtandem_template : "${workflow.projectDir}/../config/xtandem.xml")
-        xtandem_config_ch = MakeXtandemConfig(xtandem_template_ch, joined_fasta_with_decoys_ch, max_missed_cleavages_val)
+        xtandem_config_ch = MakeXtandemConfig(xtandem_template_ch, joined_fasta_with_decoys_ch, max_missed_cleavages_val, spectra_files_count)
 
         taxonomy_template = channel.fromPath("${workflow.projectDir}/search/tandem/taxonomy-template.xml")
         xtandem_input_template = channel.fromPath("${workflow.projectDir}/search/tandem/xtandem-input-template.xml")
 
         (xtandem_pepxml_ch, xinteract_xtandem_mzxml_ch) = XTandem(
-            deconv_spectra_ch,
-            xtandem_config_ch.combine(deconv_spectra_ch).map { it -> it[0] },
-            taxonomy_template.combine(deconv_spectra_ch).map { it -> it[0] },
-            xtandem_input_template.combine(deconv_spectra_ch).map { it -> it[0] },
-            joined_fasta_with_decoys_ch.combine(deconv_spectra_ch).map { it -> it[0] }
+            spectra_files_ch,
+            xtandem_config_ch.combine(spectra_files_ch).map { it -> it[0] },
+            taxonomy_template.combine(spectra_files_ch).map { it -> it[0] },
+            xtandem_input_template.combine(spectra_files_ch).map { it -> it[0] },
+            joined_fasta_with_decoys_ch.combine(spectra_files_ch).map { it -> it[0] }
         )
 
         xtandem_search_results_ch = XinteractXTandem(

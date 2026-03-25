@@ -1,25 +1,20 @@
-// MGF = Mascot Generic Format
-// https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518119
-
 process GeneratePseudoSpectra  {
-    memory '16 GB'
+    memory { task.executor == 'local' ? params.memory_ceiling as MemoryUnit / sample_count : params.memory_ceiling }
 
     input:
     file diafile
     path diaumpireconfig
+    val sample_count
 
     output:
     file "*.mgf"
 
     script:
-    """
-    # we set \$1 to the number of gigs of memory
-    set -- $task.memory
+    thread_count = Runtime.runtime.availableProcessors()
 
-    if command -v diaumpire-se; then
-        diaumpire-se  -Xmx\$1g -Xms\$1g $diafile $diaumpireconfig
-    else 
-        java -Xmx\$1g -Xms\$1g -jar /opt/dia-umpire/DIA_Umpire_SE.jar $diafile $diaumpireconfig
-    fi
+    """
+    cat "${diaumpireconfig}" | sed "s/@PROCESS_THREAD_COUNT@/${thread_count}/g" > diaumpire.params.altered
+
+    diaumpire-se -Xmx${task.memory.toGiga()}g "${diafile}" diaumpire.params.altered
     """
 }
