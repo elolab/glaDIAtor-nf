@@ -1,4 +1,5 @@
 process GeneratePseudoSpectra  {
+    cpus { task.executor == 'local' ? Runtime.runtime.availableProcessors() / sample_count : Runtime.runtime.availableProcessors() }
     memory { task.executor == 'local' ? params.memory_ceiling as MemoryUnit / sample_count : params.memory_ceiling }
 
     input:

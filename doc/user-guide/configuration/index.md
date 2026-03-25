@@ -99,8 +99,8 @@ It is necessary to also pass their locations when calling `nextflow` with `--dia
 Comparing to an example found at <https://github.com/Nesvilab/DIA-Umpire/blob/master/DIA_Umpire_SE/src/dia_umpire_se/diaumpire_se.params>, following modifications are present
 
 ```diff
--Thread = 6
-+Thread = 4
+- Thread = 6
++ Thread = @PROCESS_THREAD_COUNT@
 
  ExportPrecursorPeak = false
 -ExportFragmentPeak = false
@@ -133,9 +133,6 @@ Comparing to an example found at <https://github.com/Nesvilab/DIA-Umpire/blob/ma
 +SE.RemoveGroupedPeaks = true
 +SE.RemoveGroupedPeaksRTOverlap = 0.3
 +SE.RemoveGroupedPeaksCorr = 0.3
-
--SE.EstimateBG = true
-+SE.EstimateBG = false
 
 -SE.MinPrecursorMass = 700
 +SE.MinPrecursorMass = 600
@@ -185,6 +182,10 @@ Our configuration file is based on `high-high` variant, with following changes
 ```diff
 - database_name = /some/path/db.fasta
 + database_name = @DDA_DB_FILE@
+
+  # 0=poll CPU to set num threads; else specify num threads directly (max 128)
+- num_threads = 0
++ num_threads = @PROCESS_THREAD_COUNT@
 
 - peptide_mass_tolerance = 20.00
 + peptide_mass_tolerance = @PRECURSOR_MASS_TOLERANCE@
@@ -262,7 +263,7 @@ Following changes were applied
 +	<note type="input" label="spectrum, parent monoisotopic mass error minus">@PRECURSOR_MASS_TOLERANCE@</note>
 
 -	<note type="input" label="spectrum, threads">1</note>
-+	<note type="input" label="spectrum, threads">40</note>
++	<note type="input" label="spectrum, threads">@PROCESS_THREAD_COUNT@</note>
 
 -	<note type="input" label="residue, potential modification mass"></note>
 +	<note type="input" label="residue, potential modification mass">16@M</note>
