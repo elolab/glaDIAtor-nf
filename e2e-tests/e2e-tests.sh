@@ -187,7 +187,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
       libgen_method_workaround_switch="--libgen_method=diaumpire"
     fi
 
-    config_files_workaround_switches="--diaumpireconfig=config/diaumpire.params --comet_template=config/comet.params --xtandem_template=config/xtandem.xml"
+    sed 's/@PROCESS_THREAD_COUNT@/12/' config/diaumpire.params > diaumpire.params.altered
+    config_files_workaround_switches="--diaumpireconfig=diaumpire.params.altered --comet_template=config/comet.params --xtandem_template=config/xtandem.xml"
   fi
 
   #
