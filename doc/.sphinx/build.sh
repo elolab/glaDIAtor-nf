@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   fi
 
   source .venv/bin/activate
-  pip install -r requirements.txt
+  pip install -r requirements.txt > /dev/null
 
   sphinx-build --conf-dir . --builder html ../.. ../dist
 )

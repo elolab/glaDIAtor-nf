@@ -1,10 +1,10 @@
-# News
+# Release notes
 
 ## Pending
 
 ### Breaking changes
 
-* A parameter have been changed in the default configuration of DIA-Umpire SE (responsible for deconvolution of DIA spectra)
+* A parameter have been changed in the default configuration of DIA-Umpire SE
   ```diff
   - SE.EstimateBG = false
   + SE.EstimateBG = true

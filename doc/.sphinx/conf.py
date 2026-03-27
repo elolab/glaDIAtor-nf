@@ -20,7 +20,7 @@ bibtex_default_style = 'unsrt'
 
 html_show_sourcelink = False
 
-exclude_patterns = [ '**/site-packages/**', '**/.pytest_cache/**', '.venv', 'dist', 'README.md' ]
+exclude_patterns = [ '**/site-packages/**', '**/.pytest_cache/**', '.venv', 'dist', 'README.md', 'containers/spack/spack' ]
 
 html_theme = 'pydata_sphinx_theme'
 html_static_path = [ 'assets' ]
