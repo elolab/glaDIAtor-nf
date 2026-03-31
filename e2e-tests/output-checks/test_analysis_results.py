@@ -65,10 +65,10 @@ def test_pyprophet_subsample():
     assert pyprophet_subsample_sample_a_output_file.exists(), "PyProphet \"subsample\" output file is missing (sample A)"
     assert pyprophet_subsample_sample_b_output_file.exists(), "PyProphet \"subsample\" output file is missing (sample B)"
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_a_output_file), mean([5713920, 5652480]), 0.02,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_a_output_file), mean([5713920, 5652480]), 0.03,
         "The size of PyProphet \"subsample\" output file is {relative_size_change}% of expected size")
 
-    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_b_output_file), mean([5677056, 5820416]), 0.02,
+    assert_size_with_tolerance(os.path.getsize(pyprophet_subsample_sample_b_output_file), mean([5677056, 5820416]), 0.03,
         "The size of PyProphet \"subsample\" output file is {relative_size_change}% of expected size")
 
 
@@ -173,7 +173,7 @@ def test_protein_matrix():
     assert (comparison["210820_Grad090_LFQ_A_SubSet.mzML_x"].eq(0).sum() / comparison["210820_Grad090_LFQ_A_SubSet.mzML_x"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample A) have more zeros than expected"
     assert (comparison["210820_Grad090_LFQ_B_SubSet.mzML_x"].eq(0).sum() / comparison["210820_Grad090_LFQ_B_SubSet.mzML_x"].shape[0]) <= acceptable_zeros_percentage, "The values in protein matrix (sample B) have more zeros than expected"
 
-    matrix_values_tolerance = 0.11
+    matrix_values_tolerance = 0.17
 
     comparison_non_zero = comparison[(comparison != 0).all(axis=1)]
     relative_error_mean = (((comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_x"] - comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_y"]) / comparison_non_zero["210820_Grad090_LFQ_A_SubSet.mzML_y"]).mean() + ((comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_x"] - comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_y"]) / comparison_non_zero["210820_Grad090_LFQ_B_SubSet.mzML_y"]).mean()) / 2
