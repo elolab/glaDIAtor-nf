@@ -5,6 +5,7 @@
 from glob import glob
 
 from spack_repo.builtin.build_systems.generic import Package
+
 from spack.package import *
 
 
@@ -27,23 +28,23 @@ class DiaUmpireSe(Package):
     version("2.2.9", commit="255e0fec1d3775fd9616c2e4c40e137ca1766476")
     version("2.2.8", sha256="94113ea5c088189a28afc88ccfd1e0e4435755a3f499beb1dab10df0fb927282")
 
-    depends_on("java@11:16", type=("build", "run"), when="@2.3.4:")
-    depends_on("java@9:16", type=("build", "run"), when="@2.2.9:2.3.3")
-    depends_on("java@1.7:16", type=("build", "run"), when="@:2.2.8")
+    depends_on("java@11:15", type=("build", "run"), when="@2.3.4:")
+    depends_on("java@9:15", type=("build", "run"), when="@2.2.9:2.3.3")
+    depends_on("java@1.7:15", type=("build", "run"), when="@:2.2.8")
 
     def install(self, spec, prefix):
         if spec.satisfies("@2.2.9:"):
             batmass_jars = []
 
             with working_dir("lib"):
-                for jar in glob('batmass-io-*.jar'):
+                for jar in glob("batmass-io-*.jar"):
                     batmass_jars.append(jar)
 
             build_gradle = FileFilter("DIA_Umpire_SE/build.gradle")
 
             build_gradle.filter(
                 r"implementation project\(':DIA-Umpire'\)",
-                f"implementation project(':DIA-Umpire')\n    implementation name: \"{batmass_jars[0].rstrip('.jar')}\""
+                f"implementation project(':DIA-Umpire')\n    implementation name: \"{batmass_jars[0].rstrip('.jar')}\"",  # noqa
             )
 
         with working_dir("DIA_Umpire_SE"):
@@ -53,7 +54,7 @@ class DiaUmpireSe(Package):
         mkdirp(prefix.lib)
 
         with working_dir("DIA_Umpire_SE/build/libs"):
-            for jar in glob('*'):
+            for jar in glob("*"):
                 install(jar, prefix.lib)
 
         if spec.satisfies("^openjdk@11:"):
@@ -70,4 +71,4 @@ class DiaUmpireSe(Package):
             launcher_script.filter(r"\$JAVA_OPTS", f"{silence_java_warnings_params} $JAVA_OPTS")
 
         mkdirp(prefix.bin)
-        install('DIA_Umpire_SE/build/scripts/DIA_Umpire_SE', prefix.bin)
+        install("DIA_Umpire_SE/build/scripts/DIA_Umpire_SE", prefix.bin)

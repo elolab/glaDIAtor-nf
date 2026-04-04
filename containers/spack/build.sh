@@ -18,6 +18,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     ./build-container.sh "${container_type}" dia-umpire-se 2.3.4
     ./build-container.sh "${container_type}" dia-umpire-se 2.2.8
+
+    ./build-container.sh "${container_type}" openms 3.6.0 ^qt-base~gui
+    ./build-container.sh "${container_type}" openms 3.4.1
   done
 
   echo "Docker"
@@ -27,6 +30,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   echo "  withName: Xtandem { container = 'localhost/$(cat docker/x-tandem/2017.02.01-4/image-name.txt)' }"
   echo "  withName: GeneratePseudoSpectra { container = 'localhost/$(cat docker/dia-umpire-se/2.3.4/image-name.txt)' }"
   echo "  withName: GeneratePseudoSpectra { container = 'localhost/$(cat docker/dia-umpire-se/2.2.8/image-name.txt)' }"
+  echo "  withName: InferSwathWindows { container = 'localhost/$(cat docker/openms/3.6.0/image-name.txt)' }"
+  echo "  withName: InferSwathWindows { container = 'localhost/$(cat docker/openms/3.4.1/image-name.txt)' }"
   echo
   echo "Apptainer"
   echo
@@ -35,5 +40,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   echo "  withName: Xtandem { container = 'file://../containers/spack/$(ls apptainer/x-tandem/2017.02.01-4/*.sif)' }"
   echo "  withName: GeneratePseudoSpectra { container = 'file://../containers/spack/$(ls apptainer/dia-umpire-se/2.3.4/*.sif)' }"
   echo "  withName: GeneratePseudoSpectra { container = 'file://../containers/spack/$(ls apptainer/dia-umpire-se/2.2.8/*.sif)' }"
+  echo "  withName: InferSwathWindows { container = 'file://../containers/spack/$(ls apptainer/openms/3.6.0/*.sif)' }"
+  echo "  withName: InferSwathWindows { container = 'file://../containers/spack/$(ls apptainer/openms/3.4.1/*.sif)' }"
   echo
 )

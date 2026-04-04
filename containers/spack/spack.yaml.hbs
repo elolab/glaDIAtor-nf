@@ -1,9 +1,12 @@
 spack:
   specs:
-  - {{name}}@{{version}}
+  - {{name}}@{{version}} {{dependencies}}
 
   repos:
   - /opt/spack_repo/gladiator_nf
 
   container:
     format: {{container type}}
+    images:
+      os: "ubuntu:24.04"
+      spack: "1.1.1"

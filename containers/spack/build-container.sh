@@ -13,6 +13,12 @@ container_type="$1"
 package_name="$2"
 package_version="$3"
 
+if [[ -v 4 ]]; then
+  package_dependencies="$4"
+else
+  package_dependencies=""
+fi
+
 [[ "${container_type}" == "apptainer" || "${container_type}" == "docker" ]] || { echo "Container type needs to be either 'apptainer' or 'docker'"; false ; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,6 +53,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   sed -i "s/{{name}}/${package_name}/g" "${build_location}/spack.yaml"
   sed -i "s/{{version}}/${package_version}/g" "${build_location}/spack.yaml"
+  sed -i "s/{{dependencies}}/${package_dependencies}/g" "${build_location}/spack.yaml"
 
   if [ "${container_type}" == "apptainer" ]; then
     sed -i "s/{{container type}}/singularity/g" "${build_location}/spack.yaml"
